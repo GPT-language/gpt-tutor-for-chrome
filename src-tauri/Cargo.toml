@@ -33,6 +33,7 @@ mouce = "0.2.41"
 tauri-plugin-window-state = "0.1.0"
 whatlang = "0.16.2"
 arboard = "3.2.0"
+scrap = "0.5.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.24"
@@ -41,7 +42,10 @@ macos-accessibility-client = "0.0.1"
 core-graphics = "0.22.3"
 
 [target.'cfg(windows)'.dependencies]
-windows = {version="0.44.0",features= ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
+windows = {version="0.44.0",features= ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Media_Ocr", 
+    "Graphics_Imaging",
+    "Storage_Streams",
+    "Foundation"] }
 
 [features]
 # by default Tauri runs in production mode
