@@ -1,18 +1,13 @@
 /* eslint-disable camelcase */
 import * as utils from '../common/utils'
 import * as lang from './components/lang/lang'
-import { parseSSE } from './utils'
 import { urlJoin } from 'url-join-ts'
 import { v4 as uuidv4 } from 'uuid'
 import { getLangConfig, LangCode } from './components/lang/lang'
 import { getUniversalFetch } from './universal-fetch'
 import { Action } from './internal-services/db'
 import { oneLine } from 'common-tags'
-import { ArkoseToken } from './arkose'
-import { proxyFetch } from './services/proxy-fetch'
-import { ResponseContent, ResponsePayload } from './types'
-import { Requester, globalFetchRequester, proxyFetchRequester } from './services/requesters'
-import { get as getPath } from 'lodash-es'
+import { ResponseContent } from './types'
 import Browser from 'webextension-polyfill'
 export type TranslateMode = 'built-in' | 'translate' | 'explain-code'
 export type Provider = 'OpenAI' | 'ChatGPT' | 'Azure'
@@ -428,7 +423,6 @@ export class WebAPI {
         let arkoseToken = ''
         if (settings.provider !== 'ChatGPT') {
             apiKey = await utils.getApiKey()
-            const arkose = await ArkoseToken()
         }
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
