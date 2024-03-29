@@ -58,31 +58,6 @@ interface FetcherOptions {
     body: string
 }
 
-async function updateTitleAndCheckId(
-    conversationId: string | undefined,
-    fetcher: (url: string, options: FetcherOptions) => Promise<Response>,
-    headers: Record<string, string>
-): Promise<void> {
-    const lastConversationId: string | null = localStorage.getItem('lastConversationId')
-    // Check if conversationId has changed
-    if (lastConversationId !== conversationId) {
-        localStorage.setItem('lastConversationId', conversationId || '') // Update lastConversationId
-        await updateTitleAndCheckId(conversationId, fetcher, headers) // Recursively call to reset the title
-        return
-    }
-    if (conversationId) {
-        const savedAction: string | null = localStorage.getItem('savedAction')
-        const currentDate = new Date()
-        const formattedDate = `${currentDate.getMonth() + 1}月${currentDate.getDate()}日`
-        const newTitle = `${savedAction}-${formattedDate}`
-
-        await fetcher(`${utils.defaultChatGPTWebAPI}/conversation/${conversationId}`, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({ title: newTitle }),
-        })
-    }
-}
 
 function removeCitations(text: string) {
     return text.replaceAll(/\u3010\d+\u2020source\u3011/g, '')
@@ -470,7 +445,7 @@ export class WebAPI {
                 ],
                 model: settings.apiModel, // 'text-davinci-002-render-sha'
                 conversation_id: lastConversationId || undefined,
-                parent_message_id: this.conversationContext?.lastMessageId || uuidv4(),
+                parent_message_id: uuidv4(),
                 conversation_mode: {
                     kind: 'primary_assistant',
                 },

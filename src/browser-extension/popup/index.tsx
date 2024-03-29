@@ -7,6 +7,7 @@ import { PREFIX } from '../../common/constants'
 import { useTheme } from '../../common/hooks/useTheme'
 import { ClerkProvider, SignedIn, SignedOut, SignIn, SignUp } from '@clerk/chrome-extension'
 import { useNavigate, Routes, Route, MemoryRouter } from 'react-router-dom'
+import React from 'react'
 
 
 
