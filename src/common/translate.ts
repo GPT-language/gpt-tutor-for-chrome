@@ -52,34 +52,6 @@ export interface TranslateResult {
     error?: string
 }
 
-interface FetcherOptions {
-    method: string
-    headers: Record<string, string>
-    body: string
-}
-
-
-function removeCitations(text: string) {
-    return text.replaceAll(/\u3010\d+\u2020source\u3011/g, '')
-}
-
-function parseResponseContent(content: ResponseContent): { text?: string; image?: ImageContent } {
-    if (content.content_type === 'text') {
-        return { text: removeCitations(content.parts[0]) }
-    }
-    if (content.content_type === 'code') {
-        return { text: '_' + content.text + '_' }
-    }
-    if (content.content_type === 'multimodal_text') {
-        for (const part of content.parts) {
-            if (part.content_type === 'image_asset_pointer') {
-                return { image: part }
-            }
-        }
-    }
-    return {}
-}
-
 export class QuoteProcessor {
     private quote: string
     public quoteStart: string
@@ -206,11 +178,6 @@ export class QuoteProcessor {
     }
 }
 
-interface ConversationContext {
-    conversationId: string
-    lastMessageId: string
-}
-
 function getConversationId() {
     return new Promise(function (resolve) {
         chrome.storage.local.get(['conversationId'], function (result) {
@@ -252,7 +219,7 @@ export async function getArkoseToken() {
                 '\n\n' +
                 "Please keep https://chat.openai.com open and try again. If it still doesn't work, type some characters in the input box of chatgpt web page and try again."
         )
-    return arkoseToken
+    return arkoseToken as string
 }
 
 async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body: any) {
@@ -273,19 +240,8 @@ async function getChatRequirements(token: string) {
     return response.json()
 }
 
-async function resetConversation() {
-    // 删除保存在 chrome.storage.local 中的上下文
-    chrome.storage.local.remove(['conversationId', 'lastMessageId'], () => {
-    })
-}
-
 const chineseLangCodes = ['zh-Hans', 'zh-Hant', 'lzh', 'yue', 'jdbhw', 'xdbhw']
 export class WebAPI {
-    private conversationContext?: ConversationContext
-
-
-
-
     saveConversationContext(name: string, conversationContext: { conversationId: string; lastMessageId: string }) {
         //  使用 chrome.storage.local.set() 保存上下文
         // 保存的键为action.name，然后保存对话ID
@@ -326,7 +282,6 @@ export class WebAPI {
             })
         })
     }
-
 
     async translate(query: TranslateQuery) {
         const fetcher = getUniversalFetch()

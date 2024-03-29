@@ -24,10 +24,7 @@ export default defineConfig({
                     '': '基于 ChatGPT API 的划词翻译浏览器插件和跨平台桌面端应用',
                     'en': 'Browser extension and cross-platform desktop application for translation based on ChatGPT API',
                 },
-                require: [
-                    'https://cdn.jsdelivr.net/gh/openai-translator/openai-translator/public/cld-min.js',
-                    'data:application/javascript,%3Bwindow.detectLanguage%3DdetectLanguage%3B',
-                ],
+                require: ['data:application/javascript,%3Bwindow.detectLanguage%3DdetectLanguage%3B'],
                 version,
             },
             build: {

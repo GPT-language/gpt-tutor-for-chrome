@@ -15,8 +15,8 @@
     "clean": "make clean",
     "test": "npx jest",
     "test:e2e": "playwright test",
-    "lint": "eslint 'src/**/*.{ts,tsx}' --cache",
-    "lint:fix": "eslint --fix 'src/**/*.{ts,tsx}'",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --cache",
+    "lint:fix": "eslint --fix \"src/**/*.{ts,tsx}\"",
     "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc --cache"
   },
   "author": "BlackStar1453",

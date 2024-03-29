@@ -196,5 +196,4 @@ class ActionInternalService implements IActionInternalService {
     }
 }
 
-
 export const actionInternalService = new ActionInternalService()

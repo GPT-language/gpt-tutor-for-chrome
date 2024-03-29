@@ -3,7 +3,7 @@
 
     "name": "GPT Tutor",
     "description": "GPT-Tutor is a  extension that uses the ChatGPT API for language learning.",
-    "version": "0.1.9.9",
+    "version": "0.1.9.7",
 
     "icons": {
         "16": "icon.png",
@@ -29,7 +29,7 @@
         {
             "matches": ["<all_urls>"],
             "all_frames": true,
-            "js": ["/public/cld-min.js", "/src/browser-extension/content_script/index.tsx"]
+            "js": [ "/src/browser-extension/content_script/index.tsx"]
         }
     ],
 

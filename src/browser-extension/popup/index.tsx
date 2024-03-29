@@ -9,8 +9,6 @@ import { ClerkProvider, SignedIn, SignedOut, SignIn, SignUp } from '@clerk/chrom
 import { useNavigate, Routes, Route, MemoryRouter } from 'react-router-dom'
 import React from 'react'
 
-
-
 const publishableKey = 'pk_test_ZXhvdGljLWJ1bGxmcm9nLTM2LmNsZXJrLmFjY291bnRzLmRldiQ'
 
 function ClerkProviderWithRoutes() {
@@ -70,8 +68,6 @@ if (!PUBLISHABLE_KEY) {
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
 function App() {
-    const { theme } = useTheme()
-
     return (
         <MemoryRouter>
             <ClerkProviderWithRoutes />

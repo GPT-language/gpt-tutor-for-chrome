@@ -95,11 +95,10 @@ const yourglishLangOptions: Value = supportedLanguages.reduce((acc, [id, label])
                 id,
                 label,
             } as Option,
-        ];
+        ]
     }
-    return acc;
-}, [] as Value);
-
+    return acc
+}, [] as Value)
 
 interface ILanguageSelectorProps {
     value?: string
@@ -215,36 +214,6 @@ interface IThemeTypeSelectorProps {
     value?: ThemeType
     onChange?: (value: ThemeType) => void
     onBlur?: () => void
-}
-
-function ThemeTypeSelector({ value, onChange, onBlur }: IThemeTypeSelectorProps) {
-    const { t } = useTranslation()
-
-    return (
-        <Select
-            size='compact'
-            onBlur={onBlur}
-            searchable={false}
-            clearable={false}
-            value={
-                value
-                    ? [
-                          {
-                              id: value,
-                          },
-                      ]
-                    : []
-            }
-            onChange={(params) => {
-                onChange?.(params.value[0].id as ThemeType)
-            }}
-            options={[
-                { label: t('Follow the System'), id: 'followTheSystem' },
-                { label: t('Dark'), id: 'dark' },
-                { label: t('Light'), id: 'light' },
-            ]}
-        />
-    )
 }
 
 const useTTSSettingsStyles = createUseStyles({
@@ -759,218 +728,6 @@ function MyCheckbox({ value, onChange, onBlur }: MyCheckboxProps) {
     )
 }
 
-interface ChatContextCheckboxProps {
-    value?: boolean
-    onChange?: (value: boolean) => void
-    onBlur?: () => void
-}
-
-function ChatContextCheckbox({ value, onChange, onBlur }: ChatContextCheckboxProps) {
-    return (
-        <Checkbox
-            checkmarkType='toggle_round'
-            checked={value}
-            onChange={(e) => {
-                onChange?.(e.target.checked)
-                onBlur?.()
-            }}
-        />
-    )
-}
-
-interface RestorePreviousPositionCheckboxProps {
-    value?: boolean
-    onChange?: (value: boolean) => void
-    onBlur?: () => void
-}
-
-function RestorePreviousPositionCheckbox({ value, onChange, onBlur }: RestorePreviousPositionCheckboxProps) {
-    return (
-        <Checkbox
-            checkmarkType='toggle_round'
-            checked={value}
-            onChange={(e) => {
-                onChange?.(e.target.checked)
-                onBlur?.()
-            }}
-        />
-    )
-}
-interface SelectInputElementsProps {
-    value?: boolean
-    onChange?: (value: boolean) => void
-    onBlur?: () => void
-}
-
-function SelectInputElementsCheckbox({ value, onChange, onBlur }: SelectInputElementsProps) {
-    return (
-        <Checkbox
-            checkmarkType='toggle_round'
-            checked={value}
-            onChange={(e) => {
-                onChange?.(e.target.checked)
-                onBlur?.()
-            }}
-        />
-    )
-}
-interface RunAtStartupCheckboxProps {
-    value?: boolean
-    onChange?: (value: boolean) => void
-    onBlur?: () => void
-}
-
-function RunAtStartupCheckbox({ value, onChange, onBlur }: RunAtStartupCheckboxProps) {
-    return (
-        <Checkbox
-            checkmarkType='toggle_round'
-            checked={value}
-            onChange={(e) => {
-                onChange?.(e.target.checked)
-                onBlur?.()
-            }}
-        />
-    )
-}
-
-const useHotkeyRecorderStyles = createUseStyles({
-    'hotkeyRecorder': (props: IThemedStyleProps) => ({
-        position: 'relative',
-        height: '32px',
-        lineHeight: '32px',
-        padding: '0 14px',
-        borderRadius: '4px',
-        width: '200px',
-        cursor: 'pointer',
-        border: '1px dashed transparent',
-        backgroundColor: props.theme.colors.backgroundTertiary,
-        color: props.theme.colors.primary,
-    }),
-    'clearHotkey': {
-        position: 'absolute',
-        top: '10px',
-        right: '12px',
-    },
-    'caption': {
-        marginTop: '4px',
-        fontSize: '11px',
-        color: '#999',
-    },
-    'recording': {
-        animation: '$recording 2s infinite',
-    },
-    '@keyframes recording': {
-        '0%': {
-            backgroundColor: 'transparent',
-        },
-        '50%': {
-            backgroundColor: 'rgb(238, 238, 238)',
-            borderColor: '#999',
-        },
-        '100%': {
-            backgroundColor: 'transparent',
-        },
-    },
-})
-
-interface IHotkeyRecorderProps {
-    value?: string
-    onChange?: (value: string) => void
-    onBlur?: () => void
-    testId?: string
-}
-
-function HotkeyRecorder({ value, onChange, onBlur, testId }: IHotkeyRecorderProps) {
-    const { theme, themeType } = useTheme()
-
-    const { t } = useTranslation()
-
-    const styles = useHotkeyRecorderStyles({ themeType, theme })
-    const [keys, { start, stop, isRecording }] = useRecordHotkeys()
-
-    const [hotKeys, setHotKeys] = useState<string[]>([])
-    useEffect(() => {
-        if (value) {
-            setHotKeys(
-                value
-                    .replace(/-/g, '+')
-                    .split('+')
-                    .map((k) => k.trim())
-                    .filter(Boolean)
-            )
-        }
-    }, [value])
-
-    useEffect(() => {
-        let keys_ = Array.from(keys)
-        if (keys_ && keys_.length > 0) {
-            keys_ = keys_.filter((k) => k.toLowerCase() !== 'meta')
-            setHotKeys(keys_)
-            onChange?.(keys_.join('+'))
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [keys])
-
-    useEffect(() => {
-        if (!isRecording) {
-            onChange?.(hotKeys.join('+'))
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hotKeys, isRecording])
-
-    useEffect(() => {
-        const stopRecording = () => {
-            if (isRecording) {
-                stop()
-                onBlur?.()
-            }
-        }
-        document.addEventListener('click', stopRecording)
-        return () => {
-            document.removeEventListener('click', stopRecording)
-        }
-    }, [isRecording, onBlur, stop])
-
-    function clearHotkey() {
-        onChange?.('')
-        setHotKeys([])
-    }
-
-    return (
-        <div>
-            <div
-                onClick={(e) => {
-                    e.stopPropagation()
-                    e.currentTarget.focus()
-                    if (!isRecording) {
-                        start()
-                    } else {
-                        stop()
-                    }
-                }}
-                data-testid={testId}
-                className={clsx(styles.hotkeyRecorder, {
-                    [styles.recording]: isRecording,
-                })}
-            >
-                {hotKeys.join(' + ')}
-                {!isRecording && hotKeys.length > 0 ? (
-                    <IoCloseCircle
-                        className={styles.clearHotkey}
-                        onClick={(e: React.MouseEvent<SVGElement>) => {
-                            e.stopPropagation()
-                            clearHotkey()
-                        }}
-                    />
-                ) : null}
-            </div>
-            <div className={styles.caption}>
-                {isRecording ? t('Please press the hotkey you want to set.') : t('Click above to set hotkeys.')}
-            </div>
-        </div>
-    )
-}
-
 function ProviderSelector({ value, onChange }: IProviderSelectorProps) {
     const options = utils.isDesktopApp()
         ? ([
@@ -1034,7 +791,6 @@ export function Settings({ engine, ...props }: ISettingsProps) {
 
 export function InnerSettings({ onSave }: IInnerSettingsProps) {
     const { theme } = useTheme()
-    const tokenRegenerateEvent = new Event('tokenRegenerate')
     const { setThemeType } = useThemeType()
 
     const { t } = useTranslation()
@@ -1088,10 +844,6 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
 
     const onSubmit = useCallback(
         async (data: ISettings) => {
-            if (data.apiModel === 'gpt-4') {
-                localStorage.setItem('apiModel', 'gpt-4')
-                document.dispatchEvent(tokenRegenerateEvent)
-            }
             if (data.themeType) {
                 setThemeType(data.themeType)
             }

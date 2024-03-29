@@ -105,12 +105,6 @@ export type ProxyFetchResponseBodyChunkMessage = {
     type: 'PROXY_RESPONSE_BODY_CHUNK'
 } & ({ done: true } | { done: false; value: string })
 
-interface FetcherOptions {
-    method: string
-    headers: Record<string, string>
-    body: string
-}
-
 export type ResponsePayload = {
     conversation_id: string
     message: {

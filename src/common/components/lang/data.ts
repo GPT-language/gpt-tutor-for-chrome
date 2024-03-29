@@ -85,7 +85,6 @@ export const LANG_CONFIGS: Record<LangCode, Config> = {
         isSource: false,
     },
 
-
     // Japanese
     'ja': {
         name: '日本語',
@@ -115,25 +114,25 @@ export const LANG_CONFIGS: Record<LangCode, Config> = {
     'fr': {
         nameEn: 'French',
         name: 'Français',
-        accent: '', 
+        accent: '',
         phoneticNotation: 'IPA',
     },
     'fr-be': {
         nameEn: 'French ',
         name: 'Français (Belgique)',
-        accent: 'be', 
+        accent: 'be',
         phoneticNotation: 'IPA',
     },
     'fr-qc': {
         nameEn: 'French ',
         name: 'Français (Québec)',
-        accent: 'qc', 
+        accent: 'qc',
         phoneticNotation: 'IPA',
     },
     'fr-ch': {
         nameEn: 'French ',
         name: 'Français (Suisse)',
-        accent: 'ch', 
+        accent: 'ch',
         phoneticNotation: 'IPA',
     },
     'de': {

@@ -21,7 +21,7 @@ import { clsx } from 'clsx'
 import { Button } from 'baseui-sd/button'
 import { ErrorBoundary } from 'react-error-boundary'
 import { ErrorFallback } from '../components/ErrorFallback'
-import { defaultAPIURL, getSettings, isDesktopApp, isTauri } from '../utils'
+import { defaultAPIURL, isDesktopApp, isTauri } from '../utils'
 import { InnerSettings } from './Settings'
 import { documentPadding } from '../../browser-extension/content_script/consts'
 import Dropzone from 'react-dropzone'
@@ -429,7 +429,6 @@ export function Translator(props: ITranslatorProps) {
 function InnerTranslator(props: IInnerTranslatorProps) {
     useEffect(() => {
         setupAnalysis()
-        initArkosetoken()
     }, [])
 
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
@@ -444,14 +443,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const highlightRef = useRef<HighlightInTextarea | null>(null)
     const { t, i18n } = useTranslation()
     const { settings } = useSettings()
-
-    async function initArkosetoken() {
-        if (settings.apiModel.startsWith('gpt-4')) {
-            document.dispatchEvent(tokenRegenerateEvent)
-        } else if (localStorage.getItem('apiModel')) {
-            localStorage.removeItem('apiModel')
-        }
-    }
 
     useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -635,7 +626,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         setDisplayedActions(displayedActions)
         setHiddenActions(hiddenActions)
-    }, [actions, activateAction?.id, displayedActionsMaxCount, selectedGroup])
+    }, [actions, activateAction?.id, displayedActionsMaxCount, promptsData, selectedGroup])
 
     const isTranslate = currentTranslateMode === 'translate'
 
@@ -795,7 +786,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const translatedLanguageDirection = useMemo(() => getLangConfig(sourceLang).direction, [sourceLang])
 
-    const addToAnki = async (deckname: string, front: string, back: any) => {
+    const addToAnki = async (deckname: string, front: string, back: string) => {
         const connected = await isConnected()
 
         if (connected) {
@@ -961,7 +952,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 return
             }
             const beforeTranslate = () => {
-                let actionStr = 'Processing...'
+                const actionStr = 'Processing...'
                 setActionStr(actionStr)
                 setTranslatedText('')
                 setErrorMessage('')
@@ -982,11 +973,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                         })
                     }
                 } else {
-                    let actionStr = 'Processed'
+                    const actionStr = 'Processed'
                     setActionStr(actionStr)
-                    if (settings.apiModel.startsWith('gpt-4')) {
-                        document.dispatchEvent(tokenRegenerateEvent)
-                    }
                 }
             }
             beforeTranslate()
@@ -1157,11 +1145,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         translatedStopSpeakRef.current = stopSpeak
     }
 
-    const [conversationIds, setConversationIds] = useState([])
-
-    
-
-    const tokenRegenerateEvent = new Event('tokenRegenerate')
     return (
         <div
             className={clsx(styles.popupCard, {
@@ -1457,10 +1440,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             )
                                                         }
                                                         setOriginalText(editableText)
-                                                        const settings = await getSettings()
-                                                        if (settings.apiModel.startsWith('gpt-4')) {
-                                                            document.dispatchEvent(tokenRegenerateEvent)
-                                                        }
                                                     }
                                                 }
                                             }}
@@ -1513,10 +1492,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             )
                                                         }
                                                         setOriginalText(editableText)
-                                                        const settings = await getSettings()
-                                                        if (settings.apiModel.startsWith('gpt-4')) {
-                                                            document.dispatchEvent(tokenRegenerateEvent)
-                                                        }
                                                     }}
                                                     startEnhancer={<IoIosRocket size={13} />}
                                                     overrides={{

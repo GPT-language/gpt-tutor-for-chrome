@@ -156,7 +156,7 @@ interface IVocabularyProps {
 const Vocabulary = (props: IVocabularyProps) => {
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
-    const webAPI = new WebAPI();
+    const webAPI = new WebAPI()
     const [words, setWords] = useState<VocabularyItem[]>([])
     const [selectedWord, setSelectedWord] = useState<VocabularyItem>()
     const [isCollectedWord, setIsCollectedWord] = useState(false)

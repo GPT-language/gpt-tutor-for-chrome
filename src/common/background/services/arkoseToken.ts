@@ -14,11 +14,11 @@ class BackgroundTokenService implements IarkoseTokenInternalService {
         return await callMethod('tokenInternalService', 'getNextValidToken', [])
     }
     initializeTokenInternalService(): void {
-        callMethod('tokenInternalService', 'initializeTokenInternalService', []);
+        callMethod('tokenInternalService', 'initializeTokenInternalService', [])
     }
 
     getTokenInternalService(): TokenInternalService | null {
-        return callMethod('tokenInternalService', 'getTokenInternalService', []);
+        return callMethod('tokenInternalService', 'getTokenInternalService', [])
     }
 }
 

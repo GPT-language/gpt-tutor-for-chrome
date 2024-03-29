@@ -2,26 +2,7 @@ import * as utils from '../../common/utils'
 import icon from '../../common/assets/images/icon.png'
 import { popupThumbID, zIndex } from './consts'
 import { getContainer, queryPopupCardElement, queryPopupThumbElement } from './utils'
-
-import hotkeys from 'hotkeys-js'
 import '../../common/i18n.js'
-import Browser from 'webextension-polyfill'
-import { setupProxyExecutor } from '../../common/services/proxy-fetch'
-
-function injectTip() {
-    const div = document.createElement('div')
-    div.innerText = 'Please keep this tab open, now you can go back to ChatHub'
-    div.style.position = 'fixed'
-    // put the div at right top of page
-    div.style.top = '0'
-    div.style.right = '0'
-    div.style.zIndex = '50'
-    div.style.padding = '10px'
-    div.style.margin = '10px'
-    div.style.border = '1px solid'
-    div.style.color = 'red'
-    document.body.appendChild(div)
-}
 
 const hidePopupThumbTimer: number | null = null
 
@@ -120,17 +101,6 @@ async function main() {
     let mousedownTarget: EventTarget | null
     let lastMouseEvent: MouseEvent | undefined
 
-    Browser.runtime.onMessage.addListener(async (message) => {
-        if (message === 'url') {
-            return location.href
-        }
-    })
-    if ((window as any).__NEXT_DATA__) {
-        if (await Browser.runtime.sendMessage({ event: 'PROXY_TAB_READY' })) {
-            injectTip()
-        }
-    }
-
     document.addEventListener('mouseup', async (event: MouseEvent) => {
         lastMouseEvent = event
         const settings = await utils.getSettings()
@@ -170,10 +140,6 @@ async function main() {
         hidePopupCard()
         hidePopupThumb()
     })
-
-    const settings = await utils.getSettings()
-
-    await bindHotKey(settings.hotkey)
 }
 
 const config = {
@@ -211,42 +177,4 @@ export async function getArkoseToken() {
     return arkoseToken
 }
 
-export async function bindHotKey(hotkey_: string | undefined) {
-    const hotkey = hotkey_?.trim().replace(/-/g, '+')
-
-    if (!hotkey) {
-        return
-    }
-
-    hotkeys(hotkey, (event) => {
-        event.preventDefault()
-        let text = (window.getSelection()?.toString() ?? '').trim()
-        if (!text) {
-            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-                const elem = event.target
-                text = elem.value.substring(elem.selectionStart ?? 0, elem.selectionEnd ?? 0)
-            }
-        }
-        hidePopupCard()
-        // sendText in center of screen
-        sendText(text)
-    })
-
-    chrome.runtime.onMessage.addListener((request: any, sender, sendResponse) => {
-        console.log('Token received. Request:', request)
-        if (request.action === 'getLocalStorage') {
-            console.log(localStorage.getItem('arkoseToken'))
-            const value = localStorage.getItem(request.key)
-            if (value === null) {
-                console.error('No value found for key:', request.key)
-                sendResponse({ value: undefined }) // or provide a default value
-            } else {
-                console.log('receive:' + value)
-                sendResponse({ value: value })
-            }
-        }
-        return true // 必须返回true
-    })
-}
-setupProxyExecutor()
 main()

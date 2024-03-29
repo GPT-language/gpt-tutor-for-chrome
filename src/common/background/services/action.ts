@@ -35,7 +35,7 @@ class BackgroundActionService implements IActionInternalService {
         return callMethod('actionService', 'importActions', [file])
     }
 
-    getArkoseToken(): Promise<any | undefined> {
+    getArkoseToken(): Promise<string | undefined> {
         return callMethod('actionService', 'getArkoseToken', [])
     }
 }

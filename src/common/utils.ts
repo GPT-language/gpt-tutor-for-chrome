@@ -38,7 +38,7 @@ const settingKeys: Record<keyof ISettings, number> = {
     defaultTranslateMode: 1,
     defaultSourceLanguage: 1,
     defaultTargetLanguage: 1,
-    defaultYouglishLanguage:1,
+    defaultYouglishLanguage: 1,
     alwaysShowIcons: 1,
     hotkey: 1,
     ocrHotkey: 1,
@@ -166,7 +166,6 @@ export const isUsingOpenAIOfficial = async () => {
     return settings.provider === 'ChatGPT' || (await isUsingOpenAIOfficialAPIEndpoint())
 }
 
-
 export async function exportToJson<T extends Action>(filename: string, rows: T[]) {
     if (!rows.length) return
     filename += '.json'
@@ -191,37 +190,32 @@ export async function exportToJson<T extends Action>(filename: string, rows: T[]
     }
 }
 
-
-
-
-
 export async function jsonToActions(file: File): Promise<Action[]> {
     try {
-        console.log('Starting jsonToActions function');
+        console.log('Starting jsonToActions function')
 
         // 读取文件内容
-        console.log('Reading file content');
-        const fileContent = await file.text();
-        console.log('File content:', fileContent.substring(0, 100)); // 显示前100字符，以避免太长
+        console.log('Reading file content')
+        const fileContent = await file.text()
+        console.log('File content:', fileContent.substring(0, 100)) // 显示前100字符，以避免太长
 
         // 解析JSON数据
-        console.log('Parsing JSON data');
-        const parsedData = JSON.parse(fileContent);
-        console.log('Parsed data:', parsedData.slice(0, 5)); // 显示前5条数据
+        console.log('Parsing JSON data')
+        const parsedData = JSON.parse(fileContent)
+        console.log('Parsed data:', parsedData.slice(0, 5)) // 显示前5条数据
 
         // 简单验证以检查parsedData是否为动作数组
         if (!Array.isArray(parsedData)) {
-            throw new Error('Invalid file format: Expected an array of actions');
+            throw new Error('Invalid file format: Expected an array of actions')
         }
 
-        console.log('Returning parsed data');
-        return parsedData;
+        console.log('Returning parsed data')
+        return parsedData
     } catch (error) {
-        console.error('Error importing actions:', error);
-        return [];
+        console.error('Error importing actions:', error)
+        return []
     }
 }
-
 
 export async function setUserConfig(value: Record<string, any>) {
     await Browser.storage.local.set(value)

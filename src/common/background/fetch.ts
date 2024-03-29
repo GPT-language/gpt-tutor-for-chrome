@@ -14,8 +14,6 @@ export interface BackgroundFetchResponseMessage
     data?: string
 }
 
-
-
 async function readText(stream: ReadableStream) {
     const reader = stream.getReader()
     let text = ''
