@@ -23,9 +23,6 @@ export type APIModel =
 interface BaseTranslateQuery {
     activatedActionName: string
     text: string
-    selectedWord: string
-    detectFrom: LangCode
-    detectTo: LangCode
     mode?: Exclude<TranslateMode, 'big-bang'>
     action: Action
     onMessage: (message: { content: string; role: string; isFullText?: boolean }) => void
@@ -532,7 +529,7 @@ export class WebAPI {
             })
         } else {
             const url = urlJoin(settings.apiURL, settings.apiURLPath)
-            await fetchSSE(url, {
+            await utils.fetchSSE(url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(body),
