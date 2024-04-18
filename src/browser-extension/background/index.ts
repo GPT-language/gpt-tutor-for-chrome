@@ -4,6 +4,7 @@ import { BackgroundEventNames } from '../../common/background/eventnames'
 import { BackgroundFetchRequestMessage, BackgroundFetchResponseMessage } from '../../common/background/fetch'
 import { vocabularyInternalService } from '../../common/internal-services/vocabulary'
 import { actionInternalService } from '../../common/internal-services/action'
+import { messageService } from '../../common/internal-services/message'
 // Import the functions you need from the SDKs you need
 import { initializeApp } from 'firebase/app'
 import { getFirestore, collection, getDocs, query, where, DocumentData } from 'firebase/firestore'
@@ -218,6 +219,8 @@ browser.runtime.onMessage.addListener(async (request) => {
             return await callMethod(request, vocabularyInternalService)
         case BackgroundEventNames.actionService:
             return await callMethod(request, actionInternalService)
+        case BackgroundEventNames.messageService:
+            return await callMethod(request, messageService)
     }
 })
 

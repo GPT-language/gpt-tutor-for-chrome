@@ -1,15 +1,6 @@
 import Dexie, { Table } from 'dexie'
 import { TranslateMode } from '../translate'
 
-export interface VocabularyItem {
-    word: string
-    reviewCount: number
-    description: string
-    updatedAt: string
-    createdAt: string
-    [prop: string]: string | number
-}
-
 export type ActionOutputRenderingFormat = 'text' | 'markdown' | 'latex'
 
 export interface Action {
@@ -26,10 +17,10 @@ export interface Action {
     createdAt: string
 }
 
-export interface Message {
+export interface ChatMessage {
     id: string
     createdAt: number
-    updatedAt: number
+    updatedAt?: number
     role: 'user' | 'system' | 'assistant' | 'function'
     content: string
     files?: string[]
@@ -45,25 +36,28 @@ export interface Message {
 }
 
 export interface Topic {
+    id: string
     title: string
-    favorite: boolean
+    favorite?: boolean
     // foreign keys
     sessionId?: string
+    createAt?: number
+    createdAt?: number
+    updatedAt?: number
+    updateAt?: number
 }
 
 export class LocalDB extends Dexie {
-    vocabulary!: Table<VocabularyItem>
     action!: Table<Action>
-    message!: Table<Message>
+    message!: Table<ChatMessage>
     topic!: Table<Topic>
 
     constructor() {
         super('openai-translator')
         this.version(5).stores({
-            vocabulary: 'word, reviewCount, description, updatedAt, createdAt',
             action: '++id, idx, mode, name, group, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt',
             message: '++id, role, content, parentId, quotaId, sessionId, topicId',
-            topic: '++id, title, favorite, sessionId',
+            topic: '++id, title, favorite, sessionId, createdAt, createAt, updatedAt, updateAt',
         })
     }
 }

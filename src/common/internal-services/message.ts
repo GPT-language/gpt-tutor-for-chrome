@@ -1,12 +1,11 @@
-import { Message, getLocalDB, getTable } from './db'
+import { ChatMessage, getLocalDB, getTable } from './db'
 import { DeepPartial } from 'utility-types'
 import { nanoid } from 'nanoid/non-secure'
+import { ChatMessageError } from '@lobehub/ui'
 
-
-export interface CreateMessageParams extends Message {
+export interface CreateMessageParams extends ChatMessage {
     fromModel?: string
     fromProvider?: string
-    sessionId: string
 }
 
 export interface QueryMessageParams {
@@ -17,17 +16,17 @@ export interface QueryMessageParams {
 }
 
 export interface IMessageInternalService {
-    create(params: CreateMessageParams): Promise<Message>
-    query(params: QueryMessageParams): Promise<Message[]>
-    update(id: string, data: DeepPartial<Message>): Promise<void>
+    getMessages(sessionId: string, topicId?: string): Promise<ChatMessage[]>
+    create(params: CreateMessageParams): Promise<string>
+    query(params: QueryMessageParams): Promise<ChatMessage[]>
+    update(id: string, data: DeepPartial<ChatMessage>): Promise<void>
     delete(id: string): Promise<void>
-    batchDeleteBySessionId(sessionId: string): Promise<void>
-    batchUpdate(messageIds: string[], updateFields: Partial<Message>): Promise<number>
+    batchUpdate(messageIds: string[], updateFields: Partial<ChatMessage>): Promise<number>
     // 其他必要的方法
 }
 
 class MessageInternalService implements IMessageInternalService {
-    schema: Message | undefined
+    schema: ChatMessage | undefined
     private get db() {
         return getLocalDB()
     }
@@ -48,10 +47,14 @@ class MessageInternalService implements IMessageInternalService {
         await this.db.message.add(record)
 
         // 如果有需要，将数据库记录格式转换回ChatMessage格式
-        return record
+        return id
     }
 
     // **************** Query *************** //
+
+    async getMessages(sessionId: string, topicId?: string): Promise<ChatMessage[]> {
+        return this.query({ sessionId, topicId })
+    }
 
     async query({ sessionId, topicId, pageSize = 9999, current = 0 }: QueryMessageParams): Promise<Message[]> {
         const offset = current * pageSize
@@ -64,22 +67,22 @@ class MessageInternalService implements IMessageInternalService {
                   .equals(sessionId)
                   .and((message) => !message.topicId)
 
-        const dbMessages: Message[] = await query
+        const dbMessages: ChatMessage[] = await query
             .sortBy('createdAt')
             // handle page size
             .then((sortedArray) => sortedArray.slice(offset, offset + pageSize))
 
         const messages = dbMessages
 
-        const finalList: Message[] = []
+        const finalList: ChatMessage[] = []
 
-        const addItem = (item: Message) => {
+        const addItem = (item: ChatMessage) => {
             const isExist = finalList.findIndex((i) => item.id === i.id) > -1
             if (!isExist) {
                 finalList.push(item)
             }
         }
-        const messageMap = new Map<string, Message>()
+        const messageMap = new Map<string, ChatMessage>()
         for (const item of messages) messageMap.set(item.id, item)
 
         for (const item of messages) {
@@ -95,9 +98,29 @@ class MessageInternalService implements IMessageInternalService {
         return finalList
     }
 
-    async update(id: string, data: DeepPartial<Message>): Promise<void> {
+    async queryAll() {
+        const data: ChatMessage[] = await this.db.message.orderBy('updatedAt').toArray()
+
+        return data
+    }
+
+    queryByTopicId = async (topicId: string) => {
+        const dbMessages = await this.db.message.where('topicId').equals(topicId).toArray()
+
+        return dbMessages
+    }
+
+    async update(id: string, data: DeepPartial<ChatMessage>): Promise<void> {
         // 更新消息逻辑
         await this.db.message.update(id, data)
+    }
+
+    async updateMessageError(id: string, error: ChatMessageError) {
+        return this.update(id, { error })
+    }
+
+    async updateMessage(id: string, message: Partial<ChatMessage>) {
+        return this.update(id, message)
     }
 
     async delete(id: string): Promise<void> {
@@ -105,18 +128,30 @@ class MessageInternalService implements IMessageInternalService {
         await this.db.message.delete(id)
     }
 
-    async batchDeleteBySessionId(sessionId: string): Promise<void> {
+    async batchDeleteBytopicId(topicId: string): Promise<void> {
         // 批量删除逻辑
-        await this.db.message.where('sessionId').equals(sessionId).delete()
+        await this.db.message.where('topicId').equals(topicId).delete()
     }
 
-    async batchUpdate(messageIds: string[], updateFields: Partial<Message>): Promise<number> {
+    async removeMessage(id: string) {
+        return this.delete(id)
+    }
+
+    async removeMessages(topicId: string) {
+        return this.batchDeleteBytopicId(topicId)
+    }
+
+    async clearAllMessage() {
+        // 清空表逻辑
+        await this.db.message.clear()
+    }
+
+    async batchUpdate(messageIds: string[], updateFields: Partial<ChatMessage>): Promise<number> {
         // 批量更新逻辑
         return await this.db.message.update(messageIds, updateFields)
     }
 
     // 私有方法，帮助转换数据模型
-
 }
 
-export const messageInternalService = new MessageInternalService()
+export const messageService = new MessageInternalService()

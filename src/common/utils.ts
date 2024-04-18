@@ -26,6 +26,18 @@ export async function getApiKey(): Promise<string> {
     return apiKeys[Math.floor(Math.random() * apiKeys.length)] ?? ''
 }
 
+export async function getAccessKey(): Promise<string> {
+    let resp: Response | null = null
+    const signal = new AbortSignal()
+    resp = await fetch(defaultChatGPTAPIAuthSession, { signal: signal })
+    if (resp.status !== 200) {
+        throw new Error('Failed to fetch ChatGPT Web accessToken.')
+    }
+    const respJson = await resp?.json()
+    const apiKey = respJson.accessToken
+    return apiKey
+}
+
 // In order to let the type system remind you that all keys have been passed to browser.storage.sync.get(keys)
 const settingKeys: Record<keyof ISettings, number> = {
     apiKeys: 1,
@@ -259,4 +271,34 @@ export async function fetchSSE(input: string, options: FetchSSEOptions) {
     } finally {
         reader.releaseLock()
     }
+}
+
+export async function getArkoseToken(): Promise<string> {
+    const config = await Browser.storage.local.get(['chatgptArkoseReqUrl', 'chatgptArkoseReqForm'])
+    const response = await fetch(config.chatgptArkoseReqUrl, {
+        method: 'POST',
+        body: config.chatgptArkoseReqForm,
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Origin': 'https://tcr9i.chat.openai.com',
+            'Referer': 'https://tcr9i.chat.openai.com/v2/2.4.4/enforcement.f73f1debe050b423e0e5cd1845b2430a.html',
+        },
+    })
+    const data = await response.json()
+    if (!data.token) throw new Error('Failed to get Arkose token.')
+    return data.token
+}
+
+export async function getChatRequirementsToken(): Promise<string> {
+    const apiKey = await getAccessKey()
+    const response = await fetch(`https://chat.openai.com/backend-api/sentinel/chat-requirements`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+        },
+    })
+    const data = await response.json()
+    if (!data.token) throw new Error('Failed to get Chat Requirements token.')
+    return data.token
 }
