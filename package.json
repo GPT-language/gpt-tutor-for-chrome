@@ -1,6 +1,6 @@
 {
   "name": "gpt-tutor",
-  "version": "0.1.9.7",
+  "version": "0.2.0",
   "description": "gpt-tutor",
   "main": "index.js",
   "scripts": {
@@ -52,6 +52,7 @@
     "i18next-browser-languagedetector": "^7.0.1",
     "i18next-http-backend": "^2.2.0",
     "iso-639-1": "^2.1.15",
+    "js-sha3": "^0.9.3",
     "jss": "^10.10.0",
     "jss-preset-default": "^10.10.0",
     "katex": "^0.16.7",

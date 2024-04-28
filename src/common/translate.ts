@@ -1,7 +1,6 @@
 /* eslint-disable camelcase */
 import * as utils from '../common/utils'
 import * as lang from './components/lang/lang'
-import { parseSSE } from './utils'
 import { urlJoin } from 'url-join-ts'
 import { v4 as uuidv4 } from 'uuid'
 import { getLangConfig, LangCode } from './components/lang/lang'
@@ -9,13 +8,13 @@ import { getUniversalFetch } from './universal-fetch'
 import { Action } from './internal-services/db'
 import { oneLine } from 'common-tags'
 import { ArkoseToken } from './arkose'
-import { proxyFetch } from './services/proxy-fetch'
-import { ResponseContent, ResponsePayload } from './types'
-import { Requester, globalFetchRequester, proxyFetchRequester } from './services/requesters'
-import { get as getPath } from 'lodash-es'
+import { ResponseContent } from './types'
 import Browser from 'webextension-polyfill'
+import { sha3_512 } from 'js-sha3'
+
 export type TranslateMode = 'built-in' | 'translate' | 'explain-code'
 export type Provider = 'OpenAI' | 'ChatGPT' | 'Azure'
+
 export type APIModel =
     | 'gpt-3.5-turbo'
     | 'gpt-3.5-turbo-0301'
@@ -303,18 +302,44 @@ async function getChatRequirements(token: string) {
     return response.json()
 }
 
+async function GenerateProofToken(seed: string, diff: string | number | any[], userAgent: string) {
+    const cores = [8, 12, 16, 24]
+    const screens = [3000, 4000, 6000]
+    const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
+
+    const core = cores[randomInt(0, cores.length)]
+    const screen = screens[randomInt(0, screens.length)]
+
+    const now = new Date(Date.now() - 8 * 3600 * 1000)
+    const parseTime = now.toUTCString().replace('GMT', 'GMT-0500 (Eastern Time)')
+
+    const config = [core + screen, parseTime, 4294705152, 0, userAgent]
+    const diffLen = Math.floor(diff.length / 2)
+
+    for (let i = 0; i < 100000; i++) {
+        config[3] = i
+        const jsonData = JSON.stringify(config)
+        const base = btoa(unescape(encodeURIComponent(jsonData)))
+        const hashValue = sha3_512(seed + base)
+
+        if (hashValue.substring(0, diffLen) <= diff) {
+            const result = 'gAAAAAB' + base
+            return result
+        }
+    }
+
+    const fallbackBase = btoa(unescape(encodeURIComponent(`"${seed}"`)))
+    return 'gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D' + fallbackBase
+}
+
 async function resetConversation() {
     // 删除保存在 chrome.storage.local 中的上下文
-    chrome.storage.local.remove(['conversationId', 'lastMessageId'], () => {
-    })
+    chrome.storage.local.remove(['conversationId', 'lastMessageId'], () => {})
 }
 
 const chineseLangCodes = ['zh-Hans', 'zh-Hant', 'lzh', 'yue', 'jdbhw', 'xdbhw']
 export class WebAPI {
     private conversationContext?: ConversationContext
-
-
-
 
     saveConversationContext(name: string, conversationContext: { conversationId: string; lastMessageId: string }) {
         //  使用 chrome.storage.local.set() 保存上下文
@@ -356,7 +381,6 @@ export class WebAPI {
             })
         })
     }
-
 
     async translate(query: TranslateQuery) {
         const fetcher = getUniversalFetch()
@@ -527,7 +551,17 @@ export class WebAPI {
 
         if (settings.provider === 'ChatGPT') {
             const requirement = await getChatRequirements(apiKey)
+
+            const userAgent =
+                process.env.USER_AGENT ||
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+            const proofToken = await GenerateProofToken(
+                requirement.proofofwork.seed,
+                requirement.proofofwork.difficulty,
+                userAgent
+            )
             headers['Openai-Sentinel-Chat-Requirements-Token'] = requirement.token
+            headers['openai-sentinel-proof-token'] = proofToken
 
             let length = 0
             await utils.fetchSSE(`${utils.defaultChatGPTWebAPI}/conversation`, {
@@ -608,7 +642,7 @@ export class WebAPI {
             })
         } else {
             const url = urlJoin(settings.apiURL, settings.apiURLPath)
-            await fetchSSE(url, {
+            await utils.fetchSSE(url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(body),
