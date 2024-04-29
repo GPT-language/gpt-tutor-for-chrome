@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast, { Toaster } from 'react-hot-toast'
@@ -11,8 +12,8 @@ import { GoSignOut } from 'react-icons/go'
 import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
-import { detectLang, getLangConfig, sourceLanguages, targetLanguages, LangCode } from './lang/lang'
-import { WebAPI, TranslateMode } from '../translate'
+import { getLangConfig, sourceLanguages, targetLanguages, LangCode } from './lang/lang'
+import { WebAPI } from '../translate'
 import { Select, Value, Option } from 'baseui-sd/select'
 import { RxEraser, RxReload, RxSpeakerLoud } from 'react-icons/rx'
 import { RiSpeakerFill } from 'react-icons/ri'
@@ -58,6 +59,8 @@ import { GlobalSuspense } from './GlobalSuspense'
 import YouGlishComponent from '../youglish/youglish'
 import { LANG_CONFIGS } from '../components/lang/data'
 import { useClerk } from '@clerk/chrome-extension'
+import { createStoreUpdater } from 'zustand-utils'
+import { useChatStore } from '@/store/chat'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -78,7 +81,9 @@ function genLangOptions(langs: [LangCode, string][]): Value {
         ]
     }, [] as Value)
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const sourceLangOptions = genLangOptions(sourceLanguages)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const targetLangOptions = genLangOptions(targetLanguages)
 
 const useStyles = createUseStyles({
@@ -356,36 +361,10 @@ const useStyles = createUseStyles({
     }),
 })
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface IActionStrItem {
     beforeStr: string
     afterStr: string
-}
-
-const actionStrItems: Record<TranslateMode, IActionStrItem> = {
-    'analyze': {
-        beforeStr: 'Analyzing...',
-        afterStr: 'Analyzed',
-    },
-    'polishing': {
-        beforeStr: 'Polishing...',
-        afterStr: 'Polished',
-    },
-    'translate': {
-        beforeStr: 'Translating...',
-        afterStr: 'Translated',
-    },
-    'summarize': {
-        beforeStr: 'Summarizing...',
-        afterStr: 'Summarized',
-    },
-    'explain-code': {
-        beforeStr: 'Explaining...',
-        afterStr: 'Explained',
-    },
-    'big-bang': {
-        beforeStr: 'Writing...',
-        afterStr: 'Written',
-    },
 }
 
 export interface MovementXY {
@@ -501,6 +480,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         const savedAction = localStorage.getItem('savedAction')
         return savedAction ? JSON.parse(savedAction) : undefined
     })
+
+    const useStoreUpdater = createStoreUpdater(useChatStore)
+    useStoreUpdater('activeTopicId', activateAction?.id)
     const currentTranslateMode = useMemo(() => {
         if (!activateAction) {
             return undefined
@@ -683,7 +665,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [isTranslate])
 
     useEffect(() => {
-        const handleRuntimeMessage = (message) => {
+        const handleRuntimeMessage = (message: { type: string; text: string }) => {
             if (message.type === 'Text') {
                 const text = message.text
                 setOriginalText(text)
@@ -702,6 +684,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
     const [isLoading, setIsLoading] = useState(false)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [newYouGlish, setNewYouGlish] = useState(false)
     const [showYouGlish, setShowYouGlish] = useState(false)
     const [editableText, setEditableText] = useState(props.text)
@@ -732,9 +715,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setIsLoading(false)
     }, [])
     const [sourceLang, setSourceLang] = useState<LangCode>('en')
-    const [targetLang, setTargetLang] = useState<LangCode>()
+    const [targetLang, setTargetLang] = useState<LangCode>('en')
     const [youglishLang, setYouglishLang] = useState<LangCode>('en')
-    const stopAutomaticallyChangeTargetLang = useRef(false)
+    const [ActivatedActionName, setActivatedActionName] = useState('')
     const settingsIsUndefined = settings === undefined
 
     useEffect(() => {
@@ -942,15 +925,15 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [isNotLogin, setIsNotLogin] = useState(false)
 
     const translateText = useCallback(
-        async (text: string, activatedActionName: string, selectedWord: string, signal: AbortSignal) => {
-            if (!text || !sourceLang || !targetLang || !activateAction?.id) {
+        async (text: string, signal: AbortSignal) => {
+            if (!text || !activateAction?.id) {
                 return
             }
-            const action = await actionService.get(activateAction?.id)
-            activatedActionName = action.name
+            const action = await actionService.get(activateAction.id)
             if (!action) {
                 return
             }
+            setActivatedActionName(action.name)
             const beforeTranslate = () => {
                 const actionStr = 'Processing...'
                 setActionStr(actionStr)
@@ -980,9 +963,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             beforeTranslate()
             const cachedKey = `translate:${settings?.provider ?? ''}:${settings?.apiModel ?? ''}:${action.id}:${
                 action.rolePrompt
-            }:${action.commandPrompt}:${
-                action.outputRenderingFormat
-            }:${sourceLang}:${targetLang}:${text}:${selectedWord}:${translationFlag}`
+            }:${action.commandPrompt}:${action.outputRenderingFormat}:${text}:${translationFlag}`
             const cachedValue = cache.get(cachedKey)
             if (cachedValue) {
                 afterTranslate('stop')
@@ -991,14 +972,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
             let isStopped = false
             try {
+                const activatedActionName = ActivatedActionName
                 await webAPI.translate({
+                    detectFrom: sourceLang,
+                    detectTo: targetLang,
                     activatedActionName,
                     action,
                     signal,
                     text,
-                    selectedWord,
-                    detectFrom: sourceLang,
-                    detectTo: targetLang,
                     onStatusCode: (statusCode) => {
                         setIsNotLogin(statusCode === 401 || statusCode === 403)
                     },
@@ -1042,18 +1023,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 }
             }
         },
-        [
-            sourceLang,
-            targetLang,
-            activateAction?.id,
-            currentTranslateMode,
-            settings?.provider,
-            settings?.apiModel,
-            translationFlag,
-            startLoading,
-            stopLoading,
-            t,
-        ]
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [activateAction?.id, settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
     )
 
     useEffect(() => {
@@ -1062,11 +1033,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         const controller = new AbortController()
         const { signal } = controller
-        translateText(detectedOriginalText, selectedWord, signal)
+        translateText(detectedOriginalText, signal)
         return () => {
             controller.abort()
         }
-    }, [translateText, editableText, detectedOriginalText, selectedWord])
+    }, [translateText, editableText, detectedOriginalText])
 
     const [showSettings, setShowSettings] = useState(false)
     useEffect(() => {
@@ -1391,7 +1362,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 {editableText}
                             </div>
                             <Dropzone noClick={true}>
-                                {({ getRootProps, isDragActive }) => (
+                                {({ getRootProps }) => (
                                     <div {...getRootProps()}>
                                         <Textarea
                                             inputRef={editorRef}

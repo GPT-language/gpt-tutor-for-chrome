@@ -65,6 +65,7 @@ class MessageInternalService implements IMessageInternalService {
                 addItem(item)
             } else {
                 // 如果消息有父消息，确保先添加父消息
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 addItem(messageMap.get(item.parentId)!)
                 addItem(item)
             }
@@ -74,27 +75,22 @@ class MessageInternalService implements IMessageInternalService {
 
     async update(id: string, data: DeepPartial<DB_Message>): Promise<void> {
         // 更新消息逻辑
+        await this.db.message.update(id, data)
     }
 
     async delete(id: string): Promise<void> {
         // 删除消息逻辑
+        await this.db.message.delete(id)
     }
 
-    async batchDeleteBySessionId(sessionId: string): Promise<void> {
+    async batchDeleteBySessionId(topicId: string): Promise<void> {
         // 批量删除逻辑
+        await this.db.message.where('topicId').equals(topicId).delete()
     }
 
     async batchUpdate(messageIds: string[], updateFields: Partial<DB_Message>): Promise<number> {
         // 批量更新逻辑
-    }
-
-    // 私有方法，帮助转换数据模型
-    private mapChatMessageToDBMessage(message: ChatMessage): DB_Message {
-        // 实现转换逻辑，参考 MessageModel 中的相应方法
-    }
-
-    private mapToChatMessage(dbMessage: DB_Message): ChatMessage {
-        // 实现转换逻辑
+        return this.db.message.update(messageIds, updateFields)
     }
 }
 

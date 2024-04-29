@@ -25,7 +25,7 @@ export interface ChatMessage {
     content: string
     files?: string[]
     favorite?: 0 | 1
-    error?: any
+    error?: unknown
 
     // foreign keys
     // topicId == conversationId

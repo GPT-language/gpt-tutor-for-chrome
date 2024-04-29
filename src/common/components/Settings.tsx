@@ -15,7 +15,7 @@ import { Select, Value, Option } from 'baseui-sd/select'
 import { Checkbox } from 'baseui-sd/checkbox'
 import { supportedLanguages } from './lang/lang'
 import { createUseStyles } from 'react-jss'
-import { ISettings, IThemedStyleProps, ThemeType } from '../types'
+import { ISettings, IThemedStyleProps } from '../types'
 import { useTheme } from '../hooks/useTheme'
 import { useTranslation } from 'react-i18next'
 import AppConfig from '../../../package.json'
@@ -205,12 +205,6 @@ function TranslateModeSelector({ value, onChange, onBlur }: ITranslateModeSelect
             }
         />
     )
-}
-
-interface IThemeTypeSelectorProps {
-    value?: ThemeType
-    onChange?: (value: ThemeType) => void
-    onBlur?: () => void
 }
 
 const useTTSSettingsStyles = createUseStyles({
@@ -856,7 +850,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             setSettings(data)
             onSave?.(oldSettings)
         },
-        [isTauri, onSave, setSettings, setThemeType, t]
+        [onSave, setSettings, setThemeType, t]
     )
 
     const onBlur = useCallback(async () => {
@@ -1022,6 +1016,9 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     }
                 >
                     <AlwaysShowIconsCheckbox onBlur={onBlur} />
+                </FormItem>
+                <FormItem name='autoTranslate' label={t('Auto Translate')}>
+                    <AutoTranslateCheckbox onBlur={onBlur} />
                 </FormItem>
                 <FormItem
                     style={{

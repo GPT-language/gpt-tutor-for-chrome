@@ -16,8 +16,10 @@ module.exports = {
     root: true,
     plugins: ['react', 'react-hooks', '@typescript-eslint', 'prettier', 'baseui'],
     rules: {
+        'react/prop-types': 'off',
         'react/react-in-jsx-scope': 'off',
-        'camelcase': 'error',
+        'camelcase': 'off',
+        'react/display-name': 'off',
         'eqeqeq': ['error', 'always'],
         'spaced-comment': 'error',
         'no-duplicate-imports': 'error',

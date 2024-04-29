@@ -13,8 +13,6 @@ async function popupThumbClickHandler(event: MouseEvent) {
     if (!$popupThumb) {
         return
     }
-    const x = $popupThumb.offsetLeft
-    const y = $popupThumb.offsetTop
     sendText($popupThumb.dataset['text'] || '')
 }
 
@@ -99,10 +97,8 @@ async function showPopupThumb(text: string, x: number, y: number) {
 async function main() {
     const browser = await utils.getBrowser()
     let mousedownTarget: EventTarget | null
-    let lastMouseEvent: MouseEvent | undefined
 
     document.addEventListener('mouseup', async (event: MouseEvent) => {
-        lastMouseEvent = event
         const settings = await utils.getSettings()
         if (
             (mousedownTarget instanceof HTMLInputElement || mousedownTarget instanceof HTMLTextAreaElement) &&

@@ -11,12 +11,11 @@ export interface CreateMessageParams extends ChatMessage {
 export interface QueryMessageParams {
     current?: number
     pageSize?: number
-    sessionId: string
-    topicId?: string
+    topicId: string
 }
 
 export interface IMessageInternalService {
-    getMessages(sessionId: string, topicId?: string): Promise<ChatMessage[]>
+    getMessages(topicId: string): Promise<ChatMessage[]>
     create(params: CreateMessageParams): Promise<string>
     query(params: QueryMessageParams): Promise<ChatMessage[]>
     update(id: string, data: DeepPartial<ChatMessage>): Promise<void>
@@ -52,20 +51,14 @@ class MessageInternalService implements IMessageInternalService {
 
     // **************** Query *************** //
 
-    async getMessages(sessionId: string, topicId?: string): Promise<ChatMessage[]> {
-        return this.query({ sessionId, topicId })
+    async getMessages(topicId: string): Promise<ChatMessage[]> {
+        return this.query({ topicId })
     }
 
-    async query({ sessionId, topicId, pageSize = 9999, current = 0 }: QueryMessageParams): Promise<Message[]> {
+    async query({ topicId, pageSize = 9999, current = 0 }: QueryMessageParams): Promise<ChatMessage[]> {
         const offset = current * pageSize
         const messageTabel = getTable('messages')
-        const query = topicId
-            ? // TODO: The query {"sessionId":"xxx","topicId":"xxx"} on messages would benefit of a compound index [sessionId+topicId]
-              messageTabel.where({ sessionId, topicId }) // Use a compound index
-            : messageTabel
-                  .where('sessionId')
-                  .equals(sessionId)
-                  .and((message) => !message.topicId)
+        const query = messageTabel.where({ topicId }) // Use a compound index
 
         const dbMessages: ChatMessage[] = await query
             .sortBy('createdAt')
@@ -90,9 +83,12 @@ class MessageInternalService implements IMessageInternalService {
                 // 如果消息没有父消息或者父消息不在列表中，直接添加
                 addItem(item)
             } else {
+                const res = messageMap.get(item.parentId)
                 // 如果消息有父消息，确保先添加父消息
-                addItem(messageMap.get(item.parentId)!)
-                addItem(item)
+                if (res) {
+                    addItem(res)
+                    addItem(item)
+                }
             }
         }
         return finalList
@@ -150,8 +146,6 @@ class MessageInternalService implements IMessageInternalService {
         // 批量更新逻辑
         return await this.db.message.update(messageIds, updateFields)
     }
-
-    // 私有方法，帮助转换数据模型
 }
 
 export const messageService = new MessageInternalService()

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable camelcase */
 import * as utils from '../common/utils'
 import * as lang from './components/lang/lang'
@@ -7,10 +8,14 @@ import { getLangConfig, LangCode } from './components/lang/lang'
 import { getUniversalFetch } from './universal-fetch'
 import { Action } from './internal-services/db'
 import { oneLine } from 'common-tags'
+import { ArkoseToken } from './arkose'
 import { ResponseContent } from './types'
 import Browser from 'webextension-polyfill'
+import { sha3_512 } from 'js-sha3'
+
 export type TranslateMode = 'built-in' | 'translate' | 'explain-code'
 export type Provider = 'OpenAI' | 'ChatGPT' | 'Azure'
+
 export type APIModel =
     | 'gpt-3.5-turbo'
     | 'gpt-3.5-turbo-0301'
@@ -23,6 +28,8 @@ export type APIModel =
 interface BaseTranslateQuery {
     activatedActionName: string
     text: string
+    detectFrom: LangCode
+    detectTo: LangCode
     mode?: Exclude<TranslateMode, 'big-bang'>
     action: Action
     onMessage: (message: { content: string; role: string; isFullText?: boolean }) => void
@@ -47,6 +54,52 @@ export interface TranslateResult {
     from?: string
     to?: string
     error?: string
+}
+
+interface FetcherOptions {
+    method: string
+    headers: Record<string, string>
+    body: string
+}
+
+async function updateTitleAndCheckId(
+    conversationId: string | undefined,
+    fetcher: (url: string, options: FetcherOptions) => Promise<Response>,
+    headers: Record<string, string>
+): Promise<void> {
+    const lastConversationId: string | null = localStorage.getItem('lastConversationId')
+    // Check if conversationId has changed
+    if (lastConversationId !== conversationId) {
+        localStorage.setItem('lastConversationId', conversationId || '') // Update lastConversationId
+        await updateTitleAndCheckId(conversationId, fetcher, headers) // Recursively call to reset the title
+        return
+    }
+    if (conversationId) {
+        const savedAction: string | null = localStorage.getItem('savedAction')
+        const currentDate = new Date()
+        const formattedDate = `${currentDate.getMonth() + 1}月${currentDate.getDate()}日`
+        const newTitle = `${savedAction}-${formattedDate}`
+
+        await fetcher(`${utils.defaultChatGPTWebAPI}/conversation/${conversationId}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ title: newTitle }),
+        })
+    }
+}
+
+function removeCitations(text: string) {
+    return text.replaceAll(/\u3010\d+\u2020source\u3011/g, '')
+}
+
+function parseResponseContent(content: ResponseContent): { text?: string } {
+    if (content.content_type === 'text') {
+        return { text: removeCitations(content.parts[0]) }
+    }
+    if (content.content_type === 'code') {
+        return { text: '_' + content.text + '_' }
+    }
+    return {}
 }
 
 export class QuoteProcessor {
@@ -175,6 +228,11 @@ export class QuoteProcessor {
     }
 }
 
+interface ConversationContext {
+    conversationId: string
+    lastMessageId: string
+}
+
 function getConversationId() {
     return new Promise(function (resolve) {
         chrome.storage.local.get(['conversationId'], function (result) {
@@ -216,10 +274,10 @@ export async function getArkoseToken() {
                 '\n\n' +
                 "Please keep https://chat.openai.com open and try again. If it still doesn't work, type some characters in the input box of chatgpt web page and try again."
         )
-    return arkoseToken as string
+    return arkoseToken
 }
 
-async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body: any) {
+async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body: unknown) {
     return fetch(`https://chat.openai.com/backend-api${endpoint}`, {
         method: method,
         headers: {
@@ -237,8 +295,44 @@ async function getChatRequirements(token: string) {
     return response.json()
 }
 
+async function GenerateProofToken(seed: string, diff: string | number | unknown[], userAgent: string) {
+    const cores = [8, 12, 16, 24]
+    const screens = [3000, 4000, 6000]
+    const randomInt = (min: number, max: number): number => {
+        return Math.floor(Math.random() * (max - min + 1)) + min
+    }
+
+    const core = cores[randomInt(0, cores.length)]
+    const screen = screens[randomInt(0, screens.length)]
+
+    const now = new Date(Date.now() - 8 * 3600 * 1000)
+    const parseTime = now.toUTCString().replace('GMT', 'GMT-0500 (Eastern Time)')
+
+    const config = [core + screen, parseTime, 4294705152, 0, userAgent]
+    if (typeof diff === 'string') {
+        const diffLen = Math.floor(diff.length / 2)
+
+        for (let i = 0; i < 100000; i++) {
+            config[3] = i
+            const jsonData = JSON.stringify(config)
+            const base = btoa(unescape(encodeURIComponent(jsonData)))
+            const hashValue = sha3_512(seed + base)
+
+            if (hashValue.substring(0, diffLen) <= diff) {
+                const result = 'gAAAAAB' + base
+                return result
+            }
+        }
+    }
+
+    const fallbackBase = btoa(unescape(encodeURIComponent(`"${seed}"`)))
+    return 'gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D' + fallbackBase
+}
+
 const chineseLangCodes = ['zh-Hans', 'zh-Hant', 'lzh', 'yue', 'jdbhw', 'xdbhw']
 export class WebAPI {
+    private conversationContext?: ConversationContext
+
     saveConversationContext(name: string, conversationContext: { conversationId: string; lastMessageId: string }) {
         //  使用 chrome.storage.local.set() 保存上下文
         // 保存的键为action.name，然后保存对话ID
@@ -397,7 +491,7 @@ export class WebAPI {
                 ],
                 model: settings.apiModel, // 'text-davinci-002-render-sha'
                 conversation_id: lastConversationId || undefined,
-                parent_message_id: uuidv4(),
+                parent_message_id: this.conversationContext?.lastMessageId || uuidv4(),
                 conversation_mode: {
                     kind: 'primary_assistant',
                 },
@@ -448,7 +542,17 @@ export class WebAPI {
 
         if (settings.provider === 'ChatGPT') {
             const requirement = await getChatRequirements(apiKey)
+
+            const userAgent =
+                process.env.USER_AGENT ||
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+            const proofToken = await GenerateProofToken(
+                requirement.proofofwork.seed,
+                requirement.proofofwork.difficulty,
+                userAgent
+            )
             headers['Openai-Sentinel-Chat-Requirements-Token'] = requirement.token
+            headers['openai-sentinel-proof-token'] = proofToken
 
             let length = 0
             await utils.fetchSSE(`${utils.defaultChatGPTWebAPI}/conversation`, {

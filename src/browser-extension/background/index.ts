@@ -6,44 +6,14 @@ import { vocabularyInternalService } from '../../common/internal-services/vocabu
 import { actionInternalService } from '../../common/internal-services/action'
 import { messageService } from '../../common/internal-services/message'
 // Import the functions you need from the SDKs you need
-import { initializeApp } from 'firebase/app'
-import { getFirestore, collection, getDocs, query, where, DocumentData } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore'
 import { setUserConfig } from '../../common/utils'
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-    apiKey: 'AIzaSyByHatBXjUmc2_ACN7mIOA2EWE_uwGoR00',
-    authDomain: 'gpt-tutor-6347c.firebaseapp.com',
-    databaseURL: 'https://gpt-tutor-6347c-default-rtdb.europe-west1.firebasedatabase.app',
-    projectId: 'gpt-tutor-6347c',
-    storageBucket: 'gpt-tutor-6347c.appspot.com',
-    messagingSenderId: '310403142777',
-    appId: '1:310403142777:web:2fdc9cf1173298232470a8',
-    measurementId: 'G-NXCPHVK0J2',
-}
-
 // Initialize Firebase
-const app = initializeApp(firebaseConfig)
 export const db = getFirestore()
-
-export const getUserData = async (userId: string) => {
-    try {
-        const q = query(collection(db, 'usersData'), where('userId', '==', userId))
-        const querySnapshot = await getDocs(q)
-        const data: DocumentData[] = []
-        querySnapshot.forEach((doc) => {
-            data.push(doc.data())
-        })
-        return data
-    } catch (error: unknown) {
-        console.error('Error fetching user data: ', error.message)
-        throw error
-    }
-}
 
 browser.contextMenus?.create(
     {
@@ -78,7 +48,8 @@ try {
                 if (details.requestBody?.formData) {
                     // 检查formData是否存在
                     for (const k in details.requestBody.formData) {
-                        formData.append(k, details.requestBody.formData[k])
+                        const value = details.requestBody.formData[k].join(',') // Convert array to string
+                        formData.append(k, value)
                     }
                 }
 
@@ -236,4 +207,5 @@ browser?.commands?.onCommand.addListener(async (command) => {
 })
 
 // background.js 或 service-worker.js
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 chrome?.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch((error: any) => console.error(error))

@@ -131,9 +131,9 @@ export async function detectLang(text: string): Promise<LangCode> {
 export function getLangConfig(langCode: LangCode): LanguageConfig {
     const config = LANG_CONFIGS[langCode]
     const DEFAULT_CONFIG: LanguageConfig = {
-        name: 'Unknown',
-        nameEn: 'Unknown',
-        accent: 'Unknown',
+        name: 'American English',
+        nameEn: 'English',
+        accent: 'us',
         phoneticNotation: 'transcription',
         isSource: true,
         isTarget: true,
