@@ -3,20 +3,21 @@ import { useEffect } from 'react'
 import { useChatStore } from '@/store/chat'
 
 export const useInitConversation = () => {
-    const [init, activeTopicId, switchTopic, useFetchMessages, useFetchTopics] = useChatStore((s) => {
+    const [init, activeTopicId, activeId, switchTopic, useFetchMessages, useFetchTopics] = useChatStore((s) => {
         console.log('Chat Store updated:', {
             messagesInit: s.messagesInit,
             activeTopicId: s.activeTopicId,
+            activeId: s.activeId,
         })
-        return [s.messagesInit, s.activeTopicId, s.switchTopic, s.useFetchMessages, s.useFetchTopics]
+        return [s.messagesInit, s.activeTopicId, s.activeId, s.switchTopic, s.useFetchMessages, s.useFetchTopics]
     })
     console.log('init', init)
     console.log('activeTopicId', activeTopicId)
 
     console.log('Fetching messages...')
-    useFetchMessages(activeTopicId)
+    useFetchMessages(activeId)
     console.log('Fetching topics...')
-    useFetchTopics(activeTopicId)
+    useFetchTopics(activeId)
 
     useEffect(() => {
         // // when activeId changed, switch topic to undefined

@@ -66,6 +66,7 @@ class MessageInternalService implements IMessageInternalService {
             .then((sortedArray) => sortedArray.slice(offset, offset + pageSize))
 
         const messages = dbMessages
+        console.log('queey messages', messages)
 
         const finalList: ChatMessage[] = []
 
@@ -91,6 +92,7 @@ class MessageInternalService implements IMessageInternalService {
                 }
             }
         }
+        console.log('finalList', finalList)
         return finalList
     }
 

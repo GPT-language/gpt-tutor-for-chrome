@@ -14,7 +14,9 @@ const root = createRoot(document.getElementById('root') as HTMLElement)
 
 function App() {
     const { theme } = useTheme()
-
+    const engine = new Styletron({
+        prefix: `${PREFIX}-styletron-`,
+    })
     return (
         <div
             style={{
@@ -24,9 +26,7 @@ function App() {
             }}
             data-testid='popup-container'
         >
-            <Router>
-                <Page />
-            </Router>
+            <Translator showSettings defaultShowSettings text='' engine={engine} autoFocus />
         </div>
     )
 }

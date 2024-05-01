@@ -240,14 +240,11 @@ export const chatMessage: StateCreator<ChatStore, [['zustand/devtools', never]],
     useFetchMessages: (activeTopicId) =>
         useClientDataSWR<ChatMessage[]>(
             [SWR_USE_FETCH_MESSAGES, activeTopicId],
-            async ([, topicId]: [string, string]) => {
-                if (!topicId) throw new Error('No topic ID provided for fetching messages.')
-                console.log('fetching messages for topic:', messageService.getMessages(topicId))
+            async ([, topicId]: [string, string]) => messageService.getMessages(topicId),
 
-                return messageService.getMessages(topicId)
-            },
             {
                 onSuccess: (messages, key) => {
+                    console.log('Successfully fetched messages:', messages)
                     set(
                         { activeId: activeTopicId, messages, messagesInit: true },
                         false,
@@ -259,7 +256,7 @@ export const chatMessage: StateCreator<ChatStore, [['zustand/devtools', never]],
                 },
                 onError: (error) => {
                     console.error('Failed to fetch messages:', error)
-                    set({ messagesInit: false, messages: error }, false, 'useFetchMessages/onError')
+                    set({ messagesInit: true, messages: error }, false, 'useFetchMessages/onError')
                 },
             }
         ),

@@ -8,7 +8,6 @@ import { getLangConfig, LangCode } from './components/lang/lang'
 import { getUniversalFetch } from './universal-fetch'
 import { Action } from './internal-services/db'
 import { oneLine } from 'common-tags'
-import { ArkoseToken } from './arkose'
 import { ResponseContent } from './types'
 import Browser from 'webextension-polyfill'
 import { sha3_512 } from 'js-sha3'
@@ -60,32 +59,6 @@ interface FetcherOptions {
     method: string
     headers: Record<string, string>
     body: string
-}
-
-async function updateTitleAndCheckId(
-    conversationId: string | undefined,
-    fetcher: (url: string, options: FetcherOptions) => Promise<Response>,
-    headers: Record<string, string>
-): Promise<void> {
-    const lastConversationId: string | null = localStorage.getItem('lastConversationId')
-    // Check if conversationId has changed
-    if (lastConversationId !== conversationId) {
-        localStorage.setItem('lastConversationId', conversationId || '') // Update lastConversationId
-        await updateTitleAndCheckId(conversationId, fetcher, headers) // Recursively call to reset the title
-        return
-    }
-    if (conversationId) {
-        const savedAction: string | null = localStorage.getItem('savedAction')
-        const currentDate = new Date()
-        const formattedDate = `${currentDate.getMonth() + 1}月${currentDate.getDate()}日`
-        const newTitle = `${savedAction}-${formattedDate}`
-
-        await fetcher(`${utils.defaultChatGPTWebAPI}/conversation/${conversationId}`, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({ title: newTitle }),
-        })
-    }
 }
 
 function removeCitations(text: string) {
@@ -251,6 +224,37 @@ function getlastMessageId() {
     })
 }
 
+let websocket: WebSocket | null
+/**
+ * @type {Date}
+ */
+let expires_at: Date
+const wsCallbacks: any[] = []
+
+export async function registerWebsocket(accessToken: string) {
+    if (websocket && new Date() < new Date(expires_at.getTime() - 300000)) return
+
+    const response = JSON.parse(await callBackendAPIWithToken(accessToken, 'POST', '/register-websocket'))
+    let resolve
+    if (response.wss_url) {
+        websocket = new WebSocket(response.wss_url)
+        websocket.onopen = () => {
+            console.debug('global websocket opened')
+            resolve()
+        }
+        websocket.onclose = () => {
+            websocket = null
+            expires_at = null
+            console.debug('global websocket closed')
+        }
+        websocket.onmessage = (event) => {
+            wsCallbacks.forEach((cb) => cb(event))
+        }
+        expires_at = new Date(response.expires_at)
+    }
+    return new Promise((r) => (resolve = r))
+}
+
 export async function getArkoseToken() {
     const config = await Browser.storage.local.get(['chatgptArkoseReqUrl', 'chatgptArkoseReqForm'])
     const arkoseToken = await getUniversalFetch()(
@@ -277,7 +281,13 @@ export async function getArkoseToken() {
     return arkoseToken
 }
 
-async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body: unknown) {
+export async function isNeedWebsocket(accessToken: string) {
+    const response = await callBackendAPIWithToken(accessToken, 'GET', '/accounts/check/v4-2023-04-27')
+    const isNeedWebsocket = (await response.text()).includes('shared_websocket')
+    return isNeedWebsocket
+}
+
+async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body?: unknown) {
     return fetch(`https://chat.openai.com/backend-api${endpoint}`, {
         method: method,
         headers: {
@@ -465,6 +475,7 @@ export class WebAPI {
             body['stop'] = ['<|im_end|>']
         } else if (settings.provider === 'ChatGPT') {
             let resp: Response | null = null
+            let wsRequestId
             resp = await fetcher(utils.defaultChatGPTAPIAuthSession, { signal: query.signal })
             if (resp.status !== 200) {
                 query.onError?.('Failed to fetch ChatGPT Web accessToken.')
@@ -474,6 +485,14 @@ export class WebAPI {
             const respJson = await resp?.json()
             apiKey = respJson.accessToken
             const lastConversationId = await this.getConversationId(query.activatedActionName)
+            if (await isNeedWebsocket(apiKey)) {
+                await registerWebsocket(apiKey)
+                wsRequestId = uuidv4()
+                console.log('need websocket')
+            } else {
+                wsRequestId = uuidv4()
+                console.log('no need websocket')
+            }
             body = {
                 action: 'next',
                 messages: [
@@ -496,6 +515,7 @@ export class WebAPI {
                     kind: 'primary_assistant',
                 },
                 history_and_training_disabled: false,
+                websocket_request_id: wsRequestId,
                 force_paragen: false,
                 force_paragen_model_slug: '',
                 force_rate_limit: false,

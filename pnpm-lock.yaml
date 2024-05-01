@@ -104,6 +104,9 @@ importers:
       iso-639-1:
         specifier: ^2.1.15
         version: 2.1.15
+      js-sha3:
+        specifier: ^0.9.3
+        version: 0.9.3
       jss:
         specifier: ^10.10.0
         version: 10.10.0
@@ -4257,6 +4260,9 @@ packages:
   js-cookie@3.0.1:
     resolution: {integrity: sha512-+0rgsUXZu4ncpPxRL+lNEptWMOWl9etvPHc/koSRp6MPwpRYAhmk0dUG00J4bxVV3r9uUzfo24wW0knS07SKSw==}
     engines: {node: '>=12'}
+
+  js-sha3@0.9.3:
+    resolution: {integrity: sha512-BcJPCQeLg6WjEx3FE591wVAevlli8lxsxm9/FzV4HXkV49TmBH38Yvrpce6fjbADGMKFrBMGTqrVz3qPIZ88Gg==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -11497,6 +11503,8 @@ snapshots:
   js-cookie@2.2.1: {}
 
   js-cookie@3.0.1: {}
+
+  js-sha3@0.9.3: {}
 
   js-tokens@4.0.0: {}
 

@@ -6,14 +6,10 @@ import { vocabularyInternalService } from '../../common/internal-services/vocabu
 import { actionInternalService } from '../../common/internal-services/action'
 import { messageService } from '../../common/internal-services/message'
 // Import the functions you need from the SDKs you need
-import { getFirestore } from 'firebase/firestore'
 import { setUserConfig } from '../../common/utils'
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
-
-// Initialize Firebase
-export const db = getFirestore()
 
 browser.contextMenus?.create(
     {

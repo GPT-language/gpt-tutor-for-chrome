@@ -15,7 +15,7 @@ export interface ChatTopicState {
 }
 
 export const initialTopicState: ChatTopicState = {
-    activeTopicId: 'test',
+    activeTopicId: 'inbox',
     isSearchingTopic: false,
     searchTopics: [],
     topicSearchKeywords: '',

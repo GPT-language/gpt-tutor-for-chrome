@@ -7,19 +7,35 @@ import { useChatStore } from '@/store/chat'
 import { chatSelectors } from '@/store/chat/selectors'
 import AutoScroll from '../AutoScroll'
 import Item from '../ChatItem'
+import InboxWelcome from '../InboxWelcome'
+
+const WELCOME_ID = 'welcome'
 
 const itemContent = (index: number, id: string) => {
+    if (id === WELCOME_ID) return <InboxWelcome />
+
     return index === 0 ? <div style={{ height: 88 }} /> : <Item id={id} index={index - 1} />
 }
+
 const VirtualizedList = memo(() => {
     const virtuosoRef = useRef<VirtuosoHandle>(null)
     const [atBottom, setAtBottom] = useState(true)
+    console.log('VirtualizedList is working')
 
-    const data = useChatStore((s: any) => ['empty', ...chatSelectors.currentChatIDsWithGuideMessage(s)], isEqual)
+    const data = useChatStore((s) => {
+        console.log('useChatStore is working')
+        const showInboxWelcome = chatSelectors.showInboxWelcome(s)
+        console.log('showInboxWelcome', showInboxWelcome)
+        const ids = chatSelectors.currentChatIDsWithGuideMessage(s)
+        return ['empty', ...ids]
+    }, isEqual)
     const [id, chatLoading] = useChatStore((s) => [
         chatSelectors.currentChatKey(s),
         chatSelectors.currentChatLoadingState(s),
     ])
+    console.log('VirtualizedList', data)
+    console.log('VirtualizedList', id)
+    console.log('VirtualizedList', chatLoading)
 
     useEffect(() => {
         if (virtuosoRef.current) {

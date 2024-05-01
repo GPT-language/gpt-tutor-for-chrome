@@ -7,11 +7,13 @@ import type { ChatStore } from '../../store'
 
 export const INBOX_SESSION_ID = 'inbox'
 
-const currentChatKey = (s: ChatStore) => `${s.activeId}_${s.activeTopicId}`
+const currentChatKey = (s: ChatStore) => `${s.activeId}`
 
 // 当前激活的消息列表
 const currentChats = (s: ChatStore): ChatMessage[] => {
-    if (!s.activeId) return []
+    console.log('activeId', s.activeId)
+    console.log('messages', s.messages)
+    if (s.activeId) return []
 
     return s.messages.map((i) => ({ ...i }))
 }
@@ -25,9 +27,20 @@ const defaultAgentMetaData = {
 }
 
 const initTime = Date.now()
+
+const showInboxWelcome = (s: ChatStore): boolean => {
+    const isInbox = s.activeId === INBOX_SESSION_ID
+    if (!isInbox) return false
+    const data = currentChats(s)
+    const isBrandNewChat = data.length === 0
+    return isBrandNewChat
+}
 // 针对新助手添加初始化时的自定义消息
 const currentChatsWithGuideMessage = (s: ChatStore): ChatMessage[] => {
+    console.log('currentChatsWithGuideMessage', s)
     const data = currentChats(s)
+    console.log('data in currentChatsWithGuideMessage', data)
+
     const isBrandNewChat = data.length === 0
 
     if (!isBrandNewChat) return data
@@ -53,13 +66,17 @@ const currentChatsWithGuideMessage = (s: ChatStore): ChatMessage[] => {
         role: 'assistant',
         updatedAt: initTime,
     } as ChatMessage
+    console.log(emptyInboxGuideMessage)
 
     return [emptyInboxGuideMessage]
 }
 
 const currentChatIDsWithGuideMessage = (s: ChatStore) => {
+    console.log('try to get currentChatIDsWithGuideMessage')
     // 直接调用 currentChatsWithGuideMessage 函数，传入 s 参数
     const guideMessages = currentChatsWithGuideMessage(s)
+    console.log('guideMessages', guideMessages)
+
     // 然后在返回的 ChatMessage[] 数组上调用 .map 方法提取 id
     return guideMessages.map((msg) => msg.id)
 }
@@ -90,4 +107,5 @@ export const chatSelectors = {
     currentChatsWithHistoryConfig,
     getMessageById,
     latestMessage,
+    showInboxWelcome,
 }

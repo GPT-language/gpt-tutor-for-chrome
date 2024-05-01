@@ -58,7 +58,6 @@ import _ from 'underscore'
 import { GlobalSuspense } from './GlobalSuspense'
 import YouGlishComponent from '../youglish/youglish'
 import { LANG_CONFIGS } from '../components/lang/data'
-import { useClerk } from '@clerk/chrome-extension'
 import { createStoreUpdater } from 'zustand-utils'
 import { useChatStore } from '@/store/chat'
 const cache = new LRUCache({
@@ -523,8 +522,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const scrollYRef = useRef<number>(0)
 
     const hasActivateAction = activateAction !== undefined
-
-    const clerk = useClerk()
 
     useLayoutEffect(() => {
         const handleResize = () => {
@@ -1488,13 +1485,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 )}
                             </Dropzone>
                             <div className={styles.actionButtonsContainer}>
-                                <>
-                                    <StatefulTooltip content={t('Sign out')} showArrow placement='top'>
-                                        <div className={styles.actionButton} onClick={() => clerk.signOut()}>
-                                            <GoSignOut size={20} />
-                                        </div>
-                                    </StatefulTooltip>
-                                </>
                                 <div style={{ marginLeft: 'auto' }}></div>
                                 {!!editableText.length && (
                                     <>
