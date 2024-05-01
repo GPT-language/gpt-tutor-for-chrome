@@ -3,6 +3,7 @@ import webExtension from '@samrum/vite-plugin-web-extension'
 import manifest from './src/browser-extension/manifest.json'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from 'vite-tsconfig-paths'
+import svgr from 'vite-plugin-svgr'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -10,6 +11,7 @@ export default defineConfig({
     plugins: [
         tsconfigPaths(),
         react(),
+        svgr(),
         webExtension({
             manifest: manifest as chrome.runtime.Manifest,
         }),

@@ -1,6 +1,7 @@
 import { Theme } from 'baseui-sd/theme'
-import { TranslateMode, Provider } from './translate'
+import { TranslateMode } from './translate'
 import { TTSProvider } from './tts/types'
+import { Provider } from './engines'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface ISync {
@@ -50,7 +51,7 @@ export interface ISettings {
     apiURL: string
     apiURLPath: string
     apiModel: string
-    provider: Provider | 'OpenAI'
+    provider: Provider
     autoTranslate: boolean
     chatContext: boolean
     defaultTranslateMode: Exclude<TranslateMode, 'big-bang'> | 'nop'
