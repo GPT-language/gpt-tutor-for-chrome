@@ -134,3 +134,8 @@ export type ResponseContent =
           content_type: 'multimodal_text'
           parts: ({ content_type: 'image_asset_pointer' } & ImageContent)[]
       }
+
+export interface PubSubPayload {
+    websocket_request_id?: string // WebSocket请求的唯一标识符
+    body: string // 消息的主体，可能是经过Base64编码的
+}

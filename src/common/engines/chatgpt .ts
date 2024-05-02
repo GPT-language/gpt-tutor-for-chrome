@@ -1,13 +1,16 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable camelcase */
 import { v4 as uuidv4 } from 'uuid'
 import { getUniversalFetch } from '../universal-fetch'
 import { IMessageRequest, IModel } from './interfaces'
 import * as utils from '../utils'
-import { codeBlock } from 'common-tags'
-import { fetchSSE } from '../utils'
 import { AbstractEngine } from './abstract-engine'
 import { chatgptArkoseReqParams } from '../constants'
 import { sha3_512 } from 'js-sha3'
+import { OnGroupDataMessageArgs, OnServerDataMessageArgs, WebPubSubClient } from '@azure/web-pubsub-client'
+import { createParser } from 'eventsource-parser'
+import { PubSubPayload } from '../types'
+import { Base64 } from 'js-base64'
 
 export const keyChatgptArkoseReqUrl = 'chatgptArkoseReqUrl'
 export const keyChatgptArkoseReqForm = 'chatgptArkoseReqForm'
@@ -46,7 +49,7 @@ export async function getArkoseToken() {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body: any) {
+async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body?: any) {
     const fetcher = getUniversalFetch()
     return fetcher(`https://chat.openai.com/backend-api${endpoint}`, {
         method: method,
@@ -97,7 +100,60 @@ async function GenerateProofToken(seed: string, diff: string | number | unknown[
     return 'gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D' + fallbackBase
 }
 
+export async function registerWebsocket(accessToken: string): Promise<{ wss_url: string; expires_at: string }> {
+    return callBackendAPIWithToken(accessToken, 'POST', '/register-websocket').then((resp) => resp.json())
+}
+
+interface ConversationContext {
+    conversationId?: string
+    lastMessageId?: string
+    pubSubClient?: WebPubSubClient
+}
+
 export class ChatGPT extends AbstractEngine {
+    private length = 0
+    private context: ConversationContext
+    private accessToken?: string
+
+    constructor() {
+        super()
+        this.context = {}
+    }
+
+    saveConversationContext(name: string, conversationContext: { conversationId: string; lastMessageId: string }) {
+        //  使用 chrome.storage.local.set() 保存上下文
+        // 保存的键为action.name，然后保存对话ID
+        chrome.storage.local.set({
+            [`${name}.conversationId`]: {
+                value: conversationContext.conversationId,
+            },
+            [`${name}.lastMessageId`]: {
+                value: conversationContext.lastMessageId,
+            },
+        })
+    }
+
+    getConversationId(name: string) {
+        return new Promise(function (resolve) {
+            chrome.storage.local.get([`${name}.conversationId`], function (result) {
+                const conversationId = result[`${name}.conversationId`]?.value
+                resolve(conversationId)
+            })
+        })
+    }
+
+    removeConversationId(name: string) {
+        chrome.storage.local.remove([`${name}.conversationId`])
+    }
+
+    getLastMessageId(name: string) {
+        return new Promise(function (resolve) {
+            chrome.storage.local.get([`${name}.lastMessageId`], function (result) {
+                const lastMessageId = result[`${name}.lastMessageId`]?.value
+                resolve(lastMessageId)
+            })
+        })
+    }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async listModels(apiKey_: string | undefined): Promise<IModel[]> {
         const fetcher = getUniversalFetch()
@@ -158,157 +214,210 @@ export class ChatGPT extends AbstractEngine {
         return settings.chatgptModel
     }
 
-    async sendMessage(req: IMessageRequest): Promise<void> {
-        const model = await this.getModel()
-        const fetcher = getUniversalFetch()
-        req.onStatusCode?.(200)
-        let resp: Response | null = null
-        resp = await fetcher(utils.defaultChatGPTAPIAuthSession, { signal: req.signal })
-        req.onStatusCode?.(resp.status)
-        if (resp.status !== 200) {
-            try {
-                const respJsn = await resp.json()
-                if (respJsn && respJsn.detail) {
-                    req.onError(`Failed to fetch ChatGPT Web accessToken: ${respJsn.detail}`)
-                } else {
-                    req.onError(`Failed to fetch ChatGPT Web accessToken: ${resp.statusText}`)
-                }
-            } catch {
-                req.onError('Failed to fetch ChatGPT Web accessToken.')
+    async getAccessToken(req: IMessageRequest): Promise<string> {
+        const response = await fetch(utils.defaultChatGPTAPIAuthSession, { signal: req.signal })
+        if (response.status === 200) {
+            const { accessToken } = await response.json()
+            return accessToken
+        } else {
+            const errorText = response.status === 401 ? 'Authentication required.' : 'Failed to fetch access token.'
+            throw new Error(errorText)
+        }
+    }
+
+    private subscribeWebsocket(websocketRequestId: string, onMessage: (message: string) => void) {
+        const parser = createParser((event) => {
+            if (event.type === 'event') {
+                onMessage(event.data)
             }
+        })
+        const listener = (e: OnServerDataMessageArgs | OnGroupDataMessageArgs) => {
+            console.debug('raw message', e.message)
+            const payload = e.message.data as PubSubPayload
+            if (payload.websocket_request_id && payload.websocket_request_id !== websocketRequestId) {
+                console.debug('skip message')
+                return
+            }
+            const encodedBody = payload.body
+            const bodyChunk = Base64.decode(encodedBody)
+            parser.feed(bodyChunk)
+        }
+        this.context.pubSubClient!.on('server-message', listener)
+        this.context.pubSubClient!.on('group-message', listener)
+        return () => {
+            this.context.pubSubClient?.off('server-message', listener)
+            this.context.pubSubClient?.off('group-message', listener)
+        }
+    }
+
+    async postMessage(req: IMessageRequest, websocketRequestId?: string): Promise<Response | undefined> {
+        try {
+            const apiKey = await this.getAccessToken(req)
+            if (!apiKey) {
+                throw new Error('There is no logged-in ChatGPT account in this browser.')
+            }
+
+            const [model, arkoseToken, requirements, lastConversationId] = await Promise.all([
+                this.getModel(),
+                getArkoseToken(),
+                getChatRequirements(apiKey), // 确保传递 apiKey
+                this.getConversationId(req.activatedActionName),
+            ])
+
+            const userAgent =
+                process.env.USER_AGENT ||
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+            const proofToken = await GenerateProofToken(
+                requirements.proofofwork.seed,
+                requirements.proofofwork.difficulty,
+                userAgent
+            )
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'Openai-Sentinel-Arkose-Token': arkoseToken,
+                'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
+                'openai-sentinel-proof-token': proofToken,
+            }
+
+            const body = {
+                action: 'next',
+                messages: [
+                    {
+                        id: uuidv4(),
+                        role: 'user',
+                        content: { content_type: 'text', parts: [`${req.rolePrompt}\n\n${req.commandPrompt}`] },
+                    },
+                ],
+                model: model,
+                parent_message_id: uuidv4(),
+                conversation_mode: { kind: 'primary_assistant' },
+                force_nulligen: false,
+                force_paragen: false,
+                force_paragen_model_slug: '',
+                force_rate_limit: false,
+                suggestions: [],
+                history_and_training_disabled: false,
+                conversation_id: lastConversationId || undefined,
+                websocket_request_id: websocketRequestId,
+            }
+
+            const response = await fetch(`${utils.defaultChatGPTWebAPI}/conversation`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body),
+                signal: req.signal,
+            })
+
+            if (response.status === 404) {
+                this.removeConversationId(req.activatedActionName)
+                throw new Error(
+                    `API call failed with status ${response.status}: ${response.statusText}, please try again.`
+                )
+            }
+            if (response.status !== 200) {
+                const errorText = await response.text()
+                throw new Error(`API call failed with status ${response.status}: ${errorText}`)
+            }
+
+            return response
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            req.onError(error.message)
+        }
+    }
+
+    async sendMessage(req: IMessageRequest) {
+        if (!this.accessToken) {
+            this.accessToken = await this.getAccessToken(req)
+        }
+
+        type ResponseMode = 'sse' | 'websocket'
+        const responseMode: ResponseMode = (await utils.isNeedWebsocket(this.accessToken)) ? 'websocket' : 'sse'
+        console.debug('chatgpt response mode:', responseMode)
+
+        if (responseMode === 'sse') {
+            const resp = await this.postMessage(req)
+            if (!resp) return
+            await utils.parseSSEResponse(resp, this.createMessageHanlder(req))
             return
         }
-        const respJson = await resp?.json()
-        const apiKey = respJson.accessToken
-        const arkoseToken = await getArkoseToken()
-        const requirements = await getChatRequirements(apiKey)
-        const requirementstoken = requirements.token
-        const userAgent =
-            process.env.USER_AGENT ||
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
-        const proofToken = await GenerateProofToken(
-            requirements.proofofwork.seed,
-            requirements.proofofwork.difficulty,
-            userAgent
-        )
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'Openai-Sentinel-Arkose-Token': arkoseToken,
-            'Openai-Sentinel-Chat-Requirements-Token': requirementstoken,
-            'openai-sentinel-proof-token': proofToken,
+
+        if (responseMode === 'websocket' && !this.context.pubSubClient) {
+            const { wss_url } = await registerWebsocket(this.accessToken)
+            const client = new WebPubSubClient(wss_url)
+            await client.start()
+            this.context.pubSubClient = client
         }
-        const body = {
-            action: 'next',
-            messages: [
-                {
-                    id: uuidv4(),
-                    role: 'user',
-                    content: {
-                        content_type: 'text',
-                        parts: [
-                            codeBlock`
-                        ${req.rolePrompt}
 
-                        ${req.commandPrompt}
-                        `,
-                        ],
-                    },
-                },
-            ],
-            model, // 'text-davinci-002-render-sha'
-            parent_message_id: uuidv4(),
-            conversation_mode: {
-                kind: 'primary_assistant',
-            },
-            history_and_training_disabled: false,
-            force_paragen: false,
-            force_paragen_model_slug: '',
-            force_rate_limit: false,
-            suggestions: [],
-        }
-        let finished = false
-        let length = 0
-        await fetchSSE(`${utils.defaultChatGPTWebAPI}/conversation`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(body),
-            signal: req.signal,
-            onStatusCode: (status) => {
-                req.onStatusCode?.(status)
-            },
-            onMessage: async (msg) => {
-                if (finished) return
-                let resp
-                try {
-                    resp = JSON.parse(msg)
-                    // eslint-disable-next-line no-empty
-                } catch {
-                    req.onFinished('stop')
-                    finished = true
-                    return
-                }
+        const websocketRequestId = uuidv4()
 
-                if (resp.is_completion) {
-                    req.onFinished('stop')
-                    finished = true
-                    return
-                }
+        const unsubscribe = this.subscribeWebsocket(websocketRequestId, this.createMessageHanlder(req))
 
-                if (!resp.message) {
-                    if (resp.error) {
-                        req.onError(`ChatGPT Web error: ${resp.error}`)
-                    }
-                    return
-                }
-
-                const { content, author } = resp.message
-                if (author.role === 'assistant') {
-                    const targetTxt = content.parts.join('')
-                    const textDelta = targetTxt.slice(length)
-                    length = targetTxt.length
-                    await req.onMessage({ content: textDelta, role: '' })
-                }
-            },
-            onError: (err) => {
-                if (err instanceof Error) {
-                    req.onError(err.message)
-                    return
-                }
-                if (typeof err === 'string') {
-                    req.onError(err)
-                    return
-                }
-                if (typeof err === 'object') {
-                    const { detail } = err
-                    if (detail) {
-                        const { message } = detail
-                        if (message) {
-                            req.onError(`ChatGPT Web: ${message}`)
-                            return
-                        }
-                    }
-                    req.onError(`ChatGPT Web: ${JSON.stringify(err)}`)
-                    return
-                }
-                const { error } = err
-                if (error instanceof Error) {
-                    req.onError(error.message)
-                    return
-                }
-                if (typeof error === 'object') {
-                    const { message } = error
-                    if (message) {
-                        if (typeof message === 'string') {
-                            req.onError(message)
-                        } else {
-                            req.onError(JSON.stringify(message))
-                        }
-                        return
-                    }
-                }
-                req.onError('Unknown error')
-            },
+        const resp = await this.postMessage(req, websocketRequestId).catch((err) => {
+            unsubscribe()
+            throw err
         })
+
+        if (resp && !resp.ok) {
+            unsubscribe()
+            const error = await resp.json()
+            throw new Error(`${resp.status} ` + JSON.stringify(error))
+        }
+    }
+
+    private createMessageHanlder(req: IMessageRequest) {
+        return async (message: string) => {
+            if (message === '[DONE]') {
+                console.debug('Received completion signal from server.')
+                req.onFinished('stop')
+                return
+            }
+            let finished = false
+            let resp
+            if (finished) return
+            try {
+                resp = JSON.parse(message)
+                this.saveConversationContext(req.activatedActionName, {
+                    conversationId: resp.conversation_id,
+                    lastMessageId: resp.message.id,
+                })
+                this.context = {
+                    ...this.context,
+                    conversationId: resp.conversation_id,
+                    lastMessageId: resp.message.id,
+                }
+            } catch (err) {
+                console.error(err)
+                req.onFinished('stop')
+                finished = true
+                return
+            }
+
+            if (resp.is_completion) {
+                req.onFinished('stop')
+                finished = true
+                return
+            }
+
+            if (!resp.message) {
+                if (resp.error) {
+                    req.onError(`ChatGPT Web error: ${resp.error}`)
+                }
+                return
+            }
+
+            const { content, author } = resp.message
+            if (content.content_type !== 'text') {
+                return
+            }
+            if (author.role === 'assistant') {
+                const targetTxt = content.parts.join('')
+                const textDelta = targetTxt.slice(this.length)
+                this.length = targetTxt.length
+                await req.onMessage({ content: textDelta, role: '' })
+            }
+        }
     }
 }

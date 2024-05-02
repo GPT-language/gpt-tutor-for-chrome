@@ -10,6 +10,7 @@ export interface IMessage {
 }
 
 export interface IMessageRequest {
+    activatedActionName: string
     rolePrompt: string
     commandPrompt: string
     assistantPrompts?: string[]

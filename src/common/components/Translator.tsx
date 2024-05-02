@@ -13,7 +13,7 @@ import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
 import { getLangConfig, sourceLanguages, targetLanguages, LangCode } from './lang/lang'
-import { WebAPI } from '../translate'
+import { translate } from '../translate'
 import { Select, Value, Option } from 'baseui-sd/select'
 import { RxEraser, RxReload, RxSpeakerLoud } from 'react-icons/rx'
 import { RiSpeakerFill } from 'react-icons/ri'
@@ -60,6 +60,8 @@ import YouGlishComponent from '../youglish/youglish'
 import { LANG_CONFIGS } from '../components/lang/data'
 import { createStoreUpdater } from 'zustand-utils'
 import { useChatStore } from '@/store/chat'
+import { getEngine } from '../engines'
+import { IEngine } from '../engines/interfaces'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -690,7 +692,16 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [detectedOriginalText, setDetectedOriginalText] = useState(props.text)
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
-    const webAPI = new WebAPI()
+    const [engine, setEngine] = useState<IEngine | undefined>(undefined)
+
+    useEffect(() => {
+        if (!settings) {
+            return
+        }
+        const engine = getEngine(settings.provider)
+        console.log('engine created', engine)
+        setEngine(engine)
+    }, [settings])
 
     useEffect(() => {
         setOriginalText(props.text)
@@ -930,6 +941,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             if (!action) {
                 return
             }
+            console.log('action', action.name)
+
             setActivatedActionName(action.name)
             const beforeTranslate = () => {
                 const actionStr = 'Processing...'
@@ -969,41 +982,46 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
             let isStopped = false
             try {
-                const activatedActionName = ActivatedActionName
-                await webAPI.translate({
-                    detectFrom: sourceLang,
-                    detectTo: targetLang,
-                    activatedActionName,
-                    action,
-                    signal,
-                    text,
-                    onStatusCode: (statusCode) => {
-                        setIsNotLogin(statusCode === 401 || statusCode === 403)
-                    },
-                    onMessage: async (message) => {
-                        if (!message.content) {
-                            return
-                        }
-                        setTranslatedText((translatedText) => {
-                            if (message.isFullText) {
-                                return message.content
+                const activatedActionName = action.name
+
+                console.log(activatedActionName)
+                await translate(
+                    {
+                        activatedActionName,
+                        detectFrom: sourceLang,
+                        detectTo: targetLang,
+                        action,
+                        signal,
+                        text,
+                        onStatusCode: (statusCode) => {
+                            setIsNotLogin(statusCode === 401 || statusCode === 403)
+                        },
+                        onMessage: async (message) => {
+                            if (!message.content) {
+                                return
                             }
-                            return translatedText + message.content
-                        })
+                            setTranslatedText((translatedText) => {
+                                if (message.isFullText) {
+                                    return message.content
+                                }
+                                return translatedText + message.content
+                            })
+                        },
+                        onFinish: (reason) => {
+                            afterTranslate(reason)
+                            setTranslatedText((translatedText) => {
+                                const result = translatedText
+                                cache.set(cachedKey, result)
+                                return result
+                            })
+                        },
+                        onError: (error) => {
+                            setActionStr('Error')
+                            setErrorMessage(error)
+                        },
                     },
-                    onFinish: (reason) => {
-                        afterTranslate(reason)
-                        setTranslatedText((translatedText) => {
-                            const result = translatedText
-                            cache.set(cachedKey, result)
-                            return result
-                        })
-                    },
-                    onError: (error) => {
-                        setActionStr('Error')
-                        setErrorMessage(error)
-                    },
-                })
+                    engine
+                )
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (error: any) {
                 // if error is a AbortError then ignore this error
@@ -1021,7 +1039,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [activateAction?.id, settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
+        [activateAction, settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
     )
 
     useEffect(() => {
