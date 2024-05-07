@@ -106,7 +106,6 @@ export async function registerWebsocket(accessToken: string): Promise<{ wss_url:
 
 interface ConversationContext {
     conversationId?: string
-    lastMessageId?: string
     pubSubClient?: WebPubSubClient
 }
 
@@ -120,15 +119,12 @@ export class ChatGPT extends AbstractEngine {
         this.context = {}
     }
 
-    saveConversationContext(name: string, conversationContext: { conversationId: string; lastMessageId: string }) {
+    saveConversationContext(name: string, conversationContext: { conversationId: string }) {
         //  使用 chrome.storage.local.set() 保存上下文
         // 保存的键为action.name，然后保存对话ID
         chrome.storage.local.set({
             [`${name}.conversationId`]: {
                 value: conversationContext.conversationId,
-            },
-            [`${name}.lastMessageId`]: {
-                value: conversationContext.lastMessageId,
             },
         })
     }
@@ -146,14 +142,6 @@ export class ChatGPT extends AbstractEngine {
         chrome.storage.local.remove([`${name}.conversationId`])
     }
 
-    getLastMessageId(name: string) {
-        return new Promise(function (resolve) {
-            chrome.storage.local.get([`${name}.lastMessageId`], function (result) {
-                const lastMessageId = result[`${name}.lastMessageId`]?.value
-                resolve(lastMessageId)
-            })
-        })
-    }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async listModels(apiKey_: string | undefined): Promise<IModel[]> {
         const fetcher = getUniversalFetch()
@@ -381,12 +369,10 @@ export class ChatGPT extends AbstractEngine {
                 resp = JSON.parse(message)
                 this.saveConversationContext(req.activatedActionName, {
                     conversationId: resp.conversation_id,
-                    lastMessageId: resp.message.id,
                 })
                 this.context = {
                     ...this.context,
                     conversationId: resp.conversation_id,
-                    lastMessageId: resp.message.id,
                 }
             } catch (err) {
                 console.error(err)

@@ -53,6 +53,9 @@ importers:
       baseui-sd:
         specifier: ^12.2.4
         version: 12.2.4(@types/react@18.2.6)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(styletron-react@6.1.0(react@18.2.0))
+      best-effort-json-parser:
+        specifier: ^1.0.1
+        version: 1.0.1
       clsx:
         specifier: ^1.2.1
         version: 1.2.1
@@ -2616,6 +2619,9 @@ packages:
       react-dom: '>= 16.8.0 < 19'
       styletron-react: '>=6.1.0 < 7'
 
+  best-effort-json-parser@1.0.1:
+    resolution: {integrity: sha512-Fbne5nLqmDQXUmHf6cxeFAAIcsiFaSbCBoK0Rt+wgWv/7SacNhViNeXnuf0H0wXupwW5Io8FfB1FHPUfZujwwg==}
+
   big-integer@1.6.51:
     resolution: {integrity: sha512-GPEid2Y9QU1Exl1rpO9B2IPJGHPSupF5GnVIP0blYvNOMer2bTvSWs1jGOUg04hTmu67nmLsQ9TBo1puaotBHg==}
     engines: {node: '>=0.6'}
@@ -4723,8 +4729,8 @@ packages:
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0
 
-  lucide-react@0.376.0:
-    resolution: {integrity: sha512-g91IX3ERD6yUR1TL2dsL4BkcGygpZz/EsqjAeL/kcRQV0EApIOr/9eBfKhYOVyQIcGGuotFGjF3xKLHMEz+b7g==}
+  lucide-react@0.378.0:
+    resolution: {integrity: sha512-u6EPU8juLUk9ytRcyapkWI18epAv3RU+6+TC23ivjR0e+glWKBobFeSgRwOIJihzktILQuy6E0E80P2jVTDR5g==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0
 
@@ -8308,7 +8314,7 @@ snapshots:
       immer: 10.0.4
       leva: 0.9.35(@types/react-dom@18.2.4)(@types/react@18.2.6)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       lodash-es: 4.17.21
-      lucide-react: 0.376.0(react@18.2.0)
+      lucide-react: 0.378.0(react@18.2.0)
       polished: 4.3.1
       prism-react-renderer: 2.3.1(react@18.2.0)
       query-string: 9.0.0
@@ -9629,6 +9635,8 @@ snapshots:
       styletron-react: 6.1.0(react@18.2.0)
     transitivePeerDependencies:
       - '@types/react'
+
+  best-effort-json-parser@1.0.1: {}
 
   big-integer@1.6.51: {}
 
@@ -12268,7 +12276,7 @@ snapshots:
     dependencies:
       react: 18.2.0
 
-  lucide-react@0.376.0(react@18.2.0):
+  lucide-react@0.378.0(react@18.2.0):
     dependencies:
       react: 18.2.0
 

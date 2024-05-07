@@ -62,6 +62,9 @@ import { createStoreUpdater } from 'zustand-utils'
 import { useChatStore } from '@/store/chat'
 import { getEngine } from '../engines'
 import { IEngine } from '../engines/interfaces'
+import TextParser from './TextParser'
+import ActionList from './ActionList'
+
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -563,7 +566,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [displayedActions, setDisplayedActions] = useState<Action[]>([])
     const [hiddenActions, setHiddenActions] = useState<Action[]>([])
     const [displayedActionsMaxCount, setDisplayedActionsMaxCount] = useState(4)
-
+    const [listActions, setListActions] = useState<Action[]>([])
     // 使用 reduce 方法创建分组
     const actionGroups = actions?.reduce<Record<string, Action[]>>((groups, action) => {
         const group = action.group || 'English Learning'
@@ -579,6 +582,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }))
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         if (!actions) {
             actionService.bulkPut(promptsData)
             setDisplayedActions([])
@@ -591,6 +595,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             const group = action.group ?? 'English Learning'
             return group === selectedGroup
         })
+        const initialListActions = filteredActions.filter((action) => action.id !== activateAction?.id)
+        setListActions(initialListActions)
+
         let displayedActions = filteredActions.slice(0, displayedActionsMaxCount)
         let hiddenActions = filteredActions.slice(displayedActionsMaxCount)
         if (!displayedActions.find((action) => action.id === activateAction?.id)) {
@@ -607,7 +614,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         setDisplayedActions(displayedActions)
         setHiddenActions(hiddenActions)
-    }, [actions, activateAction?.id, displayedActionsMaxCount, promptsData, selectedGroup])
+    }, [actions, selectedGroup])
+
+    const handleActionClick = async (action: Action) => {
+        // 假设translate是一个已定义的函数
+        setActivateAction(action)
+        console.log('activateAction', action)
+
+        console.log('handleActionClick', action)
+
+        // 更新动作列表以排除已使用的动作
+        const updatedActions = listActions.filter((a) => a.id !== action.id)
+        setListActions(updatedActions)
+        console.log('updatedActions', updatedActions)
+    }
 
     const isTranslate = currentTranslateMode === 'translate'
 
@@ -693,6 +713,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
+    const handleSetOriginalText = (word: string) => {
+        console.log('handleSetOriginalText', word)
+        if (word) {
+            setOriginalText(word)
+        } else {
+            console.log('word is empty')
+        }
+    }
 
     useEffect(() => {
         if (!settings) {
@@ -727,6 +755,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [youglishLang, setYouglishLang] = useState<LangCode>('en')
     const [ActivatedActionName, setActivatedActionName] = useState('')
     const settingsIsUndefined = settings === undefined
+    const [showTextParser, setShowTextParser] = useState(false)
+    const [jsonText, setjsonText] = useState('')
 
     useEffect(() => {
         if (settingsIsUndefined) {
@@ -932,13 +962,29 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const [isNotLogin, setIsNotLogin] = useState(false)
 
+    const activateActionRef = useRef(activateAction)
+    useEffect(() => {
+        console.log('activateAction', activateAction)
+        console.log('activateActionRef', activateActionRef.current)
+
+        activateActionRef.current = activateAction
+    }, [activateAction])
+
     const translateText = useCallback(
         async (text: string, signal: AbortSignal) => {
             if (!text || !activateAction?.id) {
                 return
             }
-            const action = await actionService.get(activateAction.id)
+            const latestActivateAction = activateActionRef.current
+            console.log('latestActivateAction', latestActivateAction)
+            if (!latestActivateAction) {
+                console.log('latestActivateAction is undefined')
+
+                return // Handle the case where latestActivateAction is undefined
+            }
+            const action = await actionService.get(latestActivateAction.id)
             if (!action) {
+                console.log('action is undefined')
                 return
             }
             console.log('action', action.name)
@@ -1039,8 +1085,15 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [activateAction, settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
+        [originalText, settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
     )
+
+    useEffect(() => {
+        if (translatedText && activateAction?.name === 'JSON输出') {
+            setShowTextParser(true)
+            setjsonText(translatedText)
+        }
+    }, [translatedText, activateAction])
 
     useEffect(() => {
         if (editableText !== detectedOriginalText) {
@@ -1233,6 +1286,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                             }}
                                             onClick={() => {
                                                 setActivateAction(action)
+                                                setTranslatedText('')
                                                 if (action) {
                                                     localStorage.setItem('savedAction', JSON.stringify(action))
                                                 } else {
@@ -1582,40 +1636,65 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                             className={styles.popupCardTranslatedContentContainer}
                                         >
                                             <div>
-                                                {currentTranslateMode === 'explain-code' ||
-                                                activateAction?.outputRenderingFormat === 'markdown' ? (
+                                                <ActionList
+                                                    actions={listActions}
+                                                    onActionClick={handleActionClick}
+                                                    onClick={async (e) => {
+                                                        e.preventDefault()
+                                                        e.stopPropagation()
+                                                        if (!activateAction) {
+                                                            setActivateAction(
+                                                                actions?.find((action) => action.mode === 'translate')
+                                                            )
+                                                        }
+                                                        setOriginalText(editableText)
+                                                    }}
+                                                />
+                                                {showTextParser ? (
+                                                    <TextParser
+                                                        jsonContent={jsonText}
+                                                        setOriginalText={handleSetOriginalText}
+                                                    ></TextParser>
+                                                ) : null}
+                                                {activateAction?.name !== 'JSON输出' && (
                                                     <>
-                                                        <Markdown>{translatedText}</Markdown>
-                                                        {isLoading && <span className={styles.caret} />}
+                                                        {currentTranslateMode === 'explain-code' ||
+                                                        activateAction?.outputRenderingFormat === 'markdown' ? (
+                                                            <>
+                                                                <Markdown>{translatedText}</Markdown>
+                                                                {isLoading && <span className={styles.caret} />}
+                                                            </>
+                                                        ) : activateAction?.outputRenderingFormat === 'latex' ? (
+                                                            <>
+                                                                <Latex>{translatedText}</Latex>
+                                                                {isLoading && <span className={styles.caret} />}
+                                                            </>
+                                                        ) : (
+                                                            translatedLines.map((line, i) => {
+                                                                return (
+                                                                    <p className={styles.paragraph} key={`p-${i}`}>
+                                                                        {i === 0 ? (
+                                                                            <div
+                                                                                style={{
+                                                                                    display: 'flex',
+                                                                                    alignItems: 'center',
+                                                                                    gap: '5px',
+                                                                                }}
+                                                                            >
+                                                                                {line}
+                                                                            </div>
+                                                                        ) : (
+                                                                            line
+                                                                        )}
+                                                                        {isLoading &&
+                                                                            i === translatedLines.length - 1 && (
+                                                                                <span className={styles.caret} />
+                                                                            )}
+                                                                    </p>
+                                                                )
+                                                            })
+                                                        )}
                                                     </>
-                                                ) : activateAction?.outputRenderingFormat === 'latex' ? (
-                                                    <>
-                                                        <Latex>{translatedText}</Latex>
-                                                        {isLoading && <span className={styles.caret} />}
-                                                    </>
-                                                ) : (
-                                                    translatedLines.map((line, i) => {
-                                                        return (
-                                                            <p className={styles.paragraph} key={`p-${i}`}>
-                                                                {i === 0 ? (
-                                                                    <div
-                                                                        style={{
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            gap: '5px',
-                                                                        }}
-                                                                    >
-                                                                        {line}
-                                                                    </div>
-                                                                ) : (
-                                                                    line
-                                                                )}
-                                                                {isLoading && i === translatedLines.length - 1 && (
-                                                                    <span className={styles.caret} />
-                                                                )}
-                                                            </p>
-                                                        )
-                                                    })
                                                 )}
                                             </div>
                                         </div>
