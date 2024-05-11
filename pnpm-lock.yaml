@@ -143,6 +143,9 @@ importers:
       nuqs:
         specifier: ^1.17.1
         version: 1.17.1(next@14.2.1(@babel/core@7.22.5)(@playwright/test@1.34.3)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))
+      papaparse:
+        specifier: ^5.4.1
+        version: 5.4.1
       polished:
         specifier: ^4.3.1
         version: 4.3.1
@@ -5181,6 +5184,9 @@ packages:
   p-try@2.2.0:
     resolution: {integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==}
     engines: {node: '>=6'}
+
+  papaparse@5.4.1:
+    resolution: {integrity: sha512-HipMsgJkZu8br23pW15uvo6sib6wne/4woLZPlFf3rpDyMe9ywEXUsuD7+6K9PRkJlVT51j/sCOYDKGGS3ZJrw==}
 
   parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
@@ -12902,6 +12908,8 @@ snapshots:
       p-limit: 3.1.0
 
   p-try@2.2.0: {}
+
+  papaparse@5.4.1: {}
 
   parent-module@1.0.1:
     dependencies:

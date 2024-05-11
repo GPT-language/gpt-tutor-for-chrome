@@ -5,6 +5,7 @@ import { parse } from 'best-effort-json-parser'
 interface Sentence {
     word: string
     subject: string
+    category?: string
     translation?: string
     onClick: (word: string) => void
 }
@@ -14,10 +15,16 @@ interface TextParserProps {
     setOriginalText: (word: string) => void
 }
 
-const WordSegment: React.FC<Sentence> = ({ word, subject, translation, onClick }) => {
+interface TextContent {
+    sentenceTranslation: string
+    originalSentence: string
+    sentences: Sentence[]
+}
+const WordSegment: React.FC<Sentence> = ({ word, subject, category, translation, onClick }) => {
     return (
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', margin: '5px' }}>
             <div style={{ fontSize: 'smaller', color: '#666', marginRight: '10px' }}>{subject}</div>
+            <div style={{ fontSize: 'smaller', color: '#666', marginRight: '10px' }}>{category}</div>
             <div
                 style={{
                     margin: '0 10px',
@@ -42,37 +49,48 @@ const styles = {
     时间状语: '#B7E1CD', // 浅绿色，用于时间状语
     地点状语: '#FAD9A1', // 浅棕色，用于地点状语
     方式状语: '#C4A3D1', // 浅紫色，用于方式状语
-    副词: '#FADADD', // 粉色，用于副词
-    介词短语: '#D4E2D4', // 浅灰绿色，用于介词短语
+    补语: '#FADADD', // 粉色，用于副词
+    定语: '#D4E2D4', // 浅灰绿色，用于介词短语
     默认: '#F5F5F5', // 默认灰色，用于未特别分类的其他语法类别
 }
 
 const TextParser: React.FC<TextParserProps> = ({ jsonContent, setOriginalText }) => {
-    const [sentences, setSentences] = useState<Sentence[] | null>([])
+    const [textContent, setTextContent] = useState<TextContent | null>(null)
 
     useEffect(() => {
         // 清洗 JSON 字符串，去除 Markdown 反引号
+        console.log('jsonContent', jsonContent)
+
         const cleanJson = jsonContent.replace(/```json\n|\n```/g, '').trim()
+        console.log('cleanJson', cleanJson)
         try {
-            const content: Sentence[] = parse(cleanJson)
-            setSentences(content)
+            if (cleanJson !== '{}' && cleanJson.startsWith('{')) {
+                const textContent: TextContent = parse(cleanJson)
+                console.log('content', textContent)
+
+                setTextContent(textContent)
+            }
         } catch (error) {
             console.error('Failed to parse JSON content', error)
-            setSentences(null)
         }
     }, [jsonContent]) // 依赖数组包括 jsonContent，确保当 jsonContent 变化时重新执行解析
 
     return (
         <div>
-            {sentences?.map((sentence, index) => (
-                <WordSegment
-                    key={index}
-                    word={sentence.word}
-                    subject={sentence.subject}
-                    translation={sentence.translation}
-                    onClick={setOriginalText}
-                />
-            ))}
+            <h1>Original Sentence: {textContent?.originalSentence}</h1>
+            <h2>Translation: {textContent?.sentenceTranslation}</h2>
+            <div>
+                {textContent?.sentences?.map((sentence, index) => (
+                    <WordSegment
+                        key={index}
+                        word={sentence.word}
+                        category={sentence.category}
+                        subject={sentence.subject}
+                        translation={sentence.translation}
+                        onClick={setOriginalText}
+                    />
+                ))}
+            </div>
         </div>
     )
 }

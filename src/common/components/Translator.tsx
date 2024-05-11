@@ -64,11 +64,11 @@ import { getEngine } from '../engines'
 import { IEngine } from '../engines/interfaces'
 import TextParser from './TextParser'
 import ActionList from './ActionList'
+import WordListUploader from './WordListUploader'
 
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     sizeCalculation: (_value, _key) => {
         return 1
     },
@@ -85,9 +85,7 @@ function genLangOptions(langs: [LangCode, string][]): Value {
         ]
     }, [] as Value)
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const sourceLangOptions = genLangOptions(sourceLanguages)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const targetLangOptions = genLangOptions(targetLanguages)
 
 const useStyles = createUseStyles({
@@ -485,8 +483,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return savedAction ? JSON.parse(savedAction) : undefined
     })
 
-    const useStoreUpdater = createStoreUpdater(useChatStore)
-    useStoreUpdater('activeTopicId', activateAction?.id)
     const currentTranslateMode = useMemo(() => {
         if (!activateAction) {
             return undefined
@@ -614,7 +610,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         setDisplayedActions(displayedActions)
         setHiddenActions(hiddenActions)
-    }, [actions, selectedGroup])
+    }, [actions, activateAction?.id, displayedActionsMaxCount, promptsData, selectedGroup])
 
     const handleActionClick = async (action: Action) => {
         // 假设translate是一个已定义的函数
@@ -713,10 +709,30 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
+    const [translations, setTranslations] = useState<{ [key: string]: { text: string; format: string } }>({})
+
+    useEffect(() => {
+        if (translatedText && activateAction?.name && editableText) {
+            const key = `${activateAction?.name}:${editableText}`
+            setTranslations((prev) => {
+                const newTranslations = { ...prev }
+                newTranslations[key] = {
+                    text: translatedText,
+                    format: activateAction?.outputRenderingFormat || 'text',
+                }
+                return newTranslations
+            })
+        }
+    }, [translatedText, activateAction, editableText])
+
     const handleSetOriginalText = (word: string) => {
         console.log('handleSetOriginalText', word)
         if (word) {
+            setEditableText(word)
             setOriginalText(word)
+            console.log('originalText', originalText)
+
+            console.log('editableText', editableText)
         } else {
             console.log('word is empty')
         }
@@ -757,7 +773,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const settingsIsUndefined = settings === undefined
     const [showTextParser, setShowTextParser] = useState(false)
     const [jsonText, setjsonText] = useState('')
-
     useEffect(() => {
         if (settingsIsUndefined) {
             return
@@ -1285,8 +1300,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 },
                                             }}
                                             onClick={() => {
-                                                setActivateAction(action)
                                                 setTranslatedText('')
+                                                setActivateAction(action)
                                                 if (action) {
                                                     localStorage.setItem('savedAction', JSON.stringify(action))
                                                 } else {
@@ -1430,75 +1445,65 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             >
                                 {editableText}
                             </div>
-                            <Dropzone noClick={true}>
-                                {({ getRootProps }) => (
-                                    <div {...getRootProps()}>
-                                        <Textarea
-                                            inputRef={editorRef}
-                                            autoFocus={autoFocus}
-                                            overrides={{
-                                                Root: {
-                                                    style: {
-                                                        fontSize: '15px',
-                                                        width: '100%',
-                                                        borderRadius: '0px',
+                            <div style={{ display: 'flex', width: '100%', height: '230px' }}>
+                                <Dropzone noClick={true}>
+                                    {({ getRootProps }) => (
+                                        <div {...getRootProps()}>
+                                            <Textarea
+                                                inputRef={editorRef}
+                                                autoFocus={autoFocus}
+                                                overrides={{
+                                                    Root: {
+                                                        style: {
+                                                            fontSize: '15px',
+                                                            width: '100%',
+                                                            height: '100%',
+                                                            borderRadius: '0px',
+                                                        },
                                                     },
-                                                },
-                                                Input: {
-                                                    style: {
-                                                        fontSize: '15px',
-                                                        padding: '4px 8px',
-                                                        color:
-                                                            themeType === 'dark'
-                                                                ? theme.colors.contentSecondary
-                                                                : theme.colors.contentPrimary,
-                                                        fontFamily:
-                                                            currentTranslateMode === 'explain-code'
-                                                                ? 'monospace'
-                                                                : 'inherit',
-                                                        textalign: 'start',
+                                                    Input: {
+                                                        style: {
+                                                            fontSize: '15px',
+                                                            padding: '4px 8px',
+                                                            color:
+                                                                themeType === 'dark'
+                                                                    ? theme.colors.contentSecondary
+                                                                    : theme.colors.contentPrimary,
+                                                            fontFamily:
+                                                                currentTranslateMode === 'explain-code'
+                                                                    ? 'monospace'
+                                                                    : 'inherit',
+                                                            textalign: 'start',
+                                                        },
                                                     },
-                                                },
-                                            }}
-                                            value={editableText}
-                                            size='mini'
-                                            resize='vertical'
-                                            rows={
-                                                props.editorRows
-                                                    ? props.editorRows
-                                                    : Math.min(Math.max(editableText.split('\n').length, 3), 12)
-                                            }
-                                            onChange={(e) => setEditableText(e.target.value)}
-                                            onKeyPress={async (e) => {
-                                                if (e.key === 'Enter') {
-                                                    if (!e.shiftKey) {
-                                                        e.preventDefault()
-                                                        e.stopPropagation()
-                                                        if (!activateAction) {
-                                                            setActivateAction(
-                                                                actions?.find((action) => action.mode === 'translate')
-                                                            )
-                                                        }
-                                                        setOriginalText(editableText)
-                                                    }
+                                                }}
+                                                value={editableText}
+                                                size='mini'
+                                                resize='vertical'
+                                                rows={
+                                                    props.editorRows
+                                                        ? props.editorRows
+                                                        : typeof editableText === 'string'
+                                                        ? Math.min(Math.max(editableText.split('\n').length, 3), 12)
+                                                        : 3
                                                 }
-                                            }}
-                                        />
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                flexDirection: 'row',
-                                                alignItems: 'center',
-                                                paddingTop:
-                                                    editableText && editableText !== detectedOriginalText ? 8 : 0,
-                                                height: editableText && editableText !== detectedOriginalText ? 28 : 0,
-                                                transition: 'all 0.3s linear',
-                                                overflow: 'hidden',
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    marginRight: 'auto',
+                                                onChange={(e) => setEditableText(e.target.value)}
+                                                onKeyPress={async (e) => {
+                                                    if (e.key === 'Enter') {
+                                                        forceTranslate()
+                                                        if (!e.shiftKey) {
+                                                            e.preventDefault()
+                                                            e.stopPropagation()
+                                                            if (!activateAction) {
+                                                                setActivateAction(
+                                                                    actions?.find(
+                                                                        (action) => action.mode === 'translate'
+                                                                    )
+                                                                )
+                                                            }
+                                                            setOriginalText(editableText)
+                                                        }
+                                                    }
                                                 }}
                                             />
                                             <div
@@ -1506,56 +1511,81 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     display: 'flex',
                                                     flexDirection: 'row',
                                                     alignItems: 'center',
-                                                    gap: 10,
+                                                    paddingTop: editableText ? 8 : 0,
+                                                    height: editableText ? 28 : 0,
+                                                    transition: 'all 0.3s linear',
+                                                    overflow: 'hidden',
                                                 }}
                                             >
                                                 <div
                                                     style={{
-                                                        color: '#999',
-                                                        fontSize: '12px',
-                                                        transform: 'scale(0.9)',
-                                                        marginRight: '-20px',
+                                                        marginRight: 'auto',
+                                                    }}
+                                                />
+                                                <div
+                                                    style={{
+                                                        display: 'flex',
+                                                        flexDirection: 'row',
+                                                        alignItems: 'center',
+                                                        gap: 10,
                                                     }}
                                                 >
-                                                    {
-                                                        'Please press <Enter> to submit. Press <Shift+Enter> to start a new line.'
-                                                    }
-                                                </div>
-                                                <Button
-                                                    size='mini'
-                                                    onClick={async (e) => {
-                                                        e.preventDefault()
-                                                        e.stopPropagation()
-                                                        if (!activateAction) {
-                                                            setActivateAction(
-                                                                actions?.find((action) => action.mode === 'translate')
-                                                            )
+                                                    <div
+                                                        style={{
+                                                            color: '#999',
+                                                            fontSize: '12px',
+                                                            transform: 'scale(0.9)',
+                                                            marginRight: '-20px',
+                                                        }}
+                                                    >
+                                                        {
+                                                            'Please press <Enter> to submit. Press <Shift+Enter> to start a new line.'
                                                         }
-                                                        setOriginalText(editableText)
-                                                    }}
-                                                    startEnhancer={<IoIosRocket size={13} />}
-                                                    overrides={{
-                                                        StartEnhancer: {
-                                                            style: {
-                                                                marginRight: '6px',
+                                                    </div>
+                                                    <Button
+                                                        size='mini'
+                                                        onClick={async (e) => {
+                                                            e.preventDefault()
+                                                            e.stopPropagation()
+                                                            if (!activateAction) {
+                                                                setActivateAction(
+                                                                    actions?.find(
+                                                                        (action) => action.mode === 'translate'
+                                                                    )
+                                                                )
+                                                            }
+                                                            setOriginalText(editableText)
+                                                            forceTranslate()
+                                                        }}
+                                                        startEnhancer={<IoIosRocket size={13} />}
+                                                        overrides={{
+                                                            StartEnhancer: {
+                                                                style: {
+                                                                    marginRight: '6px',
+                                                                },
                                                             },
-                                                        },
-                                                        BaseButton: {
-                                                            style: {
-                                                                fontWeight: 'normal',
-                                                                fontSize: '12px',
-                                                                padding: '4px 8px',
+                                                            BaseButton: {
+                                                                style: {
+                                                                    fontWeight: 'normal',
+                                                                    fontSize: '12px',
+                                                                    padding: '4px 8px',
+                                                                },
                                                             },
-                                                        },
-                                                    }}
-                                                >
-                                                    {t('Submit')}
-                                                </Button>
+                                                        }}
+                                                    >
+                                                        {t('Submit')}
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-                            </Dropzone>
+                                    )}
+                                </Dropzone>
+                                <div style={{ flex: 1, height: '100%' }}>
+                                    {' '}
+                                    {/* WordListUploader部分占比1/3 */}
+                                    <WordListUploader setOriginalText={handleSetOriginalText} />
+                                </div>
+                            </div>
                             <div className={styles.actionButtonsContainer}>
                                 <div style={{ marginLeft: 'auto' }}></div>
                                 {!!editableText.length && (
@@ -1658,92 +1688,118 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 ) : null}
                                                 {activateAction?.name !== 'JSON输出' && (
                                                     <>
-                                                        {currentTranslateMode === 'explain-code' ||
-                                                        activateAction?.outputRenderingFormat === 'markdown' ? (
-                                                            <>
-                                                                <Markdown>{translatedText}</Markdown>
-                                                                {isLoading && <span className={styles.caret} />}
-                                                            </>
-                                                        ) : activateAction?.outputRenderingFormat === 'latex' ? (
-                                                            <>
-                                                                <Latex>{translatedText}</Latex>
-                                                                {isLoading && <span className={styles.caret} />}
-                                                            </>
-                                                        ) : (
-                                                            translatedLines.map((line, i) => {
-                                                                return (
-                                                                    <p className={styles.paragraph} key={`p-${i}`}>
-                                                                        {i === 0 ? (
-                                                                            <div
-                                                                                style={{
-                                                                                    display: 'flex',
-                                                                                    alignItems: 'center',
-                                                                                    gap: '5px',
-                                                                                }}
-                                                                            >
-                                                                                {line}
-                                                                            </div>
-                                                                        ) : (
-                                                                            line
-                                                                        )}
-                                                                        {isLoading &&
-                                                                            i === translatedLines.length - 1 && (
+                                                        {Object.entries(translations).map(
+                                                            ([key, { text, format }], index) => (
+                                                                <div key={key}>
+                                                                    {format === 'markdown' ? (
+                                                                        <>
+                                                                            <Markdown>{text}</Markdown>
+                                                                            {isLoading && (
                                                                                 <span className={styles.caret} />
                                                                             )}
-                                                                    </p>
-                                                                )
-                                                            })
+                                                                        </>
+                                                                    ) : format === 'latex' ? (
+                                                                        <>
+                                                                            <Latex>{text}</Latex>
+                                                                            {isLoading && (
+                                                                                <span className={styles.caret} />
+                                                                            )}
+                                                                        </>
+                                                                    ) : (
+                                                                        text.split('\n').map((line, i) => (
+                                                                            <p
+                                                                                className={styles.paragraph}
+                                                                                key={`p-${i}`}
+                                                                            >
+                                                                                {i === 0 ? (
+                                                                                    <div
+                                                                                        style={{
+                                                                                            display: 'flex',
+                                                                                            alignItems: 'center',
+                                                                                            gap: '5px',
+                                                                                        }}
+                                                                                    >
+                                                                                        {line}
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    line
+                                                                                )}
+                                                                            </p>
+                                                                        ))
+                                                                    )}
+                                                                    <div
+                                                                        ref={actionButtonsRef}
+                                                                        className={styles.actionButtonsContainer}
+                                                                    >
+                                                                        <div style={{ marginRight: 'auto' }} />
+                                                                        {!isLoading && (
+                                                                            <Tooltip
+                                                                                content={t('Retry')}
+                                                                                placement='bottom'
+                                                                            >
+                                                                                <div
+                                                                                    onClick={() => forceTranslate()}
+                                                                                    className={styles.actionButton}
+                                                                                >
+                                                                                    <RxReload size={15} />
+                                                                                </div>
+                                                                            </Tooltip>
+                                                                        )}
+                                                                        <Tooltip
+                                                                            content={t('Speak')}
+                                                                            placement='bottom'
+                                                                        >
+                                                                            <div
+                                                                                className={styles.actionButton}
+                                                                                onClick={() =>
+                                                                                    handleTranslatedSpeakAction()
+                                                                                }
+                                                                            >
+                                                                                {isSpeakingTranslatedText ? (
+                                                                                    <SpeakerMotion />
+                                                                                ) : (
+                                                                                    <RxSpeakerLoud size={15} />
+                                                                                )}
+                                                                            </div>
+                                                                        </Tooltip>
+                                                                        <Tooltip
+                                                                            content={t('Copy to clipboard')}
+                                                                            placement='bottom'
+                                                                        >
+                                                                            <div className={styles.actionButton}>
+                                                                                <CopyButton
+                                                                                    text={text}
+                                                                                    styles={styles}
+                                                                                ></CopyButton>
+                                                                            </div>
+                                                                        </Tooltip>
+                                                                        <Tooltip
+                                                                            content={t('Add to Anki')}
+                                                                            placement='bottom'
+                                                                        >
+                                                                            <div
+                                                                                onClick={() =>
+                                                                                    addToAnki(
+                                                                                        selectedGroup +
+                                                                                            ':' +
+                                                                                            key.split(':')[0], // assuming key is activateAction.name:editableText
+                                                                                        originalText,
+                                                                                        text
+                                                                                    )
+                                                                                }
+                                                                                className={styles.actionButton}
+                                                                            >
+                                                                                <AiOutlinePlusSquare size={15} />
+                                                                            </div>
+                                                                        </Tooltip>
+                                                                    </div>
+                                                                </div>
+                                                            )
                                                         )}
                                                     </>
                                                 )}
                                             </div>
                                         </div>
-                                        {translatedText && (
-                                            <div ref={actionButtonsRef} className={styles.actionButtonsContainer}>
-                                                <div style={{ marginRight: 'auto' }} />
-                                                {!isLoading && (
-                                                    <Tooltip content={t('Retry')} placement='bottom'>
-                                                        <div
-                                                            onClick={() => forceTranslate()}
-                                                            className={styles.actionButton}
-                                                        >
-                                                            <RxReload size={15} />
-                                                        </div>
-                                                    </Tooltip>
-                                                )}
-                                                <Tooltip content={t('Speak')} placement='bottom'>
-                                                    <div
-                                                        className={styles.actionButton}
-                                                        onClick={handleTranslatedSpeakAction}
-                                                    >
-                                                        {isSpeakingTranslatedText ? (
-                                                            <SpeakerMotion />
-                                                        ) : (
-                                                            <RxSpeakerLoud size={15} />
-                                                        )}
-                                                    </div>
-                                                </Tooltip>
-                                                <Tooltip content={t('Copy to clipboard')} placement='bottom'>
-                                                    <div className={styles.actionButton}>
-                                                        <CopyButton text={translatedText} styles={styles}></CopyButton>
-                                                    </div>
-                                                </Tooltip>
-                                                <Tooltip content={t('Add to Anki')} placement='bottom'>
-                                                    <div
-                                                        onClick={() =>
-                                                            addToAnki(
-                                                                selectedGroup + ':' + activateAction?.name,
-                                                                originalText,
-                                                                translatedText
-                                                            )
-                                                        }
-                                                        className={styles.actionButton}
-                                                    >
-                                                        <AiOutlinePlusSquare size={15} />
-                                                    </div>
-                                                </Tooltip>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                                 {isNotLogin && settings?.provider === 'ChatGPT' && (

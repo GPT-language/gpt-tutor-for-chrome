@@ -66,6 +66,7 @@ const QuestionSuggest = memo(() => {
             </Flexbox>
             <Flexbox gap={8} horizontal wrap={'wrap'}>
                 {qa.map((item) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const text = t(`guide.qa.${item}` as any)
                     return (
                         <Flexbox
