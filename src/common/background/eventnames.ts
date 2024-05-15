@@ -1,10 +1,5 @@
-import { IVocabularyInternalService } from '../internal-services/vocabulary'
-
 export const BackgroundEventNames = {
     fetch: 'fetch',
-    vocabularyService: 'vocabularyService',
     actionService: 'actionService',
-    messageService: 'messageService',
+    fileService: 'fileService',
 }
-
-export type BackgroundVocabularyServiceMethodNames = keyof IVocabularyInternalService

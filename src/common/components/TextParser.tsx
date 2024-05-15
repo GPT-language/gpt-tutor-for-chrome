@@ -20,7 +20,7 @@ interface TextContent {
     originalSentence: string
     sentences: Sentence[]
 }
-const WordSegment: React.FC<Sentence> = ({ word, subject, category, translation, onClick }) => {
+const WordSegment: React.FC<Sentence> = React.memo(({ word, subject, category, translation, onClick }) => {
     return (
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', margin: '5px' }}>
             <div style={{ fontSize: 'smaller', color: '#666', marginRight: '10px' }}>{subject}</div>
@@ -40,7 +40,7 @@ const WordSegment: React.FC<Sentence> = ({ word, subject, category, translation,
             {translation && <div style={{ fontSize: 'smaller', color: '#666', marginLeft: '10px' }}>{translation}</div>}
         </div>
     )
-}
+})
 
 const styles = {
     主语: '#E8F4FF', // 浅蓝色，用于主语

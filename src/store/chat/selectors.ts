@@ -1,2 +1,1 @@
-export { chatSelectors } from './slices/message/selectors'
-export { topicSelectors } from './slices/topic/selectors'
+export { chatSelectors } from './slices/translation/selectors'

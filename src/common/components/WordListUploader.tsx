@@ -1,35 +1,52 @@
 import React, { useState, useEffect, ChangeEvent } from 'react'
 import { parse } from 'papaparse'
-
+import { fileService } from '@/common/internal-services/file' // 调整路径以匹配你的项目结构
+import { Word } from '../internal-services/db'
 interface WordListUploaderProps {
-    setOriginalText: (word: string) => void
-}
-
-interface WordEntry {
-    word: string
+    setOriginalText: (entry: Word) => void
 }
 
 const WordListUploader: React.FC<WordListUploaderProps> = ({ setOriginalText }) => {
-    const [words, setWords] = useState<WordEntry[]>([])
+    const [words, setWords] = useState<Word[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const [selectedWord, setSelectedWord] = useState<string | null>(null)
     const [itemsPerPage, setItemsPerPage] = useState(10) // 或者其他根据用户选择的值
-
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
         if (file) {
             parse(file, {
-                complete: (results: { data: string[][] }) => {
-                    const words = results.data.map((entry: string[]) => ({
-                        word: entry[0],
+                complete: async (results: { data: string[][] }) => {
+                    const words = results.data.map((entry: string[], index: number) => ({
+                        idx: index + 1,
+                        text: entry[0],
+                        translations: {},
                     }))
                     setWords(words)
                     setCurrentPage(1) // Reset to first page upon new file upload
+                    const fileId = await fileService.addFile(file.name, words)
+                    if (fileId) {
+                        localStorage.setItem('currentFileId', fileId.toString())
+                    }
                 },
                 header: false,
             })
         }
     }
+
+    useEffect(() => {
+        const loadWords = async () => {
+            // 假设你有方法从数据库获取所有文件或特定文件的词汇
+            const someFileId = Number(localStorage.getItem('currentFileId'))
+            if (someFileId) {
+                const fileDetails = await fileService.fetchFileDetails(someFileId) // 使用适当的文件ID
+                if (fileDetails) {
+                    setWords(fileDetails.words)
+                }
+            }
+        }
+
+        loadWords()
+    }, [])
 
     const numPages = Math.ceil(words.length / itemsPerPage)
 
@@ -56,9 +73,9 @@ const WordListUploader: React.FC<WordListUploaderProps> = ({ setOriginalText }) 
         }
     }, [currentPage])
 
-    const handleWordClick = (word: string) => {
-        setOriginalText(word)
-        setSelectedWord(word)
+    const handleWordClick = async (entry: Word) => {
+        setOriginalText({ text: entry.text, idx: entry.idx, translations: entry.translations })
+        setSelectedWord(entry.text)
     }
 
     const getDisplayedWords = () => {
@@ -87,11 +104,11 @@ const WordListUploader: React.FC<WordListUploaderProps> = ({ setOriginalText }) 
                         key={index}
                         style={{
                             cursor: 'pointer',
-                            backgroundColor: entry.word === selectedWord ? 'yellow' : 'transparent',
+                            backgroundColor: entry.text === selectedWord ? 'yellow' : 'transparent',
                         }}
-                        onClick={() => handleWordClick(entry.word)}
+                        onClick={() => handleWordClick(entry)}
                     >
-                        {entry.word}
+                        {entry.idx}.{entry.text}
                     </li>
                 ))}
             </ol>

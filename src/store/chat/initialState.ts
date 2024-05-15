@@ -1,9 +1,7 @@
-import { ChatMessageState, initialMessageState } from './slices/message/initialState'
-import { ChatTopicState, initialTopicState } from './slices/topic/initialState'
+import { ChatFileState, initialFileState } from './slices/translation/initialState'
 
-export type ChatStoreState = ChatTopicState & ChatMessageState
+export type ChatStoreState = ChatFileState
 
 export const initialState: ChatStoreState = {
-    ...initialMessageState,
-    ...initialTopicState,
+    ...initialFileState,
 }

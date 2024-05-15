@@ -2,9 +2,8 @@
 import browser from 'webextension-polyfill'
 import { BackgroundEventNames } from '../../common/background/eventnames'
 import { BackgroundFetchRequestMessage, BackgroundFetchResponseMessage } from '../../common/background/fetch'
-import { vocabularyInternalService } from '../../common/internal-services/vocabulary'
+import { fileService } from '../../common/internal-services/file'
 import { actionInternalService } from '../../common/internal-services/action'
-import { messageService } from '../../common/internal-services/message'
 // Import the functions you need from the SDKs you need
 import { setUserConfig } from '../../common/utils'
 
@@ -182,12 +181,10 @@ async function callMethod(request: any, service: any): Promise<any> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 browser.runtime.onMessage.addListener(async (request) => {
     switch (request.type) {
-        case BackgroundEventNames.vocabularyService:
-            return await callMethod(request, vocabularyInternalService)
+        case BackgroundEventNames.fileService:
+            return await callMethod(request, fileService)
         case BackgroundEventNames.actionService:
             return await callMethod(request, actionInternalService)
-        case BackgroundEventNames.messageService:
-            return await callMethod(request, messageService)
     }
 })
 

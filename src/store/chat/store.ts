@@ -4,20 +4,15 @@ import { createWithEqualityFn } from 'zustand/traditional'
 import { StateCreator } from 'zustand/vanilla'
 
 import { ChatStoreState, initialState } from './initialState'
-import { ChatMessageAction, chatMessage } from './slices/message/action'
-import { ChatTopicAction, chatTopic } from './slices/topic/action'
+import { ChatFileAction, chatFile } from './slices/translation/action'
 
-export interface ChatStoreAction extends ChatMessageAction, ChatTopicAction {}
-
-export type ChatStore = ChatStoreAction & ChatStoreState
+export type ChatStore = ChatFileAction & ChatStoreState
 
 //  ===============  聚合 createStoreFn ============ //
 
 const createStore: StateCreator<ChatStore, [['zustand/devtools', never]]> = (...params) => ({
     ...initialState,
-
-    ...chatMessage(...params),
-    ...chatTopic(...params),
+    ...chatFile(...params),
 })
 
 //  ===============  实装 useStore ============ //

@@ -24,7 +24,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { ErrorFallback } from '../components/ErrorFallback'
 import { defaultAPIURL, isDesktopApp, isTauri } from '../utils'
 import { InnerSettings } from './Settings'
-import { documentPadding } from '../../browser-extension/content_script/consts'
+import { documentPadding, zIndex } from '../../browser-extension/content_script/consts'
 import Dropzone from 'react-dropzone'
 import { addNewNote, isConnected } from '../anki/anki-connect'
 import actionsData from '../services/prompts.json'
@@ -39,7 +39,7 @@ import { Tooltip } from './Tooltip'
 import { useSettings } from '../hooks/useSettings'
 import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
-import { Action } from '../internal-services/db'
+import { Action, Word, Words } from '../internal-services/db'
 import { CopyButton } from './CopyButton'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { actionService } from '../services/action'
@@ -65,6 +65,7 @@ import { IEngine } from '../engines/interfaces'
 import TextParser from './TextParser'
 import ActionList from './ActionList'
 import WordListUploader from './WordListUploader'
+import { fileService } from '../internal-services/file'
 
 const cache = new LRUCache({
     max: 500,
@@ -703,6 +704,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [newYouGlish, setNewYouGlish] = useState(false)
     const [showYouGlish, setShowYouGlish] = useState(false)
     const [editableText, setEditableText] = useState(props.text)
+    const [selectWordIdx, setSelectWordIdx] = useState(0)
     const [isSpeakingEditableText, setIsSpeakingEditableText] = useState(false)
     const [originalText, setOriginalText] = useState(props.text)
     const [detectedOriginalText, setDetectedOriginalText] = useState(props.text)
@@ -723,20 +725,50 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 return newTranslations
             })
         }
-    }, [translatedText, activateAction, editableText])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [translatedText])
 
-    const handleSetOriginalText = (word: string) => {
-        console.log('handleSetOriginalText', word)
-        if (word) {
-            setEditableText(word)
-            setOriginalText(word)
+    useEffect(() => {
+        if (translatedText && activateAction?.name && editableText && selectWordIdx !== 0) {
+            const key = `${activateAction?.name}:${editableText}`
+            const fileId = Number(localStorage.getItem('currentFileId'))
+            if (fileId) {
+                fileService.addOrUpdateTranslationInWord(
+                    fileId,
+                    selectWordIdx,
+                    activateAction?.name,
+                    editableText,
+                    translatedText,
+                    activateAction.outputRenderingFormat || 'Markdown'
+                )
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [translatedText])
+
+    const handleSetOriginalText = useCallback((entry: Word) => {
+        console.log('handleEntry', entry)
+        console.log('handleSetOriginalText', entry.text)
+        console.log('handleTranslations', entry.translations)
+
+        if (entry.text && entry.idx) {
+            setEditableText(entry.text)
+            setOriginalText(entry.text)
+            setSelectWordIdx(entry.idx)
+            if (entry.translations) {
+                console.log('entry.translations', entry.translations)
+                setTranslations(entry.translations)
+            } else {
+                setTranslations({})
+            }
             console.log('originalText', originalText)
 
             console.log('editableText', editableText)
         } else {
             console.log('word is empty')
         }
-    }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     useEffect(() => {
         if (!settings) {
@@ -1120,7 +1152,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return () => {
             controller.abort()
         }
-    }, [translateText, editableText, detectedOriginalText])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [translateText])
 
     const [showSettings, setShowSettings] = useState(false)
     useEffect(() => {
@@ -1445,10 +1478,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             >
                                 {editableText}
                             </div>
-                            <div style={{ display: 'flex', width: '100%', height: '230px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
                                 <Dropzone noClick={true}>
                                     {({ getRootProps }) => (
-                                        <div {...getRootProps()}>
+                                        <div
+                                            {...getRootProps()}
+                                            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                                        >
                                             <Textarea
                                                 inputRef={editorRef}
                                                 autoFocus={autoFocus}
@@ -1463,6 +1499,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     },
                                                     Input: {
                                                         style: {
+                                                            height: '100%',
                                                             fontSize: '15px',
                                                             padding: '4px 8px',
                                                             color:
@@ -1480,13 +1517,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 value={editableText}
                                                 size='mini'
                                                 resize='vertical'
-                                                rows={
-                                                    props.editorRows
-                                                        ? props.editorRows
-                                                        : typeof editableText === 'string'
-                                                        ? Math.min(Math.max(editableText.split('\n').length, 3), 12)
-                                                        : 3
-                                                }
                                                 onChange={(e) => setEditableText(e.target.value)}
                                                 onKeyPress={async (e) => {
                                                     if (e.key === 'Enter') {
@@ -1511,10 +1541,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     display: 'flex',
                                                     flexDirection: 'row',
                                                     alignItems: 'center',
-                                                    paddingTop: editableText ? 8 : 0,
-                                                    height: editableText ? 28 : 0,
+                                                    paddingTop: 8,
                                                     transition: 'all 0.3s linear',
-                                                    overflow: 'hidden',
+                                                    overflow: 'visible',
                                                 }}
                                             >
                                                 <div
@@ -1535,7 +1564,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             color: '#999',
                                                             fontSize: '12px',
                                                             transform: 'scale(0.9)',
-                                                            marginRight: '-20px',
+                                                            marginRight: '5px',
                                                         }}
                                                     >
                                                         {
@@ -1545,6 +1574,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     <Button
                                                         size='mini'
                                                         onClick={async (e) => {
+                                                            console.log('submit is working')
+
+                                                            forceTranslate()
                                                             e.preventDefault()
                                                             e.stopPropagation()
                                                             if (!activateAction) {
@@ -1555,7 +1587,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                 )
                                                             }
                                                             setOriginalText(editableText)
-                                                            forceTranslate()
                                                         }}
                                                         startEnhancer={<IoIosRocket size={13} />}
                                                         overrides={{
@@ -1569,6 +1600,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                     fontWeight: 'normal',
                                                                     fontSize: '12px',
                                                                     padding: '4px 8px',
+                                                                    cursor: 'pointer',
+                                                                    zIndex: 100,
                                                                 },
                                                             },
                                                         }}
@@ -1580,7 +1613,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                         </div>
                                     )}
                                 </Dropzone>
-                                <div style={{ flex: 1, height: '100%' }}>
+                                <div style={{ flex: 1, display: 'flex' }}>
                                     {' '}
                                     {/* WordListUploader部分占比1/3 */}
                                     <WordListUploader setOriginalText={handleSetOriginalText} />

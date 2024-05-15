@@ -17,48 +17,40 @@ export interface Action {
     createdAt: string
 }
 
-export interface ChatMessage {
-    id: string
-    createdAt: number
-    updatedAt?: number
-    role: 'user' | 'system' | 'assistant' | 'function'
-    content: string
-    files?: string[]
-    favorite?: 0 | 1
-    error?: unknown
-
-    // foreign keys
-    // topicId == conversationId
-    parentId?: string
-    quotaId?: string
-    sessionId: string
-    topicId?: string | null
+export interface Translation {
+    text: string
+    format: string // 如 "text", "markdown", "latex"
 }
 
-export interface Topic {
-    id: string
-    title: string
-    favorite?: boolean
-    // foreign keys
-    sessionId?: string
-    createAt?: number
-    createdAt?: number
-    updatedAt?: number
-    updateAt?: number
+export interface Translations {
+    [actionName: string]: Translation
+}
+
+export interface Word {
+    idx: number
+    text: string
+    translations?: Translations
+    isNew?: boolean
+}
+
+export interface File {
+    id?: number
+    fileName: string
+    words: Word[]
 }
 
 export class LocalDB extends Dexie {
-    action!: Table<Action>
-    message!: Table<ChatMessage>
-    topic!: Table<Topic>
+    action!: Table<Action, number>
+    files!: Table<File, number>
 
     constructor() {
         super('openai-translator')
-        this.version(5).stores({
+        this.version(1).stores({
             action: '++id, idx, mode, name, group, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt',
-            message: '++id, role, content, parentId, quotaId, sessionId, topicId',
-            topic: '++id, title, favorite, sessionId, createdAt, createAt, updatedAt, updateAt',
+            files: '++id, fileName, words',
         })
+        this.action = this.table('action')
+        this.files = this.table('files')
     }
 }
 
@@ -72,7 +64,7 @@ export const getLocalDB = () => {
 }
 
 export const getTable = (tableName: string): Dexie.Table => {
-    // 确保localDB已经初始化
+    // 确保 localDB 已经初始化
     if (!localDB) {
         localDB = new LocalDB()
     }

@@ -6,7 +6,7 @@ interface ActionListProps {
     onActionClick: (action: Action) => void // 从父组件传入的处理函数
 }
 
-const ActionList: React.FC<ActionListProps> = ({ actions, onActionClick }) => {
+const ActionList: React.FC<ActionListProps> = React.memo(({ actions, onActionClick }) => {
     return (
         <ul>
             {actions.map((action, index) => (
@@ -18,6 +18,6 @@ const ActionList: React.FC<ActionListProps> = ({ actions, onActionClick }) => {
             ))}
         </ul>
     )
-}
+})
 
 export default ActionList
