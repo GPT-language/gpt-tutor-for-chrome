@@ -39,7 +39,7 @@ import { Tooltip } from './Tooltip'
 import { useSettings } from '../hooks/useSettings'
 import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
-import { Action, Word, Words } from '../internal-services/db'
+import { Action, Translations, Word, Words } from '../internal-services/db'
 import { CopyButton } from './CopyButton'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { actionService } from '../services/action'
@@ -711,17 +711,27 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
-    const [translations, setTranslations] = useState<{ [key: string]: { text: string; format: string } }>({})
+    const [translations, setTranslations] = useState<Translations>({})
 
     useEffect(() => {
         if (translatedText && activateAction?.name && editableText) {
-            const key = `${activateAction?.name}:${editableText}`
+            const actionName = activateAction?.name
+
             setTranslations((prev) => {
                 const newTranslations = { ...prev }
-                newTranslations[key] = {
-                    text: translatedText,
-                    format: activateAction?.outputRenderingFormat || 'text',
+
+                if (newTranslations[actionName]) {
+                    newTranslations[actionName] = {
+                        ...newTranslations[actionName],
+                        text: translatedText, // 更新对应actionName的text
+                    }
+                } else {
+                    newTranslations[actionName] = {
+                        text: translatedText,
+                        format: activateAction?.outputRenderingFormat || 'text',
+                    }
                 }
+
                 return newTranslations
             })
         }
@@ -775,7 +785,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             return
         }
         const engine = getEngine(settings.provider)
-        console.log('engine created', engine)
         setEngine(engine)
     }, [settings])
 
@@ -1011,9 +1020,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const activateActionRef = useRef(activateAction)
     useEffect(() => {
-        console.log('activateAction', activateAction)
-        console.log('activateActionRef', activateActionRef.current)
-
         activateActionRef.current = activateAction
     }, [activateAction])
 

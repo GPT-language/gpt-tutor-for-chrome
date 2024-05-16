@@ -4,8 +4,8 @@ export class FileService {
     private db = getLocalDB()
 
     // 添加新文件
-    async addFile(fileName: string, words: Word[]): Promise<number> {
-        const fileId = await this.db.files.add({ fileName, words })
+    async addFile(fileName: string, words: Word[], category: string): Promise<number> {
+        const fileId = await this.db.files.add({ fileName, words, category })
         return fileId
     }
 
@@ -26,6 +26,13 @@ export class FileService {
             throw new Error('File not found')
         }
         return file
+    }
+
+    // 获取文件名和ID（按类别）
+    async fetchFilesName(category: string): Promise<{ id: number; name: string }[]> {
+        const files = await this.db.files.where({ category }).toArray()
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return files.map((file) => ({ id: file.id!, name: file.fileName }))
     }
 
     // 添加单词到文件中
