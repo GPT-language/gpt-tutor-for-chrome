@@ -33,7 +33,7 @@ export async function getArkoseToken() {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'Origin': 'https://tcr9i.chat.openai.com',
-            'Referer': 'https://tcr9i.chat.openai.com/v2/2.4.4/enforcement.f73f1debe050b423e0e5cd1845b2430a.html',
+            'Referer': 'https://tcr9i.chat.openai.com/v2/2.5.0/enforcement.13af146b6f5532afc450f0718859ea0f.html',
         },
     })
         .then((resp) => resp.json())
@@ -87,7 +87,7 @@ async function GenerateProofToken(seed: string, diff: string | number | unknown[
         for (let i = 0; i < 100000; i++) {
             config[3] = i
             const jsonData = JSON.stringify(config)
-            const base = btoa(unescape(encodeURIComponent(jsonData)))
+            const base = btoa(decodeURIComponent(encodeURIComponent(jsonData)))
             const hashValue = sha3_512(seed + base)
 
             if (hashValue.substring(0, diffLen) <= diff) {
@@ -97,7 +97,7 @@ async function GenerateProofToken(seed: string, diff: string | number | unknown[
         }
     }
 
-    const fallbackBase = btoa(unescape(encodeURIComponent(`"${seed}"`)))
+    const fallbackBase = btoa(decodeURIComponent(encodeURIComponent(`"${seed}"`)))
     return 'gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D' + fallbackBase
 }
 
@@ -308,7 +308,7 @@ export class ChatGPT extends AbstractEngine {
                 'Openai-Sentinel-Arkose-Token': arkoseToken,
                 'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
                 'openai-sentinel-proof-token': proofToken,
-                'Oai-Device-Id': oaiDeviceId,
+                'Oai-Device-Id': oaiDeviceId!,
                 'Oai-Language': 'en-US',
             }
 

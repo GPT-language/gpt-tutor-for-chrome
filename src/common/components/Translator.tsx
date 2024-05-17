@@ -683,24 +683,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [translatedText])
 
     useEffect(() => {
-        if (translatedText && activateAction?.name && editableText && selectWordIdx !== 0) {
-            const key = `${activateAction?.name}:${editableText}`
-            const fileId = Number(localStorage.getItem('currentFileId'))
-            if (fileId) {
-                fileService.addOrUpdateTranslationInWord(
-                    fileId,
-                    selectWordIdx,
-                    activateAction?.name,
-                    editableText,
-                    translatedText,
-                    activateAction.outputRenderingFormat || 'Markdown'
-                )
-            }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [translatedText])
-
-    useEffect(() => {
         const entry = selectedWord
         const translations = words.find((w) => w.idx === entry.idx)?.translations
         console.log('handleEntry', entry)
@@ -1057,6 +1039,18 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             setTranslatedText((translatedText) => {
                                 const result = translatedText
                                 cache.set(cachedKey, result)
+                                const key = `${activateAction?.name}:${editableText}`
+                                const fileId = Number(localStorage.getItem('currentFileId'))
+                                if (fileId) {
+                                    fileService.addOrUpdateTranslationInWord(
+                                        fileId,
+                                        selectWordIdx,
+                                        activateAction?.name,
+                                        editableText,
+                                        translatedText,
+                                        activateAction.outputRenderingFormat || 'Markdown'
+                                    )
+                                }
                                 return result
                             })
                         },

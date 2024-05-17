@@ -8,6 +8,7 @@ const WordListUploader = () => {
         words,
         currentPage,
         currentFileId,
+        currentCategory,
         fileNames,
         categories,
         searchTerm,
@@ -26,17 +27,16 @@ const WordListUploader = () => {
         setFileNames,
     } = useChatStore()
     const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
-    const [newCategory, setNewCategory] = useState('')
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [showNewCategoryInput, setShowNewCategoryInput] = useState<boolean>(false)
-    const [category, setCategory] = useState<string>('单词')
+    const [category, setCategory] = useState<string>('')
     const [isInitialized, setIsInitialized] = useState<boolean>(false)
     const itemsPerPage = 10
     const numPages = Math.ceil(words.length / itemsPerPage)
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
         if (file) {
-            addFile(file, newCategory) // Assumes 'Category' is managed elsewhere or provided as a default
+            addFile(file, currentCategory) // Assumes 'Category' is managed elsewhere or provided as a default
         }
     }
 
@@ -50,14 +50,16 @@ const WordListUploader = () => {
     }
 
     const handleCategoryChange = (cat: string) => {
-        setNewCategory(cat)
+        setCategory(cat)
+        localStorage.setItem('currentCategory', cat)
     }
 
     const handleAddCategory = () => {
-        if (newCategory.trim()) {
-            addCategory(newCategory)
-            setNewCategory('')
+        if (category.trim()) {
+            addCategory(category)
+            setCategory('')
         }
+        setShowNewCategoryInput(false)
     }
 
     const handleDeleteCategory = (cat: string) => {
@@ -82,7 +84,7 @@ const WordListUploader = () => {
 
     useEffect(() => {
         const loadFileNames = async () => {
-            const files = await fileService.fetchFilesName(category)
+            const files = await fileService.fetchFilesName(currentCategory)
             setFileNames(files)
         }
 
@@ -184,8 +186,8 @@ const WordListUploader = () => {
                 <div>
                     <input
                         type='text'
-                        value={newCategory}
-                        onChange={(e) => setNewCategory(e.target.value)}
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
                         placeholder='输入新分类'
                     />
                     <button onClick={handleAddCategory}>保存</button>

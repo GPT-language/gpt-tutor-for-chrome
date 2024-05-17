@@ -36,7 +36,7 @@ export const initialFileState: ChatFileState = {
     words: [], // 初始为空，组件挂载后异步加载
     currentPage: getNumberFromStorage('currentPage', 1),
     currentFileId: getNumberFromStorage('currentFileId', 0),
-    fileNames: getFromStorage('fileNames', []),
+    fileNames: [],
     categories: getFromStorage('categories', ['单词', '表达', '语法', '默认']),
     currentCategory: localStorage.getItem('currentCategory') || '单词',
     selectedWord: getFromStorage('selectedWord', { idx: 0, text: '' }),
