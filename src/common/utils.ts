@@ -12,7 +12,7 @@ export const defaultAPIModel = 'gpt-3.5-turbo'
 export const defaultchatgptModel = 'text-davinci-002-render-sha'
 
 export const defaultChatGPTAPIAuthSession = 'https://chat.openai.com/api/auth/session'
-export const defaultChatGPTWebAPI = 'https://chat.openai.com/backend-api'
+export const defaultChatGPTWebAPI = 'https://chatgpt.com/backend-api'
 export const defaultGeminiAPIURL = 'https://generativelanguage.googleapis.com'
 export const defaultChatContext = true
 export const defaultAutoTranslate = false

@@ -11,6 +11,7 @@ import { OnGroupDataMessageArgs, OnServerDataMessageArgs, WebPubSubClient } from
 import { createParser } from 'eventsource-parser'
 import { PubSubPayload } from '../types'
 import { Base64 } from 'js-base64'
+import Browser from 'webextension-polyfill'
 
 export const keyChatgptArkoseReqUrl = 'chatgptArkoseReqUrl'
 export const keyChatgptArkoseReqForm = 'chatgptArkoseReqForm'
@@ -51,7 +52,7 @@ export async function getArkoseToken() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body?: any) {
     const fetcher = getUniversalFetch()
-    return fetcher(`https://chat.openai.com/backend-api${endpoint}`, {
+    return fetcher(`https://chatgpt.com/backend-api${endpoint}`, {
         method: method,
         headers: {
             'Content-Type': 'application/json',
@@ -113,33 +114,38 @@ export class ChatGPT extends AbstractEngine {
     private length = 0
     private context: ConversationContext
     private accessToken?: string
+    private model: string
 
     constructor() {
         super()
         this.context = {}
+        this.model = 'gpt-3.5-turbo'
     }
 
-    saveConversationContext(name: string, conversationContext: { conversationId: string }) {
-        //  使用 chrome.storage.local.set() 保存上下文
-        // 保存的键为action.name，然后保存对话ID
+    saveConversationContext(name: string, model: string, conversationContext: { conversationId: string }) {
+        // 使用 chrome.storage.local.set() 保存上下文
+        // 保存的键为 name 和 model 的组合，然后保存对话 ID
+        const key = `${name}.${model}.conversationId`
         chrome.storage.local.set({
-            [`${name}.conversationId`]: {
+            [key]: {
                 value: conversationContext.conversationId,
             },
         })
     }
 
-    getConversationId(name: string) {
+    getConversationId(name: string, model: string) {
+        const key = `${name}.${model}.conversationId`
         return new Promise(function (resolve) {
-            chrome.storage.local.get([`${name}.conversationId`], function (result) {
-                const conversationId = result[`${name}.conversationId`]?.value
+            chrome.storage.local.get([key], function (result) {
+                const conversationId = result[key]?.value
                 resolve(conversationId)
             })
         })
     }
 
-    removeConversationId(name: string) {
-        chrome.storage.local.remove([`${name}.conversationId`])
+    removeConversationId(name: string, model: string) {
+        const key = `${name}.${model}.conversationId`
+        chrome.storage.local.remove([key])
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -245,12 +251,15 @@ export class ChatGPT extends AbstractEngine {
                 throw new Error('There is no logged-in ChatGPT account in this browser.')
             }
 
-            const [model, arkoseToken, requirements, lastConversationId] = await Promise.all([
-                this.getModel(),
+            const [arkoseToken, requirements] = await Promise.all([
                 getArkoseToken(),
                 getChatRequirements(apiKey), // 确保传递 apiKey
-                this.getConversationId(req.activatedActionName),
             ])
+
+            this.model = await this.getModel()
+
+            const lastConversationId = await this.getConversationId(req.activatedActionName, this.model)
+            console.log('lastConversationId', lastConversationId)
 
             const userAgent =
                 process.env.USER_AGENT ||
@@ -261,12 +270,46 @@ export class ChatGPT extends AbstractEngine {
                 userAgent
             )
 
+            let cookie
+            let oaiDeviceId
+
+            if (Browser.cookies && Browser.cookies.getAll) {
+                try {
+                    const cookies = await Browser.cookies.getAll({ url: 'https://chatgpt.com/' })
+                    if (cookies.length > 0) {
+                        cookie = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ')
+                    } else {
+                        console.log('No cookies returned for the URL')
+                    }
+                } catch (error) {
+                    console.error('Failed to get cookies:', error)
+                }
+
+                try {
+                    const oaiCookie = await Browser.cookies.get({
+                        url: 'https://chatgpt.com/',
+                        name: 'oai-did',
+                    })
+                    if (oaiCookie) {
+                        oaiDeviceId = oaiCookie.value
+                    } else {
+                        console.log('oai-did cookie not found or not accessible')
+                    }
+                } catch (error) {
+                    console.error('Failed to get oai-did cookie:', error)
+                }
+            }
+
+            console.log('oaiDeviceId:', oaiDeviceId)
+
             const headers = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
                 'Openai-Sentinel-Arkose-Token': arkoseToken,
                 'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
                 'openai-sentinel-proof-token': proofToken,
+                'Oai-Device-Id': oaiDeviceId,
+                'Oai-Language': 'en-US',
             }
 
             const body = {
@@ -278,7 +321,7 @@ export class ChatGPT extends AbstractEngine {
                         content: { content_type: 'text', parts: [`${req.rolePrompt}\n\n${req.commandPrompt}`] },
                     },
                 ],
-                model: model,
+                model: this.model,
                 parent_message_id: uuidv4(),
                 conversation_mode: { kind: 'primary_assistant' },
                 force_nulligen: false,
@@ -299,7 +342,7 @@ export class ChatGPT extends AbstractEngine {
             })
 
             if (response.status === 404) {
-                this.removeConversationId(req.activatedActionName)
+                this.removeConversationId(req.activatedActionName, this.model)
                 throw new Error(
                     `API call failed with status ${response.status}: ${response.statusText}, please try again.`
                 )
@@ -367,7 +410,7 @@ export class ChatGPT extends AbstractEngine {
             if (finished) return
             try {
                 resp = JSON.parse(message)
-                this.saveConversationContext(req.activatedActionName, {
+                this.saveConversationContext(req.activatedActionName, this.model, {
                     conversationId: resp.conversation_id,
                 })
                 this.context = {

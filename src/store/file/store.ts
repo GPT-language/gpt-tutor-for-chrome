@@ -4,9 +4,9 @@ import { createWithEqualityFn } from 'zustand/traditional'
 import { StateCreator } from 'zustand/vanilla'
 
 import { ChatStoreState, initialState } from './initialState'
-import { ChatFileAction, chatFile } from './slices/translation/action'
+import { ChatFileAction, chatFile } from './slices/file/action'
 
-export type ChatStore = ChatFileAction & ChatStoreState
+export type ChatStore = ChatStoreState & ChatFileAction
 
 //  ===============  聚合 createStoreFn ============ //
 

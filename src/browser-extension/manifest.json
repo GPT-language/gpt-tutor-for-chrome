@@ -25,6 +25,16 @@
         "default_path": "/src/browser-extension/popup/index.html"
       },
 
+      "declarative_net_request": {
+        "rule_resources": [
+          {
+            "id": "ruleset",
+            "enabled": true,
+            "path": "rules.json"
+          }
+        ]
+      },
+
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
@@ -33,12 +43,19 @@
         }
     ],
 
+    "web_accessible_resources": [
+        {
+          "resources": ["rules.json"],
+          "matches": ["<all_urls>"]
+        }
+      ],
+
     "background": {
         "service_worker": "/src/browser-extension/background/index.ts"
     },
     
 
-    "permissions": ["storage", "contextMenus", "sidePanel","webRequest"],
+    "permissions": ["storage", "contextMenus", "sidePanel","webRequest", "cookies", "declarativeNetRequestWithHostAccess"],
 
     "commands": {
         "open-popup": {
@@ -58,12 +75,7 @@
         "https://*.ingest.sentry.io/",
         "*://speech.platform.bing.com/",
         "https://*.google-analytics.com/",
-        "https://exotic-bullfrog-36.clerk.accounts.dev/*"
-    ],
-    "web_accessible_resources": [
-        {
-            "resources": ["js/v2/35536E1E-65B4-4D96-9D97-6ADB7EFF8147/api.js"],
-            "matches": ["<all_urls>"]
-        }
+        "https://exotic-bullfrog-36.clerk.accounts.dev/*",
+        "https://chatgpt.com/"
     ]
 }

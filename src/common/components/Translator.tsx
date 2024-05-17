@@ -58,8 +58,7 @@ import _ from 'underscore'
 import { GlobalSuspense } from './GlobalSuspense'
 import YouGlishComponent from '../youglish/youglish'
 import { LANG_CONFIGS } from '../components/lang/data'
-import { createStoreUpdater } from 'zustand-utils'
-import { useChatStore } from '@/store/chat'
+import { useChatStore } from '@/store/file'
 import { getEngine } from '../engines'
 import { IEngine } from '../engines/interfaces'
 import TextParser from './TextParser'
@@ -421,7 +420,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const editorRef = useRef<HTMLTextAreaElement>(null)
     const isCompositing = useRef(false)
-    const [selectedWord, setSelectedWord] = useState('')
     const highlightRef = useRef<HighlightInTextarea | null>(null)
     const { t, i18n } = useTranslation()
     const { settings } = useSettings()
@@ -464,20 +462,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         editor.focus()
         editor.spellcheck = false
     }, [props.uuid])
-
-    const [highlightWords, setHighlightWords] = useState<string[]>([])
-
-    useEffect(() => {
-        if (!highlightRef.current?.highlight) {
-            return
-        }
-        if (selectedWord) {
-            highlightRef.current.highlight.highlight = [selectedWord]
-        } else {
-            highlightRef.current.highlight.highlight = [...highlightWords]
-        }
-        highlightRef.current.handleInput()
-    }, [selectedWord, highlightWords])
 
     const [activateAction, setActivateAction] = useState<Action | undefined>(() => {
         const savedAction = localStorage.getItem('savedAction')
@@ -640,47 +624,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [])
 
     useEffect(() => {
-        if (!isTranslate) {
-            setSelectedWord('')
-            return undefined
-        }
-        const editor = editorRef.current
-        if (!editor) {
-            return undefined
-        }
-        const onCompositionStart = () => {
-            isCompositing.current = true
-        }
-        const onCompositionEnd = () => {
-            isCompositing.current = false
-        }
-        const onMouseUp = () => {
-            if (editor.selectionStart === 0 && editor.selectionEnd === editor.value.length) {
-                setSelectedWord('')
-                return
-            }
-            const selectedWord_ = editor.value.substring(editor.selectionStart, editor.selectionEnd).trim()
-            setSelectedWord(selectedWord_)
-            if (selectedWord_) {
-                setHighlightWords([])
-            }
-        }
-        const onBlur = onMouseUp
-
-        editor.addEventListener('compositionstart', onCompositionStart)
-        editor.addEventListener('compositionend', onCompositionEnd)
-        editor.addEventListener('mouseup', onMouseUp)
-        editor.addEventListener('blur', onBlur)
-
-        return () => {
-            editor.removeEventListener('compositionstart', onCompositionStart)
-            editor.removeEventListener('compositionend', onCompositionEnd)
-            editor.removeEventListener('mouseup', onMouseUp)
-            editor.removeEventListener('blur', onBlur)
-        }
-    }, [isTranslate])
-
-    useEffect(() => {
         const handleRuntimeMessage = (message: { type: string; text: string }) => {
             if (message.type === 'Text') {
                 const text = message.text
@@ -712,6 +655,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
     const [translations, setTranslations] = useState<Translations>({})
+    const { selectedWord, words } = useChatStore()
 
     useEffect(() => {
         if (translatedText && activateAction?.name && editableText) {
@@ -756,18 +700,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [translatedText])
 
-    const handleSetOriginalText = useCallback((entry: Word) => {
+    useEffect(() => {
+        const entry = selectedWord
+        const translations = words.find((w) => w.idx === entry.idx)?.translations
         console.log('handleEntry', entry)
         console.log('handleSetOriginalText', entry.text)
-        console.log('handleTranslations', entry.translations)
+        console.log('handleTranslations', translations)
 
         if (entry.text && entry.idx) {
             setEditableText(entry.text)
             setOriginalText(entry.text)
             setSelectWordIdx(entry.idx)
-            if (entry.translations) {
-                console.log('entry.translations', entry.translations)
-                setTranslations(entry.translations)
+            if (translations) {
+                console.log('entry.translations', translations)
+                setTranslations(translations)
             } else {
                 setTranslations({})
             }
@@ -778,7 +724,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             console.log('word is empty')
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [selectedWord, words])
 
     useEffect(() => {
         if (!settings) {
@@ -1622,7 +1568,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 <div style={{ flex: 1, display: 'flex' }}>
                                     {' '}
                                     {/* WordListUploader部分占比1/3 */}
-                                    <WordListUploader setOriginalText={handleSetOriginalText} />
+                                    <WordListUploader />
                                 </div>
                             </div>
                             <div className={styles.actionButtonsContainer}>
