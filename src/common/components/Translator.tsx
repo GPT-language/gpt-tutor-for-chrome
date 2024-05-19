@@ -685,9 +685,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     useEffect(() => {
         const entry = selectedWord
         const translations = words.find((w) => w.idx === entry.idx)?.translations
-        console.log('handleEntry', entry)
-        console.log('handleSetOriginalText', entry.text)
-        console.log('handleTranslations', translations)
 
         if (entry.text && entry.idx) {
             setEditableText(entry.text)
@@ -699,9 +696,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             } else {
                 setTranslations({})
             }
-            console.log('originalText', originalText)
-
-            console.log('editableText', editableText)
         } else {
             console.log('word is empty')
         }
@@ -1547,7 +1541,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                     fontSize: '12px',
                                                                     padding: '4px 8px',
                                                                     cursor: 'pointer',
-                                                                    zIndex: 100,
                                                                 },
                                                             },
                                                         }}

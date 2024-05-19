@@ -1,11 +1,11 @@
-import { File, Translations, Word, getLocalDB } from './db'
+import { SavedFile, Translations, Word, getLocalDB } from './db'
 
 export class FileService {
     private db = getLocalDB()
 
     // 添加新文件
-    async addFile(fileName: string, words: Word[], category: string): Promise<number> {
-        const fileId = await this.db.files.add({ fileName, words, category })
+    async addFile(name: string, words: Word[], category: string): Promise<number> {
+        const fileId = await this.db.files.add({ name, words, category })
         return fileId
     }
 
@@ -20,38 +20,38 @@ export class FileService {
     }
 
     // 获取文件详情
-    async fetchFileDetails(fileId: number): Promise<File> {
-        const file = await this.db.files.get(fileId)
-        if (!file) {
+    async fetchFileDetailsById(fileId: number): Promise<SavedFile> {
+        const savedFile = await this.db.files.get(fileId)
+        if (!savedFile) {
             throw new Error('File not found')
         }
-        return file
+        return savedFile
     }
 
     // 获取文件名和ID（按类别）
-    async fetchFilesName(category: string): Promise<{ id: number; name: string }[]> {
+    async fetchFilesByCategory(category: string): Promise<SavedFile[]> {
         const files = await this.db.files.where({ category }).toArray()
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return files.map((file) => ({ id: file.id!, name: file.fileName }))
+        return files.map((file) => ({ id: file.id!, name: file.name, category: file.category, words: file.words }))
     }
 
     // 添加单词到文件中
     async addWordToFile(fileId: number, newWord: Word): Promise<void> {
-        const file = await this.fetchFileDetails(fileId)
+        const file = await this.fetchFileDetailsById(fileId)
         file.words.push(newWord)
         await this.updateFile(fileId, { words: file.words })
     }
 
     // 更新文件中的某个单词
     async updateWordInFile(fileId: number, wordIndex: number, updatedWord: Word): Promise<void> {
-        const file = await this.fetchFileDetails(fileId)
+        const file = await this.fetchFileDetailsById(fileId)
         file.words[wordIndex] = updatedWord
         await this.updateFile(fileId, { words: file.words })
     }
 
     // 删除文件中的某个单词
     async deleteWordFromFile(fileId: number, wordIndex: number): Promise<void> {
-        const file = await this.fetchFileDetails(fileId)
+        const file = await this.fetchFileDetailsById(fileId)
         file.words.splice(wordIndex, 1)
         await this.updateFile(fileId, { words: file.words })
     }
@@ -65,13 +65,14 @@ export class FileService {
         text: string,
         format: string
     ): Promise<void> {
-        const file = await this.fetchFileDetails(fileId)
+        const file = await this.fetchFileDetailsById(fileId)
         let word = file.words.find((w) => w.idx === wordIdx)
 
         if (!word) {
-            // 如果没有找到，创建新单词，并标记为新
+            // 使用更安全的方式生成新 idx
+            const maxIdx = file.words.reduce((max, w) => Math.max(max, w.idx), 0)
             word = {
-                idx: file.words.length + 1, // 简单地使用长度作为 idx
+                idx: maxIdx + 1,
                 text: wordText,
                 translations: { [actionName]: { text, format } },
                 isNew: true,
@@ -90,7 +91,7 @@ export class FileService {
 
     // 删除某个单词的某个翻译
     async deleteTranslationFromFile(fileId: number, wordIndex: number, actionName: string): Promise<void> {
-        const file = await this.fetchFileDetails(fileId)
+        const file = await this.fetchFileDetailsById(fileId)
         const word = file.words[wordIndex]
         if (word.translations && word.translations[actionName]) {
             delete word.translations[actionName]
@@ -100,7 +101,7 @@ export class FileService {
 
     // 根据 FileId 和 wordIndex 查找并返回单词的 translations
     async getTranslationsByWordIndex(fileId: number, wordIndex: number): Promise<Translations | undefined> {
-        const file = await this.fetchFileDetails(fileId)
+        const file = await this.fetchFileDetailsById(fileId)
         if (!file || !file.words) {
             throw new Error('File not found or no words in file')
         }

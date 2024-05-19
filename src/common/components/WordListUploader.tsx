@@ -1,47 +1,51 @@
 import React, { useRef, ChangeEvent, useState, useEffect } from 'react'
-import { useChatStore } from '@/store/file/store' // 确保正确导入你的 store
+import { useChatStore } from '@/store/file/store'
 import { Word } from '../internal-services/db'
 import { fileService } from '../internal-services/file'
 
 const WordListUploader = () => {
     const {
         words,
-        currentPage,
-        currentFileId,
-        currentCategory,
-        fileNames,
+        files,
         categories,
-        searchTerm,
         selectedWord,
+        currentFileId,
+        selectedWords,
+        selectedCategory,
         addFile,
         selectFile,
         deleteFile,
-        nextPage,
-        prevPage,
         searchWord,
         selectWord,
+        setCurrentFileId,
         addCategory,
         deleteCategory,
-        setCurrentFileId,
         loadWords,
-        setFileNames,
+        loadFiles,
+        setFiles,
+        deleteWords,
+        setSelectedCategory,
     } = useChatStore()
-    const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [showNewCategoryInput, setShowNewCategoryInput] = useState<boolean>(false)
-    const [category, setCategory] = useState<string>('')
+    const [hoverCategory, setHoverCategory] = useState<string | null>(selectedCategory)
+    const [newCategory, setNewCategory] = useState<string>('')
     const [isInitialized, setIsInitialized] = useState<boolean>(false)
+    const [currentPage, setCurrentPage] = useState<number>(1)
     const itemsPerPage = 10
     const numPages = Math.ceil(words.length / itemsPerPage)
+    const [searchTerm, setSearchTerm] = useState<string>('')
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
-        if (file) {
-            addFile(file, currentCategory) // Assumes 'Category' is managed elsewhere or provided as a default
+        if (file && selectedCategory) {
+            addFile(file, selectedCategory)
         }
+        localStorage.setItem('files', JSON.stringify(files))
     }
 
     const handleFileSelect = (event: ChangeEvent<HTMLSelectElement>) => {
         const fileId = Number(event.target.value)
+        console.log('handleFileSelect', fileId)
         selectFile(fileId)
     }
 
@@ -49,15 +53,24 @@ const WordListUploader = () => {
         return words.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
     }
 
-    const handleCategoryChange = (cat: string) => {
-        setCategory(cat)
-        localStorage.setItem('currentCategory', cat)
+    const handleCategoryChange = async (cat: string) => {
+        setSelectedCategory(cat)
+        setHoverCategory(cat)
+        localStorage.setItem('currentCategory', JSON.stringify(cat))
+        loadFiles(cat)
+        deleteWords()
+        const files = await fileService.fetchFilesByCategory(cat)
+        if (files.length > 0 && files[0].id) {
+            setCurrentFileId(files[0].id)
+        } else {
+            setCurrentFileId(0)
+        }
+        selectedWords
     }
 
     const handleAddCategory = () => {
-        if (category.trim()) {
-            addCategory(category)
-            setCategory('')
+        if (newCategory?.trim()) {
+            addCategory(newCategory)
         }
         setShowNewCategoryInput(false)
     }
@@ -67,85 +80,48 @@ const WordListUploader = () => {
     }
 
     const handleSearchSubmit = () => {
-        searchWord()
-    }
-
-    const updateCurrentPage = (fileId: number, page: number) => {
-        console.log('updateCurrentPage', fileId, page)
-        const savedPages = JSON.parse(localStorage.getItem('currentPages') || '{}')
-        savedPages[fileId] = page
-        localStorage.setItem('currentPages', JSON.stringify(savedPages))
-        console.log('savedPages updated', savedPages)
+        searchWord(searchTerm)
     }
 
     const handleWordClick = (word: Word) => {
         selectWord(word)
+        localStorage.setItem('selectedWord', JSON.stringify(word))
     }
 
-    useEffect(() => {
-        const loadFileNames = async () => {
-            const files = await fileService.fetchFilesName(currentCategory)
-            setFileNames(files)
+    const nextPageHandler = () => {
+        if (currentPage < numPages) {
+            setCurrentPage(currentPage + 1)
         }
+    }
 
-        loadFileNames()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [category])
-
-    useEffect(() => {
-        if (fileNames.length === 1) {
-            setCurrentFileId(fileNames[0].id)
+    const prevPageHandler = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1)
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fileNames])
+    }
 
     useEffect(() => {
         if (currentFileId) {
             loadWords(currentFileId)
+            const saveWord = selectedWords[currentFileId]
+            if (saveWord) {
+                selectWord(saveWord)
+                const page = Math.floor((saveWord.idx - 1) / itemsPerPage) + 1
+                setCurrentPage(page)
+            } else {
+                // 处理无有效选中词条的情况
+                console.log(`No selected word for fileId: ${currentFileId}`)
+                setCurrentPage(1)
+            }
+            setIsInitialized(true)
         }
-        setIsInitialized(true)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentFileId])
+    }, [currentFileId, selectedWords, itemsPerPage, loadWords, selectWord])
 
     useEffect(() => {
-        if (selectedWord) {
-            selectWord(selectedWord)
+        if (selectedCategory) {
+            loadFiles(selectedCategory)
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedWord])
-
-    useEffect(() => {
-        localStorage.setItem('selectedWord', JSON.stringify(selectedWord))
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedWord.text])
-
-    useEffect(() => {
-        localStorage.setItem('categories', JSON.stringify(categories))
-    }, [categories])
-
-    useEffect(() => {
-        localStorage.setItem('currentPage', JSON.stringify(currentPage))
-    }, [currentPage])
-
-    useEffect(() => {
-        localStorage.setItem('currentFileId', JSON.stringify(currentFileId))
-    }, [currentFileId])
-
-    useEffect(() => {
-        localStorage.setItem('category', JSON.stringify(category))
-    }, [category])
-
-    useEffect(() => {
-        if (isInitialized && currentFileId !== null) {
-            updateCurrentPage(currentFileId, currentPage)
-        }
-    }, [currentPage, currentFileId, isInitialized])
-
-    useEffect(() => {
-        if (fileNames.length === 1 && currentFileId === 0) {
-            setCurrentFileId(fileNames[0].id)
-        }
-    }, [fileNames, currentFileId, setCurrentFileId])
+    }, [selectedCategory, loadFiles])
 
     return (
         <div style={{ height: '100%', overflow: 'auto' }}>
@@ -153,16 +129,16 @@ const WordListUploader = () => {
                 {categories.map((cat) => (
                     <div
                         key={cat}
-                        onMouseEnter={() => setHoveredCategory(cat)}
-                        onMouseLeave={() => setHoveredCategory(null)}
+                        onMouseEnter={() => setHoverCategory(cat)}
+                        onMouseLeave={() => setHoverCategory(null)}
                         style={{ display: 'inline-block', position: 'relative' }}
                     >
                         <button
                             onClick={() => handleCategoryChange(cat)}
-                            style={{ fontWeight: category === cat ? 'bold' : 'normal' }}
+                            style={{ fontWeight: selectedCategory === cat ? 'bold' : 'normal', cursor: 'pointer' }}
                         >
                             {cat}
-                            {hoveredCategory === cat && (
+                            {hoverCategory === cat && (
                                 <span
                                     onClick={() => handleDeleteCategory(cat)}
                                     style={{
@@ -186,15 +162,15 @@ const WordListUploader = () => {
                 <div>
                     <input
                         type='text'
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
+                        value={newCategory}
+                        onChange={(e) => setNewCategory(e.target.value)}
                         placeholder='输入新分类'
                     />
                     <button onClick={handleAddCategory}>保存</button>
                 </div>
             )}
             <select onChange={handleFileSelect} value={currentFileId}>
-                {fileNames.map((file) => (
+                {files.map((file) => (
                     <option key={file.id} value={file.id}>
                         {file.name}
                     </option>
@@ -242,7 +218,8 @@ const WordListUploader = () => {
                         key={index}
                         style={{
                             cursor: 'pointer',
-                            backgroundColor: entry.text === selectedWord.text ? 'yellow' : 'transparent',
+                            backgroundColor:
+                                selectedWord && entry.text === selectedWord.text ? 'yellow' : 'transparent',
                         }}
                         onClick={() => handleWordClick(entry)}
                     >
@@ -251,16 +228,30 @@ const WordListUploader = () => {
                 ))}
             </ol>
             <div>
-                <button onClick={prevPage} disabled={currentPage === 1}>
+                <button onClick={prevPageHandler} disabled={currentPage === 1}>
                     Prev
                 </button>
-                <button onClick={nextPage} disabled={currentPage === numPages}>
+                <button onClick={nextPageHandler} disabled={currentPage === numPages}>
                     Next
                 </button>
             </div>
             <div>
-                <input type='text' value={searchTerm} placeholder='输入搜索文本' />
-                <button onClick={handleSearchSubmit}>搜索</button>
+                <input
+                    type='text'
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder='输入搜索文本'
+                />
+                <button
+                    onClick={handleSearchSubmit}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            handleSearchSubmit()
+                        }
+                    }}
+                >
+                    搜索
+                </button>
             </div>
         </div>
     )

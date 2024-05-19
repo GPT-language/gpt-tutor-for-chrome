@@ -33,22 +33,22 @@ export interface Word {
     isNew?: boolean
 }
 
-export interface File {
+export interface SavedFile {
     category: string
     id?: number
-    fileName: string
+    name: string
     words: Word[]
 }
 
 export class LocalDB extends Dexie {
     action!: Table<Action, number>
-    files!: Table<File, number>
+    files!: Table<SavedFile, number>
 
     constructor() {
         super('openai-translator')
         this.version(2).stores({
             action: '++id, idx, mode, name, group, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt',
-            files: '++id, fileName, words,category',
+            files: '++id, name, words,category',
         })
         this.action = this.table('action')
         this.files = this.table('files')

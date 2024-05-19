@@ -1,25 +1,28 @@
-import { Word } from '@/common/internal-services/db'
-import { fileService } from '@/common/internal-services/file'
-import { current } from 'immer'
+import { Word, SavedFile } from '@/common/internal-services/db'
 
 export interface ChatFileState {
-    currentUserId: number
     words: Word[]
-    currentPage: number
     currentFileId: number
-    fileNames: { id: number; name: string }[]
+    files: SavedFile[]
     categories: string[]
-    currentCategory: string
-    selectedWord: {
-        idx: number
-        text: string
-    }
-    searchTerm: string
+    selectedCategory: string
+    selectedWord: selectedWord
+    selectedWords: { [fileId: number]: selectedWord }
+}
+
+export interface selectedWord {
+    idx: number
+    text: string
 }
 
 function getFromStorage(key: string, defaultValue: any) {
     const item = localStorage.getItem(key)
-    return item ? JSON.parse(item) : defaultValue
+    try {
+        return item ? JSON.parse(item) : defaultValue
+    } catch (error) {
+        console.error('Error parsing JSON from localStorage for key:', key, error)
+        return defaultValue // 返回默认值或执行其他错误处理
+    }
 }
 
 function getNumberFromStorage(key: string, defaultValue: any) {
@@ -27,18 +30,21 @@ function getNumberFromStorage(key: string, defaultValue: any) {
     return item ? Number(item) : defaultValue
 }
 
+function getObjectFromStorage(key: string, defaultValue: any) {
+    const item = localStorage.getItem(key)
+    return item ? JSON.parse(item) : defaultValue
+}
+
 export const getInitialFileState = async () => {
     return initialFileState
 }
 
 export const initialFileState: ChatFileState = {
-    currentUserId: getNumberFromStorage('currentUserId', 0),
-    words: [], // 初始为空，组件挂载后异步加载
-    currentPage: getNumberFromStorage('currentPage', 1),
+    words: [], // 当前文件的单词
     currentFileId: getNumberFromStorage('currentFileId', 0),
-    fileNames: [],
+    files: [],
     categories: getFromStorage('categories', ['单词', '表达', '语法', '默认']),
-    currentCategory: localStorage.getItem('currentCategory') || '单词',
-    selectedWord: getFromStorage('selectedWord', { idx: 0, text: '' }),
-    searchTerm: '',
+    selectedCategory: getFromStorage('currentCategory', '默认'),
+    selectedWord: getFromStorage('selectedWord', { idx: 1, text: '' }),
+    selectedWords: getObjectFromStorage('selectedWords', {}), // 每个文件的选中单词
 }
