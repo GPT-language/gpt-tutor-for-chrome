@@ -3,7 +3,7 @@ import { produce } from 'immer'
 import { parse } from 'papaparse'
 import { fileService } from '@/common/internal-services/file'
 import { ChatStore } from '../../store'
-import { SavedFile, Word } from '@/common/internal-services/db'
+import { SavedFile } from '@/common/internal-services/db'
 import { selectedWord } from './initialState'
 
 export interface ChatFileAction {
@@ -38,6 +38,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         }))
 
         const fileId = await fileService.addFile(file.name, words, category)
+        localStorage.setItem('currentFileId', fileId.toString())
         set(
             produce((draft) => {
                 draft.words = words
@@ -73,26 +74,35 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     selectFile: (fileId) => {
+        console.log('fileId', fileId)
         set(
             produce((draft) => {
                 draft.currentFileId = fileId
-                localStorage.setItem('currentFileId', fileId.toString())
             })
         )
         get().loadWords(fileId)
+        localStorage.setItem('currentFileId', fileId.toString())
     },
     deleteFile: async (fileId) => {
+        const { selectedCategory, loadFiles, setCurrentFileId } = get()
         await fileService.deleteFile(fileId)
         set(
             produce((draft) => {
                 draft.words = []
                 draft.files = draft.files.filter((file: { id: number; name: string }) => file.id !== fileId)
-                if (draft.currentFileId === fileId) {
-                    draft.currentFileId = 0
-                }
+                draft.currentFileId = 0 // 先重置为0
             })
         )
+        await loadFiles(selectedCategory) // 等待文件列表加载完毕
+        const files = get().files
+        if (files.length > 0) {
+            setCurrentFileId(files[0].id || 0) // 设置为新的有效ID
+        } else {
+            setCurrentFileId(0)
+        }
+        localStorage.setItem('currentFileId', get().currentFileId.toString())
     },
+
     setSelectedCategory(category: string) {
         set({ selectedCategory: category })
     },

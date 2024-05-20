@@ -22,15 +22,13 @@ const WordListUploader = () => {
         deleteCategory,
         loadWords,
         loadFiles,
-        setFiles,
         deleteWords,
         setSelectedCategory,
     } = useChatStore()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [showNewCategoryInput, setShowNewCategoryInput] = useState<boolean>(false)
-    const [hoverCategory, setHoverCategory] = useState<string | null>(selectedCategory)
+    const [hoverCategory, setHoverCategory] = useState<string | null>(null)
     const [newCategory, setNewCategory] = useState<string>('')
-    const [isInitialized, setIsInitialized] = useState<boolean>(false)
     const [currentPage, setCurrentPage] = useState<number>(1)
     const itemsPerPage = 10
     const numPages = Math.ceil(words.length / itemsPerPage)
@@ -113,14 +111,11 @@ const WordListUploader = () => {
                 console.log(`No selected word for fileId: ${currentFileId}`)
                 setCurrentPage(1)
             }
-            setIsInitialized(true)
         }
     }, [currentFileId, selectedWords, itemsPerPage, loadWords, selectWord])
 
     useEffect(() => {
-        if (selectedCategory) {
-            loadFiles(selectedCategory)
-        }
+        loadFiles(selectedCategory)
     }, [selectedCategory, loadFiles])
 
     return (
@@ -169,17 +164,19 @@ const WordListUploader = () => {
                     <button onClick={handleAddCategory}>保存</button>
                 </div>
             )}
-            <select onChange={handleFileSelect} value={currentFileId}>
+            <select key={currentFileId} onChange={handleFileSelect} value={currentFileId}>
                 {files.map((file) => (
                     <option key={file.id} value={file.id}>
                         {file.name}
                     </option>
                 ))}
             </select>
+
             <span
                 onClick={(e) => {
                     e.stopPropagation()
                     deleteFile(currentFileId)
+                    loadFiles(selectedCategory)
                 }}
                 style={{
                     marginLeft: '10px',

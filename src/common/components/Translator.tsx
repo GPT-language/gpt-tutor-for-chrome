@@ -576,8 +576,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             const group = action.group ?? 'English Learning'
             return group === selectedGroup
         })
-        const initialListActions = filteredActions.filter((action) => action.id !== activateAction?.id)
-        setListActions(initialListActions)
 
         let displayedActions = filteredActions.slice(0, displayedActionsMaxCount)
         let hiddenActions = filteredActions.slice(displayedActionsMaxCount)
@@ -595,20 +593,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         setDisplayedActions(displayedActions)
         setHiddenActions(hiddenActions)
-    }, [actions, activateAction?.id, displayedActionsMaxCount, promptsData, selectedGroup])
-
-    const handleActionClick = async (action: Action) => {
-        // 假设translate是一个已定义的函数
-        setActivateAction(action)
-        console.log('activateAction', action)
-
-        console.log('handleActionClick', action)
-
-        // 更新动作列表以排除已使用的动作
-        const updatedActions = listActions.filter((a) => a.id !== action.id)
-        setListActions(updatedActions)
-        console.log('updatedActions', updatedActions)
-    }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [actions, selectedGroup, activateAction])
 
     const isTranslate = currentTranslateMode === 'translate'
 
@@ -656,6 +642,35 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
     const [translations, setTranslations] = useState<Translations>({})
     const { selectedWord, words } = useChatStore()
+
+    useEffect(() => {
+        if (!actions) {
+            actionService.bulkPut(promptsData)
+            setDisplayedActions([])
+            setHiddenActions([])
+            refreshActions()
+            return
+        }
+        const filteredActions = actions.filter((action) => {
+            const group = action.group ?? 'English Learning'
+            return group === selectedGroup
+        })
+        setListActions(filteredActions)
+        console.log('listActions', listActions)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [actions, selectedGroup, detectedOriginalText])
+
+    const handleActionClick = async (action: Action) => {
+        // 假设translate是一个已定义的函数
+        setActivateAction(action)
+        console.log('activateAction', action)
+
+        // 更新动作列表以排除已使用的动作
+        const updatedActions = listActions.filter((a) => a.idx > action.idx)
+        console.log('updatedActions', updatedActions)
+        setListActions(updatedActions)
+        forceTranslate()
+    }
 
     useEffect(() => {
         if (translatedText && activateAction?.name && editableText) {
@@ -1073,6 +1088,38 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [originalText, settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
+    )
+
+    const performActionsTranslations = useCallback(
+        async (actions: Action[]) => {
+            if (editableText !== detectedOriginalText) {
+                return
+            }
+            const originalAction = activateActionRef.current // 保存原始action以便之后恢复
+            const controller = new AbortController()
+            const { signal } = controller
+            for (let i = 0; i < actions.length; i++) {
+                const action = actions[i]
+                console.log(`处理动作 ${action.name}`)
+
+                // 更新当前激活的动作
+                setActivateAction(action) // 假设这是更新当前action的方法
+
+                // 等待更新状态，然后调用翻译函数
+                await new Promise((r) => setTimeout(r, 0)) // 确保状态更新完成
+
+                await translateText(detectedOriginalText, signal) // 使用更新后的action执行翻译
+
+                // 可能需要处理更多逻辑，比如检查是否有错误，是否需要停止等
+            }
+
+            // 恢复原始action
+            setActivateAction(originalAction)
+            return () => {
+                controller.abort()
+            }
+        },
+        [editableText, detectedOriginalText, translateText]
     )
 
     useEffect(() => {
@@ -1638,24 +1685,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                             className={styles.popupCardTranslatedContentContainer}
                                         >
                                             <div>
-                                                <ActionList
-                                                    actions={listActions}
-                                                    onActionClick={handleActionClick}
-                                                    onClick={async (e) => {
-                                                        e.preventDefault()
-                                                        e.stopPropagation()
-                                                        if (!activateAction) {
-                                                            setActivateAction(
-                                                                actions?.find((action) => action.mode === 'translate')
-                                                            )
-                                                        }
-                                                        setOriginalText(editableText)
-                                                    }}
-                                                />
                                                 {showTextParser ? (
                                                     <TextParser
                                                         jsonContent={jsonText}
-                                                        setOriginalText={handleSetOriginalText}
+                                                        setOriginalText={setOriginalText}
                                                     ></TextParser>
                                                 ) : null}
                                                 {activateAction?.name !== 'JSON输出' && (
@@ -1772,6 +1805,21 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 )}
                                             </div>
                                         </div>
+                                        <ActionList
+                                            actions={listActions}
+                                            onActionClick={handleActionClick}
+                                            performAll={performActionsTranslations}
+                                            onClick={async (e) => {
+                                                e.preventDefault()
+                                                e.stopPropagation()
+                                                if (!activateAction) {
+                                                    setActivateAction(
+                                                        actions?.find((action) => action.mode === 'translate')
+                                                    )
+                                                }
+                                                setOriginalText(editableText)
+                                            }}
+                                        />
                                     </div>
                                 )}
                                 {isNotLogin && settings?.provider === 'ChatGPT' && (

@@ -15,7 +15,7 @@ export interface selectedWord {
     text: string
 }
 
-function getFromStorage(key: string, defaultValue: any) {
+function getFromStorage(key: string, defaultValue: unknown) {
     const item = localStorage.getItem(key)
     try {
         return item ? JSON.parse(item) : defaultValue
@@ -25,12 +25,12 @@ function getFromStorage(key: string, defaultValue: any) {
     }
 }
 
-function getNumberFromStorage(key: string, defaultValue: any) {
+function getNumberFromStorage(key: string, defaultValue: unknown) {
     const item = localStorage.getItem(key)
     return item ? Number(item) : defaultValue
 }
 
-function getObjectFromStorage(key: string, defaultValue: any) {
+function getObjectFromStorage(key: string, defaultValue: unknown) {
     const item = localStorage.getItem(key)
     return item ? JSON.parse(item) : defaultValue
 }
