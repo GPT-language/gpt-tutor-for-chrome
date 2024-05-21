@@ -2,6 +2,15 @@ import { SavedFile, Translations, Word, getLocalDB } from './db'
 
 export class FileService {
     private db = getLocalDB()
+    private pageSize = 10
+
+    private async getFileOrThrow(fileId: number): Promise<SavedFile> {
+        const file = await this.db.files.get(fileId)
+        if (!file) {
+            throw new Error(`File with ID ${fileId} not found`)
+        }
+        return file
+    }
 
     // 添加新文件
     async addFile(name: string, words: Word[], category: string): Promise<number> {
@@ -21,11 +30,7 @@ export class FileService {
 
     // 获取文件详情
     async fetchFileDetailsById(fileId: number): Promise<SavedFile> {
-        const savedFile = await this.db.files.get(fileId)
-        if (!savedFile) {
-            throw new Error('File not found')
-        }
-        return savedFile
+        return this.getFileOrThrow(fileId)
     }
 
     // 获取文件名和ID（按类别）
@@ -35,9 +40,24 @@ export class FileService {
         return files.map((file) => ({ id: file.id!, name: file.name, category: file.category, words: file.words }))
     }
 
+    async getTotalWordCount(fileId: number): Promise<number> {
+        const file = await this.fetchFileDetailsById(fileId)
+        return file.words.length
+    }
+
+    // 按页获取文件中的单词
+    async loadWordsByPage(fileId: number, pageNumber: number): Promise<Word[]> {
+        console.log('loadWordsByPage', fileId, pageNumber)
+        const start = (pageNumber - 1) * this.pageSize
+        const end = start + this.pageSize
+        const file = await this.fetchFileDetailsById(fileId)
+        console.log(file.words.slice(start, Math.min(end, file.words.length)))
+        return file.words.slice(start, Math.min(end, file.words.length))
+    }
+
     // 添加单词到文件中
     async addWordToFile(fileId: number, newWord: Word): Promise<void> {
-        const file = await this.fetchFileDetailsById(fileId)
+        const file = await this.getFileOrThrow(fileId)
         file.words.push(newWord)
         await this.updateFile(fileId, { words: file.words })
     }

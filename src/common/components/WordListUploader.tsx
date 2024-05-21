@@ -31,8 +31,8 @@ const WordListUploader = () => {
     const [newCategory, setNewCategory] = useState<string>('')
     const [currentPage, setCurrentPage] = useState<number>(1)
     const itemsPerPage = 10
-    const numPages = Math.ceil(words.length / itemsPerPage)
     const [searchTerm, setSearchTerm] = useState<string>('')
+    const [numPages, setNumPages] = useState<number>(1)
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
         if (file && selectedCategory) {
@@ -48,7 +48,7 @@ const WordListUploader = () => {
     }
 
     const getDisplayedWords = () => {
-        return words.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+        return words
     }
 
     const handleCategoryChange = async (cat: string) => {
@@ -86,33 +86,58 @@ const WordListUploader = () => {
         localStorage.setItem('selectedWord', JSON.stringify(word))
     }
 
+    const changePage = async (newPageNumber: number) => {
+        const success = await loadWords(currentFileId, newPageNumber)
+        if (success) {
+            setCurrentPage(newPageNumber)
+        } else {
+            console.error('Failed to load words for page', newPageNumber)
+        }
+    }
+
     const nextPageHandler = () => {
-        if (currentPage < numPages) {
-            setCurrentPage(currentPage + 1)
+        const newPage = currentPage + 1
+        if (newPage <= numPages) {
+            changePage(newPage)
         }
     }
 
     const prevPageHandler = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1)
+        const newPage = currentPage - 1
+        if (newPage >= 1) {
+            changePage(newPage)
         }
     }
 
     useEffect(() => {
+        const fetchNumPages = async () => {
+            const totalWordCount = await fileService.getTotalWordCount(currentFileId)
+            const totalPages = Math.ceil(totalWordCount / itemsPerPage)
+            setNumPages(totalPages)
+        }
+
         if (currentFileId) {
-            loadWords(currentFileId)
+            fetchNumPages()
+        }
+    }, [currentFileId, itemsPerPage])
+
+    useEffect(() => {
+        if (currentFileId) {
             const saveWord = selectedWords[currentFileId]
             if (saveWord) {
                 selectWord(saveWord)
                 const page = Math.floor((saveWord.idx - 1) / itemsPerPage) + 1
+                loadWords(currentFileId, page)
                 setCurrentPage(page)
             } else {
                 // 处理无有效选中词条的情况
                 console.log(`No selected word for fileId: ${currentFileId}`)
+                loadWords(currentFileId, 1)
                 setCurrentPage(1)
             }
         }
-    }, [currentFileId, selectedWords, itemsPerPage, loadWords, selectWord])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentFileId])
 
     useEffect(() => {
         loadFiles(selectedCategory)

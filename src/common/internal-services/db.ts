@@ -45,8 +45,8 @@ export class LocalDB extends Dexie {
     files!: Table<SavedFile, number>
 
     constructor() {
-        super('openai-translator')
-        this.version(2).stores({
+        super('gpt-tutor')
+        this.version(1).stores({
             action: '++id, idx, mode, name, group, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt',
             files: '++id, name, words,category',
         })

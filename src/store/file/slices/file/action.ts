@@ -7,7 +7,7 @@ import { SavedFile } from '@/common/internal-services/db'
 import { selectedWord } from './initialState'
 
 export interface ChatFileAction {
-    addFile: (file: File, category: string) => Promise<void>
+    addFile: (file: File, category: string) => Promise<number>
     selectFile: (fileId: number) => void
     deleteFile: (fileId: number) => Promise<void>
     addCategory: (category: string) => void
@@ -15,7 +15,7 @@ export interface ChatFileAction {
     searchWord: (searchTerm: string) => void
     selectWord: (word: selectedWord) => void
     deleteWords: () => void
-    loadWords: (fileId: number) => Promise<void>
+    loadWords: (fileId: number, pageNumber: number) => Promise<boolean>
     loadFiles: (selectedCategory: string) => Promise<void>
     setCurrentFileId: (fileId: number) => void
     setFiles: (files: SavedFile[]) => void
@@ -47,16 +47,26 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 draft.currentPage = 1
             })
         )
+        return words.length
     },
 
-    loadWords: async (fileId) => {
-        const fileDetails = await fileService.fetchFileDetailsById(fileId)
-        set(
-            produce((draft) => {
-                draft.words = fileDetails.words
-                draft.selectedCategory = fileDetails.category
-            })
-        )
+    loadWords: async (fileId, pageNumber) => {
+        try {
+            const words = await fileService.loadWordsByPage(fileId, pageNumber)
+            if (words) {
+                set(
+                    produce((draft) => {
+                        draft.words = words
+                        console.log('New words set:', words)
+                    })
+                )
+                return true
+            }
+            return false // 加载失败
+        } catch (error) {
+            console.error('Error loading words:', error)
+            return false
+        }
     },
 
     loadFiles: async (selectedCategory) => {
@@ -74,13 +84,20 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     selectFile: (fileId) => {
-        console.log('fileId', fileId)
+        const { selectedWords } = get()
+        const saveWord = selectedWords[fileId]
+        let page
+        if (saveWord) {
+            page = Math.floor((saveWord.idx - 1) / 10) + 1
+        } else {
+            page = 1
+        }
         set(
             produce((draft) => {
                 draft.currentFileId = fileId
             })
         )
-        get().loadWords(fileId)
+        get().loadWords(fileId, page)
         localStorage.setItem('currentFileId', fileId.toString())
     },
     deleteFile: async (fileId) => {
