@@ -641,7 +641,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
     const [translations, setTranslations] = useState<Translations>({})
-    const { selectedWord, words } = useChatStore()
+    const { currentFileId, selectedWord, words } = useChatStore()
 
     useEffect(() => {
         if (!actions) {
@@ -1037,6 +1037,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 return
                             }
                             setTranslatedText((translatedText) => {
+                                const newTranslatedText = message.isFullText
+                                    ? message.content
+                                    : translatedText + message.content
                                 if (message.isFullText) {
                                     return message.content
                                 }
@@ -1049,17 +1052,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 const result = translatedText
                                 cache.set(cachedKey, result)
                                 const key = `${activateAction?.name}:${editableText}`
-                                const fileId = Number(localStorage.getItem('currentFileId'))
-                                if (fileId) {
-                                    fileService.addOrUpdateTranslationInWord(
-                                        fileId,
-                                        selectWordIdx,
-                                        activateAction?.name,
-                                        editableText,
-                                        translatedText,
-                                        activateAction.outputRenderingFormat || 'Markdown'
-                                    )
-                                }
                                 return result
                             })
                         },
@@ -1089,6 +1081,21 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [originalText, settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
     )
+
+    const handleTranslationUpdate = async (fileId, wordIdx, actionName, originalText, translatedText, outputFormat) => {
+        try {
+            await fileService.addOrUpdateTranslationInWord(
+                fileId,
+                wordIdx,
+                actionName,
+                originalText,
+                translatedText,
+                outputFormat
+            )
+        } catch (error) {
+            console.error('Failed to update translation:', error)
+        }
+    }
 
     const performActionsTranslations = useCallback(
         async (actions: Action[]) => {
@@ -1121,6 +1128,26 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         },
         [editableText, detectedOriginalText, translateText]
     )
+
+    useEffect(() => {
+        if (translatedText && activateAction?.name) {
+            handleTranslationUpdate(
+                currentFileId,
+                selectWordIdx,
+                activateAction?.name,
+                editableText,
+                translatedText,
+                activateAction?.outputRenderingFormat || 'Markdown'
+            )
+        }
+    }, [
+        translatedText,
+        currentFileId,
+        selectWordIdx,
+        editableText,
+        activateAction?.name,
+        activateAction?.outputRenderingFormat,
+    ])
 
     useEffect(() => {
         if (translatedText && activateAction?.name === 'JSON输出') {
