@@ -656,18 +656,15 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             return group === selectedGroup
         })
         setListActions(filteredActions)
-        console.log('listActions', listActions)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [actions, selectedGroup, detectedOriginalText])
 
     const handleActionClick = async (action: Action) => {
         // 假设translate是一个已定义的函数
         setActivateAction(action)
-        console.log('activateAction', action)
 
         // 更新动作列表以排除已使用的动作
         const updatedActions = listActions.filter((a) => a.idx > action.idx)
-        console.log('updatedActions', updatedActions)
         setListActions(updatedActions)
         forceTranslate()
     }
@@ -1082,7 +1079,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         [originalText, settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
     )
 
-    const handleTranslationUpdate = async (fileId, wordIdx, actionName, originalText, translatedText, outputFormat) => {
+    const handleTranslationUpdate = async (
+        fileId: number,
+        wordIdx: number,
+        actionName: string,
+        originalText: string,
+        translatedText: string,
+        outputFormat: string
+    ) => {
         try {
             await fileService.addOrUpdateTranslationInWord(
                 fileId,
@@ -1140,14 +1144,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 activateAction?.outputRenderingFormat || 'Markdown'
             )
         }
-    }, [
-        translatedText,
-        currentFileId,
-        selectWordIdx,
-        editableText,
-        activateAction?.name,
-        activateAction?.outputRenderingFormat,
-    ])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [translatedText])
 
     useEffect(() => {
         if (translatedText && activateAction?.name === 'JSON输出') {
