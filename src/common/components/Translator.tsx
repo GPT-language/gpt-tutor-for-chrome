@@ -1236,7 +1236,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
     }
 
-    const handleTranslatedSpeakAction = async (messageId?: string, conversationId?: string) => {
+    const handleTranslatedSpeakAction = async (messageId?: string, conversationId?: string, text?: string) => {
         console.log('handleTranslatedSpeakAction', messageId, conversationId)
 
         if (isSpeakingTranslatedText) {
@@ -1246,7 +1246,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         setIsSpeakingTranslatedText(true)
         const { stopSpeak } = await speak({
-            text: translatedText,
+            text: text || translatedText,
             lang: targetLang,
             messageId,
             conversationId,
@@ -1798,7 +1798,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                                 onClick={() =>
                                                                                     handleTranslatedSpeakAction(
                                                                                         messageId,
-                                                                                        conversationId
+                                                                                        conversationId,
+                                                                                        text
                                                                                     )
                                                                                 }
                                                                             >

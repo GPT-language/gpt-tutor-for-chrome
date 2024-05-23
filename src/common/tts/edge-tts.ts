@@ -268,8 +268,9 @@ interface EdgeTTSOptions {
 
 export async function speak(options: EdgeTTSOptions) {
     const accessToken = localStorage.getItem('accessToken')
+    const voice = localStorage.getItem('ttsProvider')
     // 检查 options 中是否已经包含 messageId 和 conversationId
-    if (options.messageId && options.conversationId && accessToken) {
+    if (options.messageId && options.conversationId && accessToken && voice) {
         console.log('speakWithChatGPT', options.conversationId + options.messageId)
         return speakWithChatGPT(options)
     } else {
@@ -277,10 +278,11 @@ export async function speak(options: EdgeTTSOptions) {
         const { messageId, conversationId } = useChatStore.getState()
 
         // 检查从 store 获取的 messageId 和 conversationId 是否有效
-        if (messageId && conversationId && accessToken) {
+        if (messageId && conversationId && accessToken && voice) {
             // 使用更新后的选项调用 speakWithChatGPT
             return speakWithChatGPT({ ...options, messageId, conversationId })
         } else {
+            console.log('调用 edgeSpeak', options)
             // 如果 messageId 或 conversationId 无效，则调用 edgeSpeak
             return edgeSpeak(options)
         }
@@ -290,7 +292,7 @@ export async function speak(options: EdgeTTSOptions) {
 async function speakWithChatGPT({ conversationId, messageId, onFinish }: EdgeTTSOptions) {
     const audioContext = new AudioContext()
     const audioBufferSource = audioContext.createBufferSource()
-    const voice = useChatStore.getState().ttsProvider || 'ember'
+    const voice = useChatStore.getState().ttsProvider
 
     const url = `https://chatgpt.com/backend-api/synthesize?message_id=${messageId}&conversation_id=${conversationId}&voice=${voice}&format=aac`
 
