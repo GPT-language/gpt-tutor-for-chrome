@@ -5,14 +5,16 @@ import { StateCreator } from 'zustand/vanilla'
 
 import { ChatStoreState, initialState } from './initialState'
 import { ChatFileAction, chatFile } from './slices/file/action'
+import { ChatAction, chat } from './slices/chat/action'
 
-export type ChatStore = ChatStoreState & ChatFileAction
+export type ChatStore = ChatStoreState & ChatFileAction & ChatAction
 
 //  ===============  聚合 createStoreFn ============ //
 
 const createStore: StateCreator<ChatStore, [['zustand/devtools', never]]> = (...params) => ({
     ...initialState,
     ...chatFile(...params),
+    ...chat(...params),
 })
 
 //  ===============  实装 useStore ============ //

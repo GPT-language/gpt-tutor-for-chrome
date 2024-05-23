@@ -34,16 +34,48 @@ export async function getAzureApiKey(): Promise<string> {
     return apiKeys[Math.floor(Math.random() * apiKeys.length)] ?? ''
 }
 
-export async function getAccessKey(): Promise<string> {
-    let resp: Response | null = null
-    const signal = new AbortSignal()
-    resp = await fetch(defaultChatGPTAPIAuthSession, { signal: signal })
-    if (resp.status !== 200) {
-        throw new Error('Failed to fetch ChatGPT Web accessToken.')
+function isTokenExpired() {
+    const expiresAt = Number(localStorage.getItem('expiresAt'))
+    return new Date() >= new Date(expiresAt)
+}
+
+function isTokenExists() {
+    if (localStorage.getItem('accessToken') === null) {
+        return false
+    } else {
+        return true
     }
-    const respJson = await resp?.json()
-    const apiKey = respJson.accessToken
-    return apiKey
+}
+
+export async function getAccessToken(): Promise<string> {
+    let resp: Response | null = null
+    const controller = new AbortController()
+    const signal = controller.signal // 使用 AbortController 获取 signal
+
+    try {
+        if (!isTokenExists() || isTokenExpired()) {
+            resp = await fetch(defaultChatGPTAPIAuthSession, { signal: signal })
+            if (resp.status !== 200) {
+                throw new Error('Failed to fetch ChatGPT Web accessToken.')
+            }
+            const respJson = await resp.json()
+            const apiKey = respJson.accessToken
+            const expires = respJson.expires
+
+            // 转换并保存过期时间为时间戳（毫秒）
+            const expiresAtTimestamp = new Date(expires).getTime()
+            localStorage.setItem('accessToken', apiKey)
+            localStorage.setItem('expiresAt', expiresAtTimestamp.toString())
+
+            return apiKey
+        } else {
+            // Token 未过期，直接从 localStorage 返回
+            return localStorage.getItem('accessToken') || '' // 确保返回类型一致，避免 null
+        }
+    } catch (error) {
+        console.error('Error fetching accessToken:', error)
+        throw error // 重新抛出错误，确保错误处理
+    }
 }
 
 // In order to let the type system remind you that all keys have been passed to browser.storage.sync.get(keys)
@@ -448,7 +480,7 @@ export async function getArkoseToken(): Promise<string> {
 }
 
 export async function getChatRequirementsToken(): Promise<string> {
-    const apiKey = await getAccessKey()
+    const apiKey = await getAccessToken()
     const response = await fetch(`https://chat.openai.com/backend-api/sentinel/chat-requirements`, {
         method: 'POST',
         headers: {

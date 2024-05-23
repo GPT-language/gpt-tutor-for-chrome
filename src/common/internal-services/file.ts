@@ -1,3 +1,4 @@
+import { message } from 'antd'
 import { SavedFile, Translations, Word, getLocalDB } from './db'
 
 export class FileService {
@@ -83,7 +84,9 @@ export class FileService {
         actionName: string,
         wordText: string,
         text: string,
-        format: string
+        format: string,
+        messageId?: string,
+        conversationId?: string
     ): Promise<void> {
         const file = await this.fetchFileDetailsById(fileId)
         let word = file.words.find((w) => w.idx === wordIdx)
@@ -94,7 +97,7 @@ export class FileService {
             word = {
                 idx: maxIdx + 1,
                 text: wordText,
-                translations: { [actionName]: { text, format } },
+                translations: { [actionName]: { text, format, messageId, conversationId } },
                 isNew: true,
             }
             file.words.push(word) // 添加到列表末尾
@@ -103,7 +106,7 @@ export class FileService {
             if (!word.translations) {
                 word.translations = {}
             }
-            word.translations[actionName] = { text, format }
+            word.translations[actionName] = { text, format, messageId, conversationId }
         }
 
         await this.updateFile(fileId, { words: file.words })

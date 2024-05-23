@@ -1,5 +1,6 @@
-import { SpeakOptions } from './types'
+import { useChatStore } from '@/store/file'
 import { v4 as uuidv4 } from 'uuid'
+import * as utils from '../utils'
 
 function mkssml(text: string, voice: string, rate: number, volume: number) {
     return (
@@ -254,13 +255,86 @@ function calcMaxMesgSize(voice: string, rate: number, volume: number): number {
     return websocketMaxSize - overheadPerMessage
 }
 
-interface EdgeTTSOptions extends SpeakOptions {
+interface EdgeTTSOptions {
+    text?: string // 可选，因为ChatGPT不需要它
+    lang?: string // 可选，因为ChatGPT可能不需要它
     voice?: string
     rate?: number
     volume?: number
+    conversationId?: string // 仅对speakWithChatGPT
+    messageId?: string // 仅对speakWithChatGPT
+    onFinish?: () => void
 }
 
-export async function speak({ text, lang, onFinish, voice, rate = 1, volume = 100 }: EdgeTTSOptions) {
+export async function speak(options: EdgeTTSOptions) {
+    const accessToken = localStorage.getItem('accessToken')
+    // 检查 options 中是否已经包含 messageId 和 conversationId
+    if (options.messageId && options.conversationId && accessToken) {
+        console.log('speakWithChatGPT', options.conversationId + options.messageId)
+        return speakWithChatGPT(options)
+    } else {
+        // 从 chat store 获取 messageId 和 conversationId
+        const { messageId, conversationId } = useChatStore.getState()
+
+        // 检查从 store 获取的 messageId 和 conversationId 是否有效
+        if (messageId && conversationId && accessToken) {
+            // 使用更新后的选项调用 speakWithChatGPT
+            return speakWithChatGPT({ ...options, messageId, conversationId })
+        } else {
+            // 如果 messageId 或 conversationId 无效，则调用 edgeSpeak
+            return edgeSpeak(options)
+        }
+    }
+}
+
+async function speakWithChatGPT({ conversationId, messageId, onFinish }: EdgeTTSOptions) {
+    const audioContext = new AudioContext()
+    const audioBufferSource = audioContext.createBufferSource()
+    const voice = useChatStore.getState().ttsProvider || 'ember'
+
+    const url = `https://chatgpt.com/backend-api/synthesize?message_id=${messageId}&conversation_id=${conversationId}&voice=${voice}&format=aac`
+
+    const apiKey = await utils.getAccessToken()
+    useChatStore.getInitialState().setAccessToken(apiKey)
+    const accessToken = useChatStore.getState().accessToken
+    console.log('apiKey in speakWithChatGPT', apiKey)
+
+    if (!apiKey) {
+        throw new Error('Failed to fetch access token.')
+    }
+
+    const headers = {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
+        'Oai-Device-Id': '8566171a-9439-4fab-a7c6-11d54dcd558a',
+        'Oai-Language': 'en-US',
+    }
+
+    const response = await fetch(url, { method: 'GET', headers })
+    const arrayBuffer = await response.arrayBuffer() // 接收音频流
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+    audioBufferSource.buffer = audioBuffer
+    audioBufferSource.connect(audioContext.destination)
+
+    audioBufferSource.start()
+    audioBufferSource.addEventListener('ended', () => {
+        onFinish?.()
+        audioContext.close()
+    })
+
+    return {
+        stopSpeak: () => {
+            try {
+                audioBufferSource.stop()
+                audioContext.close()
+            } catch (e) {
+                // Handle any stop errors
+            }
+        },
+    }
+}
+
+export async function edgeSpeak({ text, lang, onFinish, voice, rate = 1, volume = 100 }: EdgeTTSOptions) {
     const connectId = uuidv4().replace(/-/g, '')
     const date = new Date().toString()
     const audioContext = new AudioContext()

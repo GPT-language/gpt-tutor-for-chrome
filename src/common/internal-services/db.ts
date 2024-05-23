@@ -20,6 +20,8 @@ export interface Action {
 export interface Translation {
     text: string
     format: string // 如 "text", "markdown", "latex"
+    messageId?: string
+    conversationId?: string
 }
 
 export interface Translations {
@@ -46,7 +48,7 @@ export class LocalDB extends Dexie {
 
     constructor() {
         super('gpt-tutor')
-        this.version(1).stores({
+        this.version(2).stores({
             action: '++id, idx, mode, name, group, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt',
             files: '++id, name, words,category',
         })

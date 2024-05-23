@@ -39,7 +39,7 @@ import { Tooltip } from './Tooltip'
 import { useSettings } from '../hooks/useSettings'
 import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
-import { Action, Translations, Word, Words } from '../internal-services/db'
+import { Action, Translations } from '../internal-services/db'
 import { CopyButton } from './CopyButton'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { actionService } from '../services/action'
@@ -1085,7 +1085,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         actionName: string,
         originalText: string,
         translatedText: string,
-        outputFormat: string
+        outputFormat: string,
+        messageId?: string,
+        conversationId?: string
     ) => {
         try {
             await fileService.addOrUpdateTranslationInWord(
@@ -1094,7 +1096,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 actionName,
                 originalText,
                 translatedText,
-                outputFormat
+                outputFormat,
+                messageId,
+                conversationId
             )
         } catch (error) {
             console.error('Failed to update translation:', error)
@@ -1134,6 +1138,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     )
 
     useEffect(() => {
+        const { messageId, conversationId } = useChatStore.getState()
         if (translatedText && activateAction?.name) {
             handleTranslationUpdate(
                 currentFileId,
@@ -1141,7 +1146,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 activateAction?.name,
                 editableText,
                 translatedText,
-                activateAction?.outputRenderingFormat || 'Markdown'
+                activateAction?.outputRenderingFormat || 'Markdown',
+                messageId,
+                conversationId
             )
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1229,7 +1236,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
     }
 
-    const handleTranslatedSpeakAction = async () => {
+    const handleTranslatedSpeakAction = async (messageId?: string, conversationId?: string) => {
+        console.log('handleTranslatedSpeakAction', messageId, conversationId)
+
         if (isSpeakingTranslatedText) {
             translatedStopSpeakRef.current()
             setIsSpeakingTranslatedText(false)
@@ -1239,6 +1248,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         const { stopSpeak } = await speak({
             text: translatedText,
             lang: targetLang,
+            messageId,
+            conversationId,
             onFinish: () => setIsSpeakingTranslatedText(false),
         })
         translatedStopSpeakRef.current = stopSpeak
@@ -1719,7 +1730,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 {activateAction?.name !== 'JSON输出' && (
                                                     <>
                                                         {Object.entries(translations).map(
-                                                            ([key, { text, format }], index) => (
+                                                            (
+                                                                [key, { text, format, messageId, conversationId }],
+                                                                index
+                                                            ) => (
                                                                 <div key={key}>
                                                                     {format === 'markdown' ? (
                                                                         <>
@@ -1782,7 +1796,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                             <div
                                                                                 className={styles.actionButton}
                                                                                 onClick={() =>
-                                                                                    handleTranslatedSpeakAction()
+                                                                                    handleTranslatedSpeakAction(
+                                                                                        messageId,
+                                                                                        conversationId
+                                                                                    )
                                                                                 }
                                                                             >
                                                                                 {isSpeakingTranslatedText ? (

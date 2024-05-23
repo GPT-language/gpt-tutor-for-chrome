@@ -40,6 +40,7 @@ import { TranslateMode, APIModel } from '../translate'
 // eslint-disable-next-line no-duplicate-imports
 import React from 'react'
 import NumberInput from './NumberInput'
+import { useChatStore } from '@/store/file'
 
 const langOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
     return [
@@ -254,6 +255,10 @@ const ttsProviderOptions: {
 }[] = [
     { label: 'Edge TTS', id: 'EdgeTTS' },
     { label: 'System Default', id: 'WebSpeech' },
+    { label: 'Ember（ChatGPT Web）', id: 'EdgeTTS', voice: 'ember' },
+    { label: 'Cove（ChatGPT Web）', id: 'EdgeTTS', voice: 'cove' },
+    { label: 'Breeze（ChatGPT Web）', id: 'EdgeTTS', voice: 'breeze' },
+    { label: 'Juniper（ChatGPT Web）', id: 'EdgeTTS', voice: 'juniper' },
 ]
 
 function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) {
@@ -274,6 +279,22 @@ function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) 
                     break
                 case 'WebSpeech':
                     setSupportVoices(speechSynthesis.getVoices())
+                    break
+                case 'Ember':
+                    setSupportVoices(await getEdgeVoices())
+                    useChatStore.setState({ ttsProvider: 'ember' })
+                    break
+                case 'Cove':
+                    setSupportVoices(await getEdgeVoices())
+                    useChatStore.setState({ ttsProvider: 'cove' })
+                    break
+                case 'Breeze':
+                    setSupportVoices(await getEdgeVoices())
+                    useChatStore.setState({ ttsProvider: 'breeze' })
+                    break
+                case 'Juniper':
+                    setSupportVoices(await getEdgeVoices())
+                    useChatStore.setState({ ttsProvider: 'juniper' })
                     break
                 default:
                     setSupportVoices(speechSynthesis.getVoices())
@@ -382,8 +403,9 @@ function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) 
     )
 
     const handleChangeProvider = useCallback(
-        (provider: TTSProvider) => {
+        (provider: TTSProvider, voice: string) => {
             onChange?.({ ...value, provider })
+            useChatStore.setState({ ttsProvider: voice })
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [value]
@@ -400,7 +422,7 @@ function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) 
                         searchable={false}
                         options={ttsProviderOptions}
                         value={[{ id: value?.provider ?? 'EdgeTTS' }]}
-                        onChange={({ option }) => handleChangeProvider(option?.id as TTSProvider)}
+                        onChange={({ option }) => handleChangeProvider(option?.id as TTSProvider, option?.voice)}
                         onBlur={onBlur}
                     />
                 </div>

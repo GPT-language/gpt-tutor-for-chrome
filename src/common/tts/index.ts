@@ -39,7 +39,7 @@ if (window.speechSynthesis) {
     }
 }
 
-export async function speak({ text, lang, onFinish }: SpeakOptions) {
+export async function speak({ text, lang, messageId, conversationId, onFinish }: SpeakOptions) {
     const settings = await getSettings()
     const langTag = langCode2TTSLang[lang ?? 'en'] ?? 'en-US'
     const voiceCfg = settings.tts?.voices?.find((item) => item.lang === lang)
@@ -47,7 +47,16 @@ export async function speak({ text, lang, onFinish }: SpeakOptions) {
     const volume = settings.tts?.volume
 
     if (!settings.tts?.provider || settings.tts?.provider === 'EdgeTTS') {
-        return edgeSpeak({ text, lang: langTag, onFinish, voice: voiceCfg?.voice, rate, volume: volume ?? 100 })
+        return edgeSpeak({
+            text,
+            lang: langTag,
+            messageId,
+            conversationId,
+            onFinish,
+            voice: voiceCfg?.voice,
+            rate,
+            volume: volume ?? 100,
+        })
     }
 
     const utterance = new SpeechSynthesisUtterance()

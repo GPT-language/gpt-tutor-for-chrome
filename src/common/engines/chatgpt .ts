@@ -12,6 +12,7 @@ import { createParser } from 'eventsource-parser'
 import { PubSubPayload } from '../types'
 import { Base64 } from 'js-base64'
 import Browser from 'webextension-polyfill'
+import { useChatStore } from '@/store/file'
 
 export const keyChatgptArkoseReqUrl = 'chatgptArkoseReqUrl'
 export const keyChatgptArkoseReqForm = 'chatgptArkoseReqForm'
@@ -106,6 +107,7 @@ export async function registerWebsocket(accessToken: string): Promise<{ wss_url:
 }
 
 interface ConversationContext {
+    messageId?: string
     conversationId?: string
     pubSubClient?: WebPubSubClient
 }
@@ -115,19 +117,21 @@ export class ChatGPT extends AbstractEngine {
     private context: ConversationContext
     private accessToken?: string
     private model: string
+    private store: ReturnType<typeof useChatStore>
 
     constructor() {
         super()
         this.context = {}
         this.model = 'gpt-3.5-turbo'
+        this.store = useChatStore
     }
 
     saveConversationContext(name: string, model: string, conversationContext: { conversationId: string }) {
         // 使用 chrome.storage.local.set() 保存上下文
         // 保存的键为 name 和 model 的组合，然后保存对话 ID
-        const key = `${name}.${model}.conversationId`
+        const conversationKey = `${name}.${model}.conversationId`
         chrome.storage.local.set({
-            [key]: {
+            [conversationKey]: {
                 value: conversationContext.conversationId,
             },
         })
@@ -138,13 +142,43 @@ export class ChatGPT extends AbstractEngine {
         return new Promise(function (resolve) {
             chrome.storage.local.get([key], function (result) {
                 const conversationId = result[key]?.value
+                useChatStore.getInitialState().setConversationId(conversationId)
+                console.log('set conversationId', conversationId)
                 resolve(conversationId)
             })
         })
     }
 
+    saveMessageId(name: string, model: string, messageId: string) {
+        const key = `${name}.${model}.messageId`
+        chrome.storage.local.set({
+            [key]: {
+                value: messageId,
+            },
+        })
+    }
+
+    getMessageId(name: string, model: string) {
+        const key = `${name}.${model}.messageId`
+        return new Promise(function (resolve) {
+            chrome.storage.local.get([key], function (result) {
+                const messageId = result[key]?.value
+                resolve(messageId)
+            })
+        })
+    }
+
+    getConversationIdAndMessageId(name: string, model: string) {
+        return Promise.all([this.getConversationId(name, model), this.getMessageId(name, model)])
+    }
+
     removeConversationId(name: string, model: string) {
         const key = `${name}.${model}.conversationId`
+        chrome.storage.local.remove([key])
+    }
+
+    removeMessageId(name: string, model: string) {
+        const key = `${name}.${model}.messageId`
         chrome.storage.local.remove([key])
     }
 
@@ -208,17 +242,6 @@ export class ChatGPT extends AbstractEngine {
         return settings.chatgptModel
     }
 
-    async getAccessToken(req: IMessageRequest): Promise<string> {
-        const response = await fetch(utils.defaultChatGPTAPIAuthSession, { signal: req.signal })
-        if (response.status === 200) {
-            const { accessToken } = await response.json()
-            return accessToken
-        } else {
-            const errorText = response.status === 401 ? 'Authentication required.' : 'Failed to fetch access token.'
-            throw new Error(errorText)
-        }
-    }
-
     private subscribeWebsocket(websocketRequestId: string, onMessage: (message: string) => void) {
         const parser = createParser((event) => {
             if (event.type === 'event') {
@@ -246,7 +269,7 @@ export class ChatGPT extends AbstractEngine {
 
     async postMessage(req: IMessageRequest, websocketRequestId?: string): Promise<Response | undefined> {
         try {
-            const apiKey = await this.getAccessToken(req)
+            const apiKey = await utils.getAccessToken()
             if (!apiKey) {
                 throw new Error('There is no logged-in ChatGPT account in this browser.')
             }
@@ -258,8 +281,8 @@ export class ChatGPT extends AbstractEngine {
 
             this.model = await this.getModel()
 
+            const messageId = uuidv4()
             const lastConversationId = await this.getConversationId(req.activatedActionName, this.model)
-            console.log('lastConversationId', lastConversationId)
 
             const userAgent =
                 process.env.USER_AGENT ||
@@ -316,7 +339,7 @@ export class ChatGPT extends AbstractEngine {
                 action: 'next',
                 messages: [
                     {
-                        id: uuidv4(),
+                        id: messageId,
                         role: 'user',
                         content: { content_type: 'text', parts: [`${req.rolePrompt}\n\n${req.commandPrompt}`] },
                     },
@@ -361,7 +384,7 @@ export class ChatGPT extends AbstractEngine {
 
     async sendMessage(req: IMessageRequest) {
         if (!this.accessToken) {
-            this.accessToken = await this.getAccessToken(req)
+            this.accessToken = await utils.getAccessToken()
         }
 
         type ResponseMode = 'sse' | 'websocket'
@@ -413,9 +436,12 @@ export class ChatGPT extends AbstractEngine {
                 this.saveConversationContext(req.activatedActionName, this.model, {
                     conversationId: resp.conversation_id,
                 })
+
+                useChatStore.getInitialState().setConversationId(resp.conversation_id)
                 this.context = {
                     ...this.context,
                     conversationId: resp.conversation_id,
+                    messageId: resp.message_id,
                 }
             } catch (err) {
                 console.error(err)
@@ -437,10 +463,11 @@ export class ChatGPT extends AbstractEngine {
                 return
             }
 
-            const { content, author } = resp.message
+            const { content, author, id } = resp.message
             if (content.content_type !== 'text') {
                 return
             }
+            useChatStore.getInitialState().setMessageId(id)
             if (author.role === 'assistant') {
                 const targetTxt = content.parts.join('')
                 const textDelta = targetTxt.slice(this.length)
