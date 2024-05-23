@@ -1,4 +1,4 @@
-import { Word, SavedFile } from '@/common/internal-services/db'
+import { SavedFile, Translations } from '@/common/internal-services/db'
 
 export interface ChatFileState {
     words: Word[]
@@ -6,13 +6,18 @@ export interface ChatFileState {
     files: SavedFile[]
     categories: string[]
     selectedCategory: string
-    selectedWord: selectedWord
-    selectedWords: { [fileId: number]: selectedWord }
+    selectedWord: Word
+    selectedWords: { [fileId: number]: Word }
 }
 
-export interface selectedWord {
+interface Word {
     idx: number
     text: string
+    isNew?: boolean
+    lastReviewed?: Date
+    nextReview?: Date
+    reviewCount?: number
+    translations?: Translations
 }
 
 function getFromStorage(key: string, defaultValue: unknown) {
@@ -25,7 +30,7 @@ function getFromStorage(key: string, defaultValue: unknown) {
     }
 }
 
-function getNumberFromStorage(key: string, defaultValue: unknown) {
+function getNumberFromStorage(key: string, defaultValue: number) {
     const item = localStorage.getItem(key)
     return item ? Number(item) : defaultValue
 }
@@ -43,7 +48,7 @@ export const initialFileState: ChatFileState = {
     words: [], // 当前文件的单词
     currentFileId: getNumberFromStorage('currentFileId', 0),
     files: [],
-    categories: getFromStorage('categories', ['单词', '表达', '语法', '默认']),
+    categories: getFromStorage('categories', ['单词', '表达', '语法', '默认', '学习']),
     selectedCategory: getFromStorage('currentCategory', '默认'),
     selectedWord: getFromStorage('selectedWord', { idx: 1, text: '' }),
     selectedWords: getObjectFromStorage('selectedWords', {}), // 每个文件的选中单词

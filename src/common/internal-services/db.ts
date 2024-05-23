@@ -33,6 +33,9 @@ export interface Word {
     text: string
     translations?: Translations
     isNew?: boolean
+    lastReviewed?: Date
+    nextReview?: Date
+    reviewCount?: number
 }
 
 export interface SavedFile {

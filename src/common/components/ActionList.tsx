@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { Action } from '../internal-services/db'
+import { useChatStore } from '@/store/file'
 
 interface ActionListProps {
     actions: Action[]
@@ -9,8 +10,14 @@ interface ActionListProps {
 
 const ActionList: React.FC<ActionListProps> = React.memo(({ actions, onActionClick, performAll }) => {
     const [unUsedActions, setUnUsedActions] = React.useState<Action[]>(actions)
+    const { selectedWord, addWordToLearningFile } = useChatStore()
     const handlePerformAllClick = () => {
         performAll(actions)
+    }
+
+    const handleAddWordClick = async () => {
+        console.log('selectedWord in handleAddWordClick', selectedWord)
+        await addWordToLearningFile(selectedWord)
     }
 
     useEffect(() => {
@@ -35,6 +42,7 @@ const ActionList: React.FC<ActionListProps> = React.memo(({ actions, onActionCli
                         <button onClick={() => handleActionClick(action)}>{action.name}</button>
                     </li>
                 ))}
+                <button onClick={handleAddWordClick}>添加到学习列表中</button> {/* 新增按钮 */}
             </ol>
             <button onClick={handlePerformAllClick}>一键完成学习</button> {/* 新增按钮 */}
         </div>

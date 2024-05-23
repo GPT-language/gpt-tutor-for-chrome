@@ -696,15 +696,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     useEffect(() => {
         const entry = selectedWord
-        const translations = words.find((w) => w.idx === entry.idx)?.translations
 
         if (entry.text && entry.idx) {
             setEditableText(entry.text)
             setOriginalText(entry.text)
             setSelectWordIdx(entry.idx)
-            if (translations) {
-                console.log('entry.translations', translations)
-                setTranslations(translations)
+            if (entry.translations) {
+                setTranslations(entry.translations)
             } else {
                 setTranslations({})
             }
@@ -1140,6 +1138,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     useEffect(() => {
         const { messageId, conversationId } = useChatStore.getState()
         if (translatedText && activateAction?.name) {
+            // 更新selectedWord的翻译
+            useChatStore.getState().updateTranslationText(translatedText, activateAction?.name)
             handleTranslationUpdate(
                 currentFileId,
                 selectWordIdx,
