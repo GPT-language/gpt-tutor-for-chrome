@@ -24,6 +24,7 @@ const WordListUploader = () => {
         loadFiles,
         deleteWords,
         setSelectedCategory,
+        getInitialFile,
     } = useChatStore()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [showNewCategoryInput, setShowNewCategoryInput] = useState<boolean>(false)
@@ -33,6 +34,7 @@ const WordListUploader = () => {
     const itemsPerPage = 10
     const [searchTerm, setSearchTerm] = useState<string>('')
     const [numPages, setNumPages] = useState<number>(1)
+    const [IsInitialized, setIsInitialized] = useState<boolean>(false)
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
         if (file && selectedCategory) {
@@ -63,7 +65,6 @@ const WordListUploader = () => {
         } else {
             setCurrentFileId(0)
         }
-        selectedWords
     }
 
     const handleAddCategory = () => {
@@ -83,7 +84,6 @@ const WordListUploader = () => {
 
     const handleWordClick = (word: Word) => {
         selectWord(word)
-        localStorage.setItem('selectedWord', JSON.stringify(word))
     }
 
     const changePage = async (newPageNumber: number) => {
@@ -110,6 +110,17 @@ const WordListUploader = () => {
     }
 
     useEffect(() => {
+        async function initialize() {
+            const isInitialized = await getInitialFile() // 确保这个函数是异步的且返回布尔值
+            if (isInitialized) {
+                setIsInitialized(true)
+            }
+        }
+
+        initialize()
+    }, [])
+
+    useEffect(() => {
         const fetchNumPages = async () => {
             const totalWordCount = await fileService.getTotalWordCount(currentFileId)
             const totalPages = Math.ceil(totalWordCount / itemsPerPage)
@@ -122,7 +133,7 @@ const WordListUploader = () => {
     }, [currentFileId, itemsPerPage])
 
     useEffect(() => {
-        if (currentFileId) {
+        if (currentFileId && IsInitialized && selectedWords[currentFileId]) {
             const saveWord = selectedWords[currentFileId]
             if (saveWord) {
                 selectWord(saveWord)
@@ -137,7 +148,7 @@ const WordListUploader = () => {
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentFileId])
+    }, [currentFileId, IsInitialized])
 
     useEffect(() => {
         loadFiles(selectedCategory)

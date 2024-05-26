@@ -1,44 +1,49 @@
-import React, { useEffect } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { Action } from '../internal-services/db'
 import { useChatStore } from '@/store/file'
 
 interface ActionListProps {
-    actions: Action[]
-    onActionClick: (action: Action) => void // 从父组件传入的处理函数
+    onActionClick: () => void // 从父组件传入的处理函数
     performAll: (actions: Action[]) => void
 }
 
-const ActionList: React.FC<ActionListProps> = React.memo(({ actions, onActionClick, performAll }) => {
-    const [unUsedActions, setUnUsedActions] = React.useState<Action[]>(actions)
-    const { selectedWord, addWordToLearningFile } = useChatStore()
+const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll }) => {
+    const { selectedWord, addWordToLearningFile, actions, setAction, activatedAction } = useChatStore()
+    const [unUsedActions, setUnUsedActions] = useState<Action[]>(actions)
     const handlePerformAllClick = () => {
         performAll(actions)
     }
 
     const handleAddWordClick = async () => {
         console.log('selectedWord in handleAddWordClick', selectedWord)
+        if (!selectedWord) {
+            return
+        }
         await addWordToLearningFile(selectedWord)
     }
 
     useEffect(() => {
-        setUnUsedActions(actions)
-        console.log('actions', actions)
-
-        return () => {
-            setUnUsedActions([])
+        if (!actions) {
+            return
         }
-    }, [actions])
+        console.log('set unUsedActions', actions)
+        setUnUsedActions(actions)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [actions, selectedWord?.idx])
 
-    const handleActionClick = (action: Action) => {
-        onActionClick(action)
-        setUnUsedActions(unUsedActions.filter((a) => a.id !== action.id))
+    const handleActionClick = async (action: Action) => {
+        console.log('handleActionClick', action)
+        setAction(action)
+        console.log('setAction', activatedAction)
+        onActionClick()
+        setUnUsedActions(unUsedActions?.filter((a) => a.idx > action.idx))
         console.log('unUsedActions', unUsedActions)
     }
     return (
         <div>
             <ol>
-                {unUsedActions.map((action) => (
-                    <li key={action.id}>
+                {unUsedActions?.map((action) => (
+                    <li key={action.idx}>
                         <button onClick={() => handleActionClick(action)}>{action.name}</button>
                     </li>
                 ))}

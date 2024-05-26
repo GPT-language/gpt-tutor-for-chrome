@@ -6,8 +6,8 @@ export interface ChatFileState {
     files: SavedFile[]
     categories: string[]
     selectedCategory: string
-    selectedWord: Word
-    selectedWords: { [fileId: number]: Word }
+    selectedWord: Word | null
+    selectedWords: { [fileId: number]: Word | null }
 }
 
 interface Word {
@@ -30,6 +30,22 @@ function getFromStorage(key: string, defaultValue: unknown) {
     }
 }
 
+function getFromChromeStorage<T>(key: string, defaultValue: T): Promise<T> {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(key, (result) => {
+            const item = result[key]
+            try {
+                // 解析并断言为 T 类型
+                const parsedItem: T = item ? JSON.parse(item) : defaultValue
+                resolve(parsedItem)
+            } catch (error) {
+                console.error('Error parsing JSON from chrome.storage.local for key:', key, error)
+                resolve(defaultValue) // 若出错返回默认值
+            }
+        })
+    })
+}
+
 function getNumberFromStorage(key: string, defaultValue: number) {
     const item = localStorage.getItem(key)
     return item ? Number(item) : defaultValue
@@ -40,8 +56,38 @@ function getObjectFromStorage(key: string, defaultValue: unknown) {
     return item ? JSON.parse(item) : defaultValue
 }
 
-export const getInitialFileState = async () => {
-    return initialFileState
+function getObjectFromChromeStorage<T>(key: string, defaultValue: T): Promise<T> {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(key, (result) => {
+            const item = result[key]
+            try {
+                // 使用类型断言确保返回的是 T 类型
+                const parsedItem: T = item ? JSON.parse(item) : defaultValue
+                resolve(parsedItem)
+            } catch (error) {
+                console.error('Error parsing JSON from chrome.storage.local for key:', key, error)
+                resolve(defaultValue) // 出错时返回默认值
+            }
+        })
+    })
+}
+
+export const getInitialFileState = async (): Promise<ChatFileState> => {
+    const currentFileId = getNumberFromStorage('currentFileId', 0)
+    const categories = await getFromStorage('categories', ['单词', '表达', '语法', '默认', '学习'])
+    const selectedCategory = await getFromStorage('currentCategory', '默认')
+    const selectedWord = await getFromChromeStorage('selectedWord', { idx: 1, text: '' })
+    const selectedWords = await getObjectFromChromeStorage('selectedWords', {})
+
+    return {
+        words: [],
+        currentFileId,
+        files: [],
+        categories,
+        selectedCategory,
+        selectedWord,
+        selectedWords,
+    }
 }
 
 export const initialFileState: ChatFileState = {
@@ -50,6 +96,6 @@ export const initialFileState: ChatFileState = {
     files: [],
     categories: getFromStorage('categories', ['单词', '表达', '语法', '默认', '学习']),
     selectedCategory: getFromStorage('currentCategory', '默认'),
-    selectedWord: getFromStorage('selectedWord', { idx: 1, text: '' }),
-    selectedWords: getObjectFromStorage('selectedWords', {}), // 每个文件的选中单词
+    selectedWord: { idx: 1, text: '' },
+    selectedWords: {}, // 每个文件的选中单词
 }

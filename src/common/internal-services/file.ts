@@ -87,10 +87,16 @@ export class FileService {
     }
 
     // 更新文件中的某个单词
-    async updateWordInFile(fileId: number, wordIndex: number, updatedWord: Word): Promise<void> {
+    async updateWordInFile(fileId: number, wordId: number, updatedWord: Word): Promise<void> {
         const file = await this.fetchFileDetailsById(fileId)
-        file.words[wordIndex] = updatedWord
-        await this.updateFile(fileId, { words: file.words })
+        // 找到需要更新的单词的正确索引
+        const index = file.words.findIndex((w) => w.idx === wordId)
+        if (index !== -1) {
+            file.words[index] = updatedWord
+            await this.updateFile(fileId, { words: file.words })
+        } else {
+            this.addWordToFile(fileId, updatedWord)
+        }
     }
 
     // 删除文件中的某个单词
@@ -167,25 +173,24 @@ export class FileService {
 
     // 根据上次复习时间和复习次数计算下次复习时间
     getNextReviewDate(lastReviewed: Date, reviewCount: number): Date {
-        const intervals = [1, 2, 4, 7, 15] // 间隔天数，可以根据需要进行调整
-        const nextInterval = intervals[reviewCount] || 30 // 如果超出初始间隔，设定为每月复习一次
+        // 间隔天数，可以根据需要进行调整
+        const intervals = [0, 1, 2, 4, 7, 15]
+        // 如果超出初始间隔，设定为每月复习一次
+        const nextInterval = intervals[reviewCount] ?? 30 // 使用 ?? 操作符确保当 intervals[reviewCount] 为 undefined 时使用 30 天
+        // 计算下次复习时间
         return new Date(lastReviewed.getTime() + nextInterval * 24 * 60 * 60 * 1000)
-    }
-
-    // 将单词标记为已复习
-    markWordAsReviewed(word: Word, reviewDate: Date): Word {
-        const reviewCount = word.translations ? Object.keys(word.translations).length : 0
-        return {
-            ...word,
-            lastReviewed: reviewDate,
-            nextReview: this.getNextReviewDate(reviewDate, reviewCount),
-        }
     }
 
     // 获取需要复习的单词
     getWordsToReview(words: Word[]): Word[] {
         const today = new Date()
         return words.filter((word) => word.nextReview && word.nextReview <= today)
+    }
+
+    // 根据文件Id获取需要复习的单词
+    async getWordsToReviewByFileId(fileId: number): Promise<Word[]> {
+        const file = await this.fetchFileDetailsById(fileId)
+        return this.getWordsToReview(file.words)
     }
 }
 export const fileService = new FileService()

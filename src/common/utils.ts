@@ -47,13 +47,13 @@ function isTokenExists() {
     }
 }
 
-export async function getAccessToken(): Promise<string> {
+export async function getAccessToken(refresh = false): Promise<string> {
     let resp: Response | null = null
     const controller = new AbortController()
     const signal = controller.signal // 使用 AbortController 获取 signal
 
     try {
-        if (!isTokenExists() || isTokenExpired()) {
+        if (refresh || !isTokenExists() || isTokenExpired()) {
             resp = await fetch(defaultChatGPTAPIAuthSession, { signal: signal })
             if (resp.status !== 200) {
                 throw new Error('Failed to fetch ChatGPT Web accessToken.')
@@ -479,28 +479,15 @@ export async function getArkoseToken(): Promise<string> {
     return data.token
 }
 
-export async function getChatRequirementsToken(): Promise<string> {
-    const apiKey = await getAccessToken()
-    const response = await fetch(`https://chat.openai.com/backend-api/sentinel/chat-requirements`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-        },
-    })
-    const data = await response.json()
-    if (!data.token) throw new Error('Failed to get Chat Requirements token.')
-    return data.token
-}
-
 export async function isNeedWebsocket(accessToken: string) {
     const response = await callBackendAPIWithToken(accessToken, 'GET', '/accounts/check/v4-2023-04-27')
     const isNeedWebsocket = (await response.text()).includes('shared_websocket')
     return isNeedWebsocket
 }
 
-export async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body?: unknown) {
-    return fetch(`https://chat.openai.com/backend-api${endpoint}`, {
+export async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body?: any) {
+    const fetcher = getUniversalFetch() // Assuming getUniversalFetch returns the global fetch
+    const response = await fetcher(`https://chatgpt.com/backend-api${endpoint}`, {
         method: method,
         headers: {
             'Content-Type': 'application/json',
@@ -508,4 +495,11 @@ export async function callBackendAPIWithToken(token: string, method: string, end
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
     })
+
+    if (response.status === 401) {
+        // Token might be expired or invalid
+        localStorage.removeItem('accessToken')
+        throw new Error('Token expired or invalid, please try again.')
+    }
+    return response
 }

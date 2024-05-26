@@ -3,8 +3,11 @@ import { produce } from 'immer'
 import { parse } from 'papaparse'
 import { fileService } from '@/common/internal-services/file'
 import { ChatStore } from '../../store'
-import { SavedFile, Word } from '@/common/internal-services/db'
+import { Action, SavedFile, Word } from '@/common/internal-services/db'
+import { getInitialFileState } from '../file/initialState'
+
 export interface ChatFileAction {
+    getInitialFile: () => Promise<boolean>
     addFile: (file: File, category: string) => Promise<number>
     selectFile: (fileId: number) => void
     deleteFile: (fileId: number) => Promise<void>
@@ -22,9 +25,17 @@ export interface ChatFileAction {
     checkIfInitialized: () => Promise<boolean>
     initializeReviewFiles(): Promise<void>
     updateTranslationText: (translationText: string, actionName: string) => void
+    setActions: (actions: Action[]) => void
+    setAction: (action: Action) => void
 }
 
 export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatFileAction> = (set, get) => ({
+    getInitialFile: async () => {
+        const ChatFileState = await getInitialFileState()
+        set(ChatFileState)
+        return true
+    },
+
     addFile: async (file, category) => {
         const response = await new Promise<{ data: string[][] }>((resolve) =>
             parse(file, {
@@ -95,8 +106,8 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
     async addWordToLearningFile(word: Word) {
         try {
-            console.log('addWordToLearningFile', word)
-            const { selectedCategory } = get()
+            console.log('Starting to add/update word', word)
+            const { selectedCategory, currentFileId, selectWord, words } = get()
             const currentDate = new Date()
             const reviewCount = word.reviewCount || 0
             const nextReviewDate = fileService.getNextReviewDate(currentDate, reviewCount)
@@ -109,16 +120,27 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 reviewCount: reviewCount + 1,
             }
 
-            const files = await fileService.fetchFilesByCategory('学习')
-            const targetFile = files.find((file) => file.name === fileName)
-            if (targetFile?.id) {
-                await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
-            } else {
-                await fileService.createFile(fileName, '学习', [updatedWord])
-            }
-            if (selectedCategory === '学习') {
-                const reviewedWords = get().words.filter((w) => w.idx !== word.idx)
+            console.log('Updated word:', updatedWord)
+
+            if (selectedCategory === '学习' && currentFileId) {
+                console.log('Updating word in file with ID:', currentFileId)
+                await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
+                const reviewedWords = words.filter((w) => w.idx !== word.idx)
                 set({ words: reviewedWords })
+                const nextWord = reviewedWords[0]
+                selectWord(nextWord || null)
+                console.log('Selected next word or cleared:', nextWord)
+            } else {
+                console.log('Fetching files for category 学习')
+                const files = await fileService.fetchFilesByCategory('学习')
+                const targetFile = files.find((file) => file.name === fileName)
+                if (targetFile?.id) {
+                    console.log('Updating word in existing file:', targetFile.id)
+                    await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
+                } else {
+                    console.log('Creating new file:', fileName)
+                    await fileService.createFile(fileName, '学习', [updatedWord])
+                }
             }
         } catch (error) {
             console.error('Failed to add word to learning file:', error)
@@ -129,9 +151,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         const currentCategory = get().selectedCategory
         try {
             if (currentCategory === '学习') {
-                const words = await fileService.loadWordsByFileId(fileId)
-                // 获取需要复习的单词
-                const reviewWords = fileService.getWordsToReview(words)
+                const reviewWords = await fileService.getWordsToReviewByFileId(fileId)
                 if (reviewWords) {
                     set(
                         produce((draft) => {
@@ -243,11 +263,11 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             produce((draft) => {
                 draft.selectedWord = word
                 draft.selectedWords[currentFileId] = word
-                localStorage.setItem('selectedWords', JSON.stringify(draft.selectedWords))
+                chrome.storage.local.set({ selectedWord: JSON.stringify(draft.selectedWord) })
+                chrome.storage.local.set({ selectedWords: JSON.stringify(draft.selectedWords) })
             })
         )
     },
-
     deleteWords: () => {
         set(
             produce((draft) => {
@@ -272,5 +292,13 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 }
             })
         )
+    },
+
+    setActions: (actions: Action[]) => {
+        set({ actions })
+    },
+
+    setAction: (activatedAction: Action) => {
+        set({ activatedAction })
     },
 })

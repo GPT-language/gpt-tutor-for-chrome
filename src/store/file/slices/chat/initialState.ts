@@ -1,3 +1,4 @@
+import { Action } from '@/common/internal-services/db'
 export interface ChatState {
     ttsProvider: string
     conversationId: string
@@ -6,6 +7,8 @@ export interface ChatState {
     activatedModel: string
     activatedProvider: string
     accessToken: string
+    actions: Action[]
+    activatedAction: Action | undefined
 }
 
 function getFromStorage(key: string, defaultValue: unknown) {
@@ -33,9 +36,11 @@ export const getInitialChatState = async () => {
 }
 
 export const initialChatState: ChatState = {
+    actions: [],
     ttsProvider: '',
     conversationId: '',
     messageId: '',
+    activatedAction: undefined,
     activatedActionName: '',
     activatedModel: '',
     activatedProvider: '',

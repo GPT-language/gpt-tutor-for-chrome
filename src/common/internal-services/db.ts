@@ -19,7 +19,7 @@ export interface Action {
 
 export interface Translation {
     text: string
-    format: string // 如 "text", "markdown", "latex"
+    format: ActionOutputRenderingFormat
     messageId?: string
     conversationId?: string
 }

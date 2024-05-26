@@ -411,7 +411,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     useEffect(() => {
         setupAnalysis()
     }, [])
-
+    const { currentFileId, selectedWord, getInitialFile, setActions, words, setAction } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
     const [showActionManager, setShowActionManager] = useState(false)
@@ -465,6 +465,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const [activateAction, setActivateAction] = useState<Action | undefined>(() => {
         const savedAction = localStorage.getItem('savedAction')
+        if (savedAction) {
+            setAction(JSON.parse(savedAction))
+        }
         return savedAction ? JSON.parse(savedAction) : undefined
     })
 
@@ -547,7 +550,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [displayedActions, setDisplayedActions] = useState<Action[]>([])
     const [hiddenActions, setHiddenActions] = useState<Action[]>([])
     const [displayedActionsMaxCount, setDisplayedActionsMaxCount] = useState(4)
-    const [listActions, setListActions] = useState<Action[]>([])
     // 使用 reduce 方法创建分组
     const actionGroups = actions?.reduce<Record<string, Action[]>>((groups, action) => {
         const group = action.group || 'English Learning'
@@ -603,13 +605,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [selectedGroup])
 
     useEffect(() => {
-        const savedAction = localStorage.getItem('savedAction')
-        if (savedAction) {
-            setActivateAction(JSON.parse(savedAction))
-        }
-    }, [])
-
-    useEffect(() => {
         const handleRuntimeMessage = (message: { type: string; text: string }) => {
             if (message.type === 'Text') {
                 const text = message.text
@@ -626,7 +621,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [props.text, props.uuid])
 
     const { theme, themeType } = useTheme()
-
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
     const [isLoading, setIsLoading] = useState(false)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -636,12 +630,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [selectWordIdx, setSelectWordIdx] = useState(0)
     const [isSpeakingEditableText, setIsSpeakingEditableText] = useState(false)
     const [originalText, setOriginalText] = useState(props.text)
-    const [detectedOriginalText, setDetectedOriginalText] = useState(props.text)
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
     const [translations, setTranslations] = useState<Translations>({})
-    const { currentFileId, selectedWord, words } = useChatStore()
+
+    useEffect(() => {
+        getInitialFile()
+    }, [getInitialFile])
 
     useEffect(() => {
         if (!actions) {
@@ -655,54 +651,32 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             const group = action.group ?? 'English Learning'
             return group === selectedGroup
         })
-        setListActions(filteredActions)
+        setActions(filteredActions)
+        // 只需要在selectedGroup变化时执行一次
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [actions, selectedGroup, detectedOriginalText])
+    }, [selectedGroup, actions, refreshActions])
 
-    const handleActionClick = async (action: Action) => {
-        // 假设translate是一个已定义的函数
-        setActivateAction(action)
-
-        // 更新动作列表以排除已使用的动作
-        const updatedActions = listActions.filter((a) => a.idx > action.idx)
-        setListActions(updatedActions)
+    const handleActionClick = async () => {
         forceTranslate()
     }
 
     useEffect(() => {
-        if (translatedText && activateAction?.name && editableText) {
-            const actionName = activateAction?.name
-
-            setTranslations((prev) => {
-                const newTranslations = { ...prev }
-
-                if (newTranslations[actionName]) {
-                    newTranslations[actionName] = {
-                        ...newTranslations[actionName],
-                        text: translatedText, // 更新对应actionName的text
-                    }
-                } else {
-                    newTranslations[actionName] = {
-                        text: translatedText,
-                        format: activateAction?.outputRenderingFormat || 'text',
-                    }
-                }
-
-                return newTranslations
-            })
+        console.log('selectedWord', selectedWord)
+        if (!selectedWord) {
+            console.log('selectedWord is empty')
+            setTranslations({})
+            return
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [translatedText])
+        if (selectedWord.text && selectedWord.idx) {
+            console.log('words is not empty', words)
 
-    useEffect(() => {
-        const entry = selectedWord
-
-        if (entry.text && entry.idx) {
-            setEditableText(entry.text)
-            setOriginalText(entry.text)
-            setSelectWordIdx(entry.idx)
-            if (entry.translations) {
-                setTranslations(entry.translations)
+            const translations = words.find((w) => w.idx === selectedWord.idx)?.translations || {}
+            console.log('translations', translations)
+            setEditableText(selectedWord.text)
+            setOriginalText(selectedWord.text)
+            setSelectWordIdx(selectedWord.idx)
+            if (translations) {
+                setTranslations(translations)
             } else {
                 setTranslations({})
             }
@@ -710,7 +684,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             console.log('word is empty')
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedWord, words])
+    }, [selectedWord?.idx, words])
 
     useEffect(() => {
         if (!settings) {
@@ -718,15 +692,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         const engine = getEngine(settings.provider)
         setEngine(engine)
-    }, [settings])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settings?.apiModel, settings?.provider, settings?.apiKey])
 
     useEffect(() => {
         setOriginalText(props.text)
     }, [props.text, props.uuid])
-
-    useEffect(() => {
-        setEditableText(detectedOriginalText)
-    }, [detectedOriginalText])
 
     useEffect(() => {
         setTranslatedLines(translatedText.split('\n'))
@@ -773,7 +744,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     return 'en'
                 }
             })
-            setDetectedOriginalText(originalText)
         })()
     }, [
         originalText,
@@ -949,22 +919,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [headerRef])
 
     const [isNotLogin, setIsNotLogin] = useState(false)
+    const activatedAction = useChatStore.getState().activatedAction
 
-    const activateActionRef = useRef(activateAction)
+    const activateActionRef = useRef(activatedAction)
     useEffect(() => {
-        activateActionRef.current = activateAction
-    }, [activateAction])
+        activateActionRef.current = activatedAction
+    }, [activatedAction])
 
     const translateText = useCallback(
-        async (text: string, signal: AbortSignal) => {
+        async (text: string, signal: AbortSignal, actionName?: string) => {
             if (!text || !activateAction?.id) {
                 return
             }
             const latestActivateAction = activateActionRef.current
-            console.log('latestActivateAction', latestActivateAction)
-            if (!latestActivateAction) {
-                console.log('latestActivateAction is undefined')
-
+            if (!latestActivateAction || !latestActivateAction.id) {
                 return // Handle the case where latestActivateAction is undefined
             }
             const action = await actionService.get(latestActivateAction.id)
@@ -972,9 +940,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 console.log('action is undefined')
                 return
             }
-            console.log('action', action.name)
 
-            setActivatedActionName(action.name)
+            if (actionName) {
+                setActivatedActionName(actionName)
+            } else {
+                setActivatedActionName(action.name)
+            }
+
             const beforeTranslate = () => {
                 const actionStr = 'Processing...'
                 setActionStr(actionStr)
@@ -1013,9 +985,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
             let isStopped = false
             try {
-                const activatedActionName = action.name
+                const activatedActionName = actionName || action.name
 
-                console.log(activatedActionName)
                 await translate(
                     {
                         activatedActionName,
@@ -1032,13 +1003,55 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 return
                             }
                             setTranslatedText((translatedText) => {
-                                const newTranslatedText = message.isFullText
-                                    ? message.content
-                                    : translatedText + message.content
                                 if (message.isFullText) {
                                     return message.content
                                 }
-                                return translatedText + message.content
+                                const newTranslatedText = message.isFullText
+                                    ? message.content
+                                    : translatedText + message.content
+
+                                const actionName = useChatStore.getState().activatedAction?.name
+                                console.log('storage actionName', actionName)
+
+                                if (actionName) {
+                                    setTranslations((prev) => {
+                                        const newTranslations = { ...prev }
+                                        if (newTranslations[actionName]) {
+                                            newTranslations[actionName] = {
+                                                ...newTranslations[actionName],
+                                                text: newTranslatedText, // 使用最新的翻译文本更新
+                                                format: activateAction?.outputRenderingFormat || 'markdown',
+                                            }
+                                        } else {
+                                            newTranslations[actionName] = {
+                                                text: newTranslatedText,
+                                                format: activateAction?.outputRenderingFormat || 'markdown',
+                                            }
+                                        }
+
+                                        return newTranslations
+                                    })
+                                } else {
+                                    setTranslations((prev) => {
+                                        const newTranslations = { ...prev }
+                                        if (newTranslations[activateAction?.name]) {
+                                            newTranslations[activateAction?.name] = {
+                                                ...newTranslations[activateAction?.name],
+                                                text: newTranslatedText, // 使用最新的翻译文本更新
+                                                format: activateAction?.outputRenderingFormat || 'markdown',
+                                            }
+                                        } else {
+                                            newTranslations[activateAction?.name] = {
+                                                text: newTranslatedText,
+                                                format: activateAction?.outputRenderingFormat || 'markdown',
+                                            }
+                                        }
+
+                                        return newTranslations
+                                    })
+                                }
+
+                                return newTranslatedText
                             })
                         },
                         onFinish: (reason) => {
@@ -1074,7 +1087,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [originalText, settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
+        [settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
     )
 
     const handleTranslationUpdate = async (
@@ -1105,9 +1118,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const performActionsTranslations = useCallback(
         async (actions: Action[]) => {
-            if (editableText !== detectedOriginalText) {
-                return
-            }
             const originalAction = activateActionRef.current // 保存原始action以便之后恢复
             const controller = new AbortController()
             const { signal } = controller
@@ -1121,7 +1131,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 // 等待更新状态，然后调用翻译函数
                 await new Promise((r) => setTimeout(r, 0)) // 确保状态更新完成
 
-                await translateText(detectedOriginalText, signal) // 使用更新后的action执行翻译
+                await translateText(originalText, signal, action.name) // 使用更新后的action执行翻译
 
                 // 可能需要处理更多逻辑，比如检查是否有错误，是否需要停止等
             }
@@ -1132,27 +1142,27 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 controller.abort()
             }
         },
-        [editableText, detectedOriginalText, translateText]
+        [originalText, translateText]
     )
 
     useEffect(() => {
-        const { messageId, conversationId } = useChatStore.getState()
-        if (translatedText && activateAction?.name) {
+        const { messageId, conversationId, activatedAction } = useChatStore.getState()
+        if (translatedText && activatedAction?.name && !isLoading) {
             // 更新selectedWord的翻译
-            useChatStore.getState().updateTranslationText(translatedText, activateAction?.name)
+            useChatStore.getState().updateTranslationText(translatedText, activatedAction?.name)
             handleTranslationUpdate(
                 currentFileId,
                 selectWordIdx,
-                activateAction?.name,
+                activatedAction?.name,
                 editableText,
                 translatedText,
-                activateAction?.outputRenderingFormat || 'Markdown',
+                activateAction?.outputRenderingFormat || 'markdown',
                 messageId,
                 conversationId
             )
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [translatedText])
+    }, [isLoading])
 
     useEffect(() => {
         if (translatedText && activateAction?.name === 'JSON输出') {
@@ -1162,17 +1172,24 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [translatedText, activateAction])
 
     useEffect(() => {
-        if (editableText !== detectedOriginalText) {
+        if (editableText !== originalText) {
             return
         }
         const controller = new AbortController()
         const { signal } = controller
-        translateText(detectedOriginalText, signal)
+        translateText(originalText, signal)
         return () => {
             controller.abort()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [translateText])
+
+    useEffect(() => {
+        if (selectedWord?.text === '') {
+            return
+        }
+        chrome.storage.local.set({ selectedWord: JSON.stringify(selectedWord) })
+    }, [selectedWord, translations])
 
     const [showSettings, setShowSettings] = useState(false)
     useEffect(() => {
@@ -1238,7 +1255,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const handleTranslatedSpeakAction = async (messageId?: string, conversationId?: string, text?: string) => {
         console.log('handleTranslatedSpeakAction', messageId, conversationId)
-
         if (isSpeakingTranslatedText) {
             translatedStopSpeakRef.current()
             setIsSpeakingTranslatedText(false)
@@ -1358,6 +1374,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                             onClick={() => {
                                                 setTranslatedText('')
                                                 setActivateAction(action)
+                                                setAction(action)
                                                 if (action) {
                                                     localStorage.setItem('savedAction', JSON.stringify(action))
                                                 } else {
@@ -1682,7 +1699,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 )}
                             </div>
                         </div>
-                        {detectedOriginalText !== '' && (
+                        {selectedWord?.text !== '' && (
                             <div className={styles.popupCardTranslatedContainer} dir={translatedLanguageDirection}>
                                 {actionStr && (
                                     <div
@@ -1730,10 +1747,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 {activateAction?.name !== 'JSON输出' && (
                                                     <>
                                                         {Object.entries(translations).map(
-                                                            (
-                                                                [key, { text, format, messageId, conversationId }],
-                                                                index
-                                                            ) => (
+                                                            ([key, { text, format, messageId, conversationId }]) => (
                                                                 <div key={key}>
                                                                     {format === 'markdown' ? (
                                                                         <>
@@ -1849,19 +1863,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                             </div>
                                         </div>
                                         <ActionList
-                                            actions={listActions}
                                             onActionClick={handleActionClick}
                                             performAll={performActionsTranslations}
-                                            onClick={async (e) => {
-                                                e.preventDefault()
-                                                e.stopPropagation()
-                                                if (!activateAction) {
-                                                    setActivateAction(
-                                                        actions?.find((action) => action.mode === 'translate')
-                                                    )
-                                                }
-                                                setOriginalText(editableText)
-                                            }}
                                         />
                                     </div>
                                 )}

@@ -252,6 +252,7 @@ interface TTSVoicesSettingsProps {
 const ttsProviderOptions: {
     label: string
     id: TTSProvider
+    voice?: string
 }[] = [
     { label: 'Edge TTS', id: 'EdgeTTS' },
     { label: 'System Default', id: 'WebSpeech' },
@@ -259,6 +260,7 @@ const ttsProviderOptions: {
     { label: 'Cove（ChatGPT Web）', id: 'EdgeTTS', voice: 'cove' },
     { label: 'Breeze（ChatGPT Web）', id: 'EdgeTTS', voice: 'breeze' },
     { label: 'Juniper（ChatGPT Web）', id: 'EdgeTTS', voice: 'juniper' },
+    { label: 'Sky（ChatGPT Web）', id: 'EdgeTTS', voice: 'sky' },
 ]
 
 function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) {
@@ -279,22 +281,6 @@ function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) 
                     break
                 case 'WebSpeech':
                     setSupportVoices(speechSynthesis.getVoices())
-                    break
-                case 'Ember':
-                    setSupportVoices(await getEdgeVoices())
-                    useChatStore.setState({ ttsProvider: 'ember' })
-                    break
-                case 'Cove':
-                    setSupportVoices(await getEdgeVoices())
-                    useChatStore.setState({ ttsProvider: 'cove' })
-                    break
-                case 'Breeze':
-                    setSupportVoices(await getEdgeVoices())
-                    useChatStore.setState({ ttsProvider: 'breeze' })
-                    break
-                case 'Juniper':
-                    setSupportVoices(await getEdgeVoices())
-                    useChatStore.setState({ ttsProvider: 'juniper' })
                     break
                 default:
                     setSupportVoices(speechSynthesis.getVoices())
@@ -405,7 +391,10 @@ function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) 
     const handleChangeProvider = useCallback(
         (provider: TTSProvider, voice: string) => {
             onChange?.({ ...value, provider })
-            useChatStore.setState({ ttsProvider: voice })
+            if (voice) {
+                useChatStore.setState({ ttsProvider: voice })
+                localStorage.setItem('ttsProvider', voice)
+            }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [value]
@@ -421,7 +410,14 @@ function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) 
                         clearable={false}
                         searchable={false}
                         options={ttsProviderOptions}
-                        value={[{ id: value?.provider ?? 'EdgeTTS' }]}
+                        value={[
+                            {
+                                label:
+                                    value?.provider && useChatStore.getState().ttsProvider
+                                        ? `ChatGPT (${useChatStore.getState().ttsProvider})`
+                                        : value?.provider || 'EdgeTTS',
+                            },
+                        ]}
                         onChange={({ option }) => handleChangeProvider(option?.id as TTSProvider, option?.voice)}
                         onBlur={onBlur}
                     />
@@ -1042,7 +1038,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
 
     const isDesktopApp = utils.isDesktopApp()
     const isMacOS = navigator.userAgent.includes('Mac OS X')
-    const [showBuyMeACoffee, setShowBuyMeACoffee] = useState(false)
+
     return (
         <div
             style={{
@@ -1094,18 +1090,6 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                         flexGrow: 1,
                     }}
                 />
-                <div>
-                    <Button
-                        kind='secondary'
-                        size='mini'
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            setShowBuyMeACoffee(true)
-                        }}
-                    >
-                        {'❤️  ' + t('Buy me a coffee')}
-                    </Button>
-                </div>
             </nav>
             <Form
                 form={form}
@@ -1745,42 +1729,6 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 </div>
                 <Toaster />
             </Form>
-            <Modal
-                isOpen={showBuyMeACoffee}
-                onClose={() => setShowBuyMeACoffee(false)}
-                closeable
-                size='auto'
-                autoFocus
-                animate
-            >
-                <ModalHeader
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                    }}
-                >
-                    {'❤️  ' + t('Buy me a coffee')}
-                </ModalHeader>
-                <ModalBody>
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: 10,
-                        }}
-                    >
-                        <div>{t('If you find this tool helpful, you can buy me a cup of coffee.')}</div>
-                        <div>
-                            <img width='330' src={wechat} />
-                        </div>
-                        <div>
-                            <img width='330' src={alipay} />
-                        </div>
-                    </div>
-                </ModalBody>
-            </Modal>
         </div>
     )
 }

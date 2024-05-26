@@ -44,7 +44,7 @@ export async function getArkoseToken() {
         throw new Error(
             'Failed to get arkose token.' +
                 '\n\n' +
-                "Please keep https://chat.openai.com open and try again. If it still doesn't work, type some characters in the input box of chatgpt web page and try again."
+                "Please keep https://chatgpt.com open and try again. If it still doesn't work, type some characters in the input box of chatgpt web page and try again."
         )
     }
     return arkoseToken
@@ -52,8 +52,8 @@ export async function getArkoseToken() {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body?: any) {
-    const fetcher = getUniversalFetch()
-    return fetcher(`https://chatgpt.com/backend-api${endpoint}`, {
+    const fetcher = getUniversalFetch() // Assuming getUniversalFetch returns the global fetch
+    const response = await fetcher(`https://chatgpt.com/backend-api${endpoint}`, {
         method: method,
         headers: {
             'Content-Type': 'application/json',
@@ -61,13 +61,32 @@ async function callBackendAPIWithToken(token: string, method: string, endpoint: 
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
     })
+
+    if (response.status === 401) {
+        // Token might be expired or invalid
+        throw new Error('Token expired or invalid')
+    }
+    return response
 }
 
 async function getChatRequirements(accessToken: string) {
-    const response = await callBackendAPIWithToken(accessToken, 'POST', '/sentinel/chat-requirements', {
-        conversation_mode_kind: 'primary_assistant',
-    })
-    return response.json()
+    try {
+        const response = await callBackendAPIWithToken(accessToken, 'POST', '/sentinel/chat-requirements', {
+            conversation_mode_kind: 'primary_assistant',
+        })
+        return response.json()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+        if (error.message === 'Token expired or invalid') {
+            // Try to refresh the token
+            const newAccessToken = await utils.getAccessToken(true) // Force token refresh
+            const retryResponse = await callBackendAPIWithToken(newAccessToken, 'POST', '/sentinel/chat-requirements', {
+                conversation_mode_kind: 'primary_assistant',
+            })
+            return retryResponse.json()
+        }
+        throw error // Re-throw other errors for further handling
+    }
 }
 
 async function GenerateProofToken(seed: string, diff: string | number | unknown[], userAgent: string) {
@@ -269,14 +288,14 @@ export class ChatGPT extends AbstractEngine {
 
     async postMessage(req: IMessageRequest, websocketRequestId?: string): Promise<Response | undefined> {
         try {
-            const apiKey = await utils.getAccessToken()
-            if (!apiKey) {
+            const accessToken = await utils.getAccessToken()
+            if (!accessToken) {
                 throw new Error('There is no logged-in ChatGPT account in this browser.')
             }
 
             const [arkoseToken, requirements] = await Promise.all([
                 getArkoseToken(),
-                getChatRequirements(apiKey), // 确保传递 apiKey
+                getChatRequirements(accessToken), // 确保传递 apiKey
             ])
 
             this.model = await this.getModel()
@@ -323,16 +342,33 @@ export class ChatGPT extends AbstractEngine {
                 }
             }
 
+            let headers
+            type ResponseMode = 'sse' | 'websocket'
+            const responseMode: ResponseMode = (await utils.isNeedWebsocket(accessToken)) ? 'websocket' : 'sse'
+
             console.log('oaiDeviceId:', oaiDeviceId)
 
-            const headers = {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'Openai-Sentinel-Arkose-Token': arkoseToken,
-                'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
-                'openai-sentinel-proof-token': proofToken,
-                'Oai-Device-Id': oaiDeviceId!,
-                'Oai-Language': 'en-US',
+            if (responseMode === 'websocket') {
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Openai-Sentinel-Arkose-Token': arkoseToken,
+                    'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
+                    'openai-sentinel-proof-token': proofToken,
+                    'Oai-Device-Id': oaiDeviceId!,
+                    'Oai-Language': 'en-US',
+                }
+            }
+
+            if (responseMode === 'sse') {
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
+                    'openai-sentinel-proof-token': proofToken,
+                    'Oai-Device-Id': oaiDeviceId!,
+                    'Oai-Language': 'en-US',
+                }
             }
 
             const body = {
@@ -346,11 +382,13 @@ export class ChatGPT extends AbstractEngine {
                 ],
                 model: this.model,
                 parent_message_id: uuidv4(),
-                conversation_mode: { kind: 'primary_assistant' },
+                conversation_mode: { kind: 'primary_assistant', plugin_ids: null },
                 force_nulligen: false,
                 force_paragen: false,
+                force_use_sse: true,
                 force_paragen_model_slug: '',
                 force_rate_limit: false,
+                reset_rate_limits: false,
                 suggestions: [],
                 history_and_training_disabled: false,
                 conversation_id: lastConversationId || undefined,
@@ -378,7 +416,15 @@ export class ChatGPT extends AbstractEngine {
             return response
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
-            req.onError(error.message)
+            if (error.response && error.response.data.detail.code === 'token_expired') {
+                // Clear the expired token from localStorage
+                localStorage.removeItem('accessToken')
+                // Optional: Redirect user to login or automatically re-authenticate
+                req.onError('Token expired. Please try again.')
+                // Re-authentication logic here...
+            } else {
+                req.onError(error.message)
+            }
         }
     }
 
@@ -387,18 +433,18 @@ export class ChatGPT extends AbstractEngine {
             this.accessToken = await utils.getAccessToken()
         }
 
-        type ResponseMode = 'sse' | 'websocket'
+        type ResponseMode = 'sse' | 'websocket' | 'test'
         const responseMode: ResponseMode = (await utils.isNeedWebsocket(this.accessToken)) ? 'websocket' : 'sse'
         console.debug('chatgpt response mode:', responseMode)
 
-        if (responseMode === 'sse') {
+        if (responseMode) {
             const resp = await this.postMessage(req)
             if (!resp) return
             await utils.parseSSEResponse(resp, this.createMessageHanlder(req))
             return
         }
 
-        if (responseMode === 'websocket' && !this.context.pubSubClient) {
+        if (responseMode === 'test' && !this.context.pubSubClient) {
             const { wss_url } = await registerWebsocket(this.accessToken)
             const client = new WebPubSubClient(wss_url)
             await client.start()
