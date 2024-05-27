@@ -65,7 +65,7 @@ import TextParser from './TextParser'
 import ActionList from './ActionList'
 import WordListUploader from './WordListUploader'
 import { fileService } from '../internal-services/file'
-
+import CategorySelector from './CategorySelector'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -670,7 +670,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         if (selectedWord.text && selectedWord.idx) {
             console.log('words is not empty', words)
 
-            const translations = words.find((w) => w.idx === selectedWord.idx)?.translations || {}
+            const translations = selectedWord.translations || {}
             console.log('translations', translations)
             setEditableText(selectedWord.text)
             setOriginalText(selectedWord.text)
@@ -1011,7 +1011,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     : translatedText + message.content
 
                                 const actionName = useChatStore.getState().activatedAction?.name
-                                console.log('storage actionName', actionName)
 
                                 if (actionName) {
                                     setTranslations((prev) => {
@@ -1060,6 +1059,21 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 const result = translatedText
                                 cache.set(cachedKey, result)
                                 const key = `${activateAction?.name}:${editableText}`
+                                const { messageId, conversationId, activatedAction } = useChatStore.getState()
+                                if (translatedText && activatedAction?.name) {
+                                    useChatStore.getState().updateTranslationText(translatedText, activatedAction?.name)
+                                    // 更新selectedWord的翻译
+                                    handleTranslationUpdate(
+                                        currentFileId,
+                                        selectWordIdx,
+                                        activatedAction?.name,
+                                        editableText,
+                                        translatedText,
+                                        activateAction?.outputRenderingFormat || 'markdown',
+                                        messageId,
+                                        conversationId
+                                    )
+                                }
                                 return result
                             })
                         },
@@ -1144,26 +1158,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         },
         [originalText, translateText]
     )
-
-    useEffect(() => {
-        const { messageId, conversationId, activatedAction } = useChatStore.getState()
-        if (translatedText && activatedAction?.name && !isLoading) {
-            // 更新selectedWord的翻译
-            useChatStore.getState().updateTranslationText(translatedText, activatedAction?.name)
-            handleTranslationUpdate(
-                currentFileId,
-                selectWordIdx,
-                activatedAction?.name,
-                editableText,
-                translatedText,
-                activateAction?.outputRenderingFormat || 'markdown',
-                messageId,
-                conversationId
-            )
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoading])
-
     useEffect(() => {
         if (translatedText && activateAction?.name === 'JSON输出') {
             setShowTextParser(true)
@@ -1518,6 +1512,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             >
                                 {editableText}
                             </div>
+                            <CategorySelector />
                             <div style={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
                                 <Dropzone noClick={true}>
                                     {({ getRootProps }) => (

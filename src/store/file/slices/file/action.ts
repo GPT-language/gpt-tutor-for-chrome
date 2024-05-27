@@ -55,10 +55,11 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         localStorage.setItem('currentFileId', fileId.toString())
         set(
             produce((draft) => {
-                draft.words = words
-                draft.currentFileId = fileId
-                draft.files.push({ id: fileId, name: file.name, category: category, words: words })
+                draft.selectedWord = words[0]
                 draft.currentPage = 1
+                draft.currentFileId = fileId
+                draft.words = words
+                draft.files.push({ id: fileId, name: file.name, category: category, words: words })
             })
         )
         return words.length
@@ -286,7 +287,9 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
                 // 检查特定 actionName 是否存在于 translations 中
                 if (!draft.selectedWord.translations[actionName]) {
-                    draft.selectedWord.translations[actionName] = { text: newText } // 如果不存在，则创建并设置文本
+                    draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' } // 如果不存在，则创建并设置文本
+                    draft.words.find((word) => word.idx === draft.selectedWord.idx).translations =
+                        draft.selectedWord.translations
                 } else {
                     draft.selectedWord.translations[actionName].text = newText // 如果已存在，则更新文本
                 }
