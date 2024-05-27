@@ -9,6 +9,7 @@ export interface ChatState {
     accessToken: string
     actions: Action[]
     activatedAction: Action | undefined
+    isShowActionList: boolean
 }
 
 function getFromStorage(key: string, defaultValue: unknown) {
@@ -45,4 +46,5 @@ export const initialChatState: ChatState = {
     activatedModel: '',
     activatedProvider: '',
     accessToken: '',
+    isShowActionList: false,
 }

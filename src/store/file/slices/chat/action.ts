@@ -9,6 +9,7 @@ export interface ChatAction {
     setActivatedModel: (model: string) => void
     setActivatedProvider: (provider: string) => void
     setAccessToken: (token: string) => void
+    setIsShowActionList: (isShow: boolean) => void
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set) => ({
@@ -32,4 +33,5 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
     setActivatedModel: (model) => set({ activatedModel: model }),
     setActivatedProvider: (provider) => set({ activatedProvider: provider }),
     setAccessToken: (token) => set({ accessToken: token }),
+    setIsShowActionList: (isShow) => set({ isShowActionList: isShow }),
 })

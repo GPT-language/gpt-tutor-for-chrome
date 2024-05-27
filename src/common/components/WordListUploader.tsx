@@ -15,6 +15,7 @@ const WordListUploader = () => {
         loadWords,
         loadFiles,
         getInitialFile,
+        setIsShowActionList,
     } = useChatStore()
     const itemsPerPage = 10
     const [searchTerm, setSearchTerm] = useState<string>('')
@@ -43,6 +44,7 @@ const WordListUploader = () => {
 
     const handleWordClick = (word: Word) => {
         selectWord(word)
+        setIsShowActionList(false)
     }
 
     const changePage = async (newPageNumber: number) => {

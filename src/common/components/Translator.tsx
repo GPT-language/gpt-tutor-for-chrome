@@ -411,7 +411,16 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     useEffect(() => {
         setupAnalysis()
     }, [])
-    const { currentFileId, selectedWord, getInitialFile, setActions, words, setAction } = useChatStore()
+    const {
+        currentFileId,
+        selectedWord,
+        getInitialFile,
+        setActions,
+        words,
+        setAction,
+        isShowActionList,
+        setIsShowActionList,
+    } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
     const [showActionManager, setShowActionManager] = useState(false)
@@ -670,7 +679,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         if (selectedWord.text && selectedWord.idx) {
             console.log('words is not empty', words)
 
-            const translations = selectedWord.translations || {}
+            const translations = words.find((w) => w.idx === selectedWord.idx)?.translations || {}
             console.log('translations', translations)
             setEditableText(selectedWord.text)
             setOriginalText(selectedWord.text)
@@ -1059,9 +1068,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 const result = translatedText
                                 cache.set(cachedKey, result)
                                 const key = `${activateAction?.name}:${editableText}`
-                                const { messageId, conversationId, activatedAction } = useChatStore.getState()
+                                const { messageId, conversationId, activatedAction, setIsShowActionList } =
+                                    useChatStore.getState()
                                 if (translatedText && activatedAction?.name) {
                                     useChatStore.getState().updateTranslationText(translatedText, activatedAction?.name)
+                                    setIsShowActionList(true)
                                     // 更新selectedWord的翻译
                                     handleTranslationUpdate(
                                         currentFileId,

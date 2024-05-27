@@ -8,7 +8,8 @@ interface ActionListProps {
 }
 
 const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll }) => {
-    const { selectedWord, addWordToLearningFile, actions, setAction, activatedAction } = useChatStore()
+    const { selectedWord, addWordToLearningFile, actions, setAction, activatedAction, isShowActionList } =
+        useChatStore()
     const [unUsedActions, setUnUsedActions] = useState<Action[]>(actions)
     const handlePerformAllClick = () => {
         performAll(actions)
@@ -36,9 +37,14 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         setAction(action)
         console.log('setAction', activatedAction)
         onActionClick()
-        setUnUsedActions(unUsedActions?.filter((a) => a.idx > action.idx))
+        setUnUsedActions(unUsedActions?.filter((a) => (a.idx = action.idx + 1)))
         console.log('unUsedActions', unUsedActions)
     }
+
+    if (!isShowActionList) {
+        return null
+    }
+
     return (
         <div>
             <ol>
