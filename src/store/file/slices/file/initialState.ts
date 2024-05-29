@@ -74,7 +74,7 @@ function getObjectFromChromeStorage<T>(key: string, defaultValue: T): Promise<T>
 
 export const getInitialFileState = async (): Promise<ChatFileState> => {
     const currentFileId = getNumberFromStorage('currentFileId', 0)
-    const categories = await getFromStorage('categories', ['单词', '表达', '语法', '默认', '学习'])
+    const categories = await getFromStorage('categories', ['单词', '表达', '语法', '默认', '学习', 'History'])
     const selectedCategory = await getFromStorage('currentCategory', '默认')
     const selectedWord = await getFromChromeStorage('selectedWord', { idx: 1, text: '' })
     const selectedWords = await getObjectFromChromeStorage('selectedWords', {})

@@ -1,5 +1,5 @@
 import { v } from '@tauri-apps/api/event-30ea0228'
-import { SavedFile, Translations, Word, getLocalDB } from './db'
+import { SavedFile, Translations, Word, getLocalDB, ActionOutputRenderingFormat } from './db'
 
 export class FileService {
     private db = getLocalDB()
@@ -53,10 +53,57 @@ export class FileService {
         return files.map((file) => ({ id: file.id!, name: file.name, category: file.category, words: file.words }))
     }
 
+    async getFileIdByName(category: string, name: string): Promise<number | null> {
+        try {
+            // 查询指定类别的所有文件
+            const files = await this.db.files.where({ category }).toArray()
+            // 在结果中寻找匹配指定名称的文件
+            const file = files.find((file) => file.name === name)
+
+            // 如果找到了文件，返回其 ID
+            if (file && file.id) {
+                return file.id
+            } else {
+                // 如果没有找到文件，可以返回 null 或抛出一个错误
+                console.log(`No file found with name '${name}' in category '${category}'`)
+                return null
+            }
+        } catch (error) {
+            console.error('Failed to retrieve file ID:', error)
+            throw new Error('Error retrieving file ID')
+        }
+    }
+
+    async getFileLengthByName(category: string, name: string): Promise<number> {
+        try {
+            // 查询指定类别的所有文件
+            const files = await this.db.files.where({ category }).toArray()
+            // 在结果中寻找匹配指定名称的文件
+            const file = files.find((file) => file.name === name)
+
+            // 如果找到了文件，返回其长度
+            if (file && file.words) {
+                return file.words.length
+            } else {
+                // 如果没有找到文件，可以返回 null 或抛出一个错误
+                console.log(`No file found with name '${name}' in category '${category}'`)
+                return 0
+            }
+        } catch (error) {
+            console.error('No word in this file:', error)
+            throw new Error('No word in this file')
+        }
+    }
+
     // 创建文件
-    async createFile(name: string, category: string, words: Word[]): Promise<number> {
-        const fileId = await this.db.files.add({ name, words, category })
-        return fileId
+    async createFile(name: string, category: string, words?: Word[]): Promise<number> {
+        if (words) {
+            const fileId = await this.db.files.add({ name, words, category })
+            return fileId
+        } else {
+            const fileId = await this.db.files.add({ name, category, words: [] })
+            return fileId
+        }
     }
 
     async getTotalWordCount(fileId: number): Promise<number> {
@@ -102,6 +149,9 @@ export class FileService {
     // 删除文件中的某个单词
     async deleteWordFromFile(fileId: number, wordIndex: number): Promise<void> {
         const file = await this.fetchFileDetailsById(fileId)
+        if (!file.words) {
+            return
+        }
         file.words.splice(wordIndex, 1)
         await this.updateFile(fileId, { words: file.words })
     }
@@ -113,16 +163,16 @@ export class FileService {
         actionName: string,
         wordText: string,
         text: string,
-        format: string,
+        format: ActionOutputRenderingFormat,
         messageId?: string,
         conversationId?: string
     ): Promise<void> {
         const file = await this.fetchFileDetailsById(fileId)
-        let word = file.words.find((w) => w.idx === wordIdx)
+        let word = file.words?.find((w) => w.text === wordText)
 
         if (!word) {
             // 使用更安全的方式生成新 idx
-            const maxIdx = file.words.reduce((max, w) => Math.max(max, w.idx), 0)
+            const maxIdx = file.words?.reduce((max, w) => Math.max(max, w.idx), 0)
             word = {
                 idx: maxIdx + 1,
                 text: wordText,

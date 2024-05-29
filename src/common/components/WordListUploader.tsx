@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useChatStore } from '@/store/file/store'
 import { Word } from '../internal-services/db'
 import { fileService } from '../internal-services/file'
-
+import { Button, SIZE } from 'baseui-sd/button'
+import { WiDirectionRight, WiDirectionLeft } from 'react-icons/wi'
 const WordListUploader = () => {
     const {
         words,
@@ -141,13 +142,22 @@ const WordListUploader = () => {
                     </li>
                 ))}
             </ol>
-            <div>
-                <button onClick={prevPageHandler} disabled={currentPage === 1}>
-                    Prev
-                </button>
-                <button onClick={nextPageHandler} disabled={currentPage === numPages}>
-                    Next
-                </button>
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '20px',
+                    width: '100%',
+                    alignItems: 'center',
+                }}
+            >
+                <Button size={SIZE.mini} onClick={prevPageHandler} disabled={currentPage === 1}>
+                    <WiDirectionLeft size={16} />
+                </Button>
+                <span>{currentPage}</span>
+                <Button size={SIZE.mini} onClick={nextPageHandler} disabled={currentPage === numPages}>
+                    <WiDirectionRight size={16} />
+                </Button>
             </div>
             <div>
                 <input

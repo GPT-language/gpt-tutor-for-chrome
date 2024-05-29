@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
+import React, { Key, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast, { Toaster } from 'react-hot-toast'
 import { Client as Styletron } from 'styletron-engine-atomic'
@@ -39,7 +39,7 @@ import { Tooltip } from './Tooltip'
 import { useSettings } from '../hooks/useSettings'
 import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
-import { Action, Translations } from '../internal-services/db'
+import { Action, Translations, Word, ActionOutputRenderingFormat } from '../internal-services/db'
 import { CopyButton } from './CopyButton'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { actionService } from '../services/action'
@@ -66,6 +66,8 @@ import ActionList from './ActionList'
 import WordListUploader from './WordListUploader'
 import { fileService } from '../internal-services/file'
 import CategorySelector from './CategorySelector'
+import { Accordion, Panel } from 'baseui-sd/accordion'
+import { WiDirectionUp, WiDirectionDown } from 'react-icons/wi'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -420,6 +422,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setAction,
         isShowActionList,
         setIsShowActionList,
+        selectWordNotInCurrentFile,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -643,6 +646,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
     const [translations, setTranslations] = useState<Translations>({})
+    const [activeKey, setActiveKey] = useState<Key | null>(null)
+
+    const handleAccordionChange = (expanded: Array<React.Key>) => {
+        setActiveKey(expanded.length > 0 ? expanded[0] : null)
+    }
 
     useEffect(() => {
         getInitialFile()
@@ -940,6 +948,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             if (!text || !activateAction?.id) {
                 return
             }
+            if (text !== selectedWord?.text) {
+                setTranslations({})
+                selectWordNotInCurrentFile(text)
+            }
             const latestActivateAction = activateActionRef.current
             if (!latestActivateAction || !latestActivateAction.id) {
                 return // Handle the case where latestActivateAction is undefined
@@ -1075,7 +1087,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     setIsShowActionList(true)
                                     // 更新selectedWord的翻译
                                     handleTranslationUpdate(
-                                        currentFileId,
                                         selectWordIdx,
                                         activatedAction?.name,
                                         editableText,
@@ -1116,18 +1127,30 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     )
 
     const handleTranslationUpdate = async (
-        fileId: number,
         wordIdx: number,
         actionName: string,
         originalText: string,
         translatedText: string,
-        outputFormat: string,
+        outputFormat: ActionOutputRenderingFormat,
         messageId?: string,
         conversationId?: string
     ) => {
+        let finalFileId
+        if (originalText === selectedWord?.text) {
+            finalFileId = currentFileId
+        } else {
+            const category = 'History'
+            const currentDate = new Date()
+            const formattedDate = currentDate.toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期
+            const fileName = formattedDate
+            finalFileId = await fileService.getFileIdByName(category, fileName)
+        }
         try {
+            if (!finalFileId) {
+                return
+            }
             await fileService.addOrUpdateTranslationInWord(
-                fileId,
+                finalFileId,
                 wordIdx,
                 actionName,
                 originalText,
@@ -1753,114 +1776,162 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 {activateAction?.name !== 'JSON输出' && (
                                                     <>
                                                         {Object.entries(translations).map(
-                                                            ([key, { text, format, messageId, conversationId }]) => (
-                                                                <div key={key}>
-                                                                    {format === 'markdown' ? (
-                                                                        <>
-                                                                            <Markdown>{text}</Markdown>
-                                                                            {isLoading && (
-                                                                                <span className={styles.caret} />
-                                                                            )}
-                                                                        </>
-                                                                    ) : format === 'latex' ? (
-                                                                        <>
-                                                                            <Latex>{text}</Latex>
-                                                                            {isLoading && (
-                                                                                <span className={styles.caret} />
-                                                                            )}
-                                                                        </>
-                                                                    ) : (
-                                                                        text.split('\n').map((line, i) => (
-                                                                            <p
-                                                                                className={styles.paragraph}
-                                                                                key={`p-${i}`}
-                                                                            >
-                                                                                {i === 0 ? (
-                                                                                    <div
-                                                                                        style={{
-                                                                                            display: 'flex',
-                                                                                            alignItems: 'center',
-                                                                                            gap: '5px',
-                                                                                        }}
-                                                                                    >
-                                                                                        {line}
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    line
-                                                                                )}
-                                                                            </p>
-                                                                        ))
-                                                                    )}
-                                                                    <div
-                                                                        ref={actionButtonsRef}
-                                                                        className={styles.actionButtonsContainer}
+                                                            ([
+                                                                actionName,
+                                                                { text, format, messageId, conversationId },
+                                                            ]) => (
+                                                                <div key={actionName}>
+                                                                    <Accordion
+                                                                        initialState={{
+                                                                            expanded: [ActivatedActionName], // 初始时展开的 Panel 的 key
+                                                                        }}
+                                                                        onChange={({ expanded }) =>
+                                                                            handleAccordionChange(expanded)
+                                                                        }
+                                                                        overrides={{
+                                                                            ToggleIcon: {
+                                                                                component: () =>
+                                                                                    actionName === activeKey ? (
+                                                                                        <mdIcons.MdArrowDropUp
+                                                                                            size={24}
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <mdIcons.MdArrowDropDown
+                                                                                            size={24}
+                                                                                        />
+                                                                                    ),
+                                                                            },
+                                                                        }}
+                                                                        accordion={true}
                                                                     >
-                                                                        <div style={{ marginRight: 'auto' }} />
-                                                                        {!isLoading && (
-                                                                            <Tooltip
-                                                                                content={t('Retry')}
-                                                                                placement='bottom'
-                                                                            >
-                                                                                <div
-                                                                                    onClick={() => forceTranslate()}
-                                                                                    className={styles.actionButton}
-                                                                                >
-                                                                                    <RxReload size={15} />
-                                                                                </div>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                        <Tooltip
-                                                                            content={t('Speak')}
-                                                                            placement='bottom'
-                                                                        >
-                                                                            <div
-                                                                                className={styles.actionButton}
-                                                                                onClick={() =>
-                                                                                    handleTranslatedSpeakAction(
-                                                                                        messageId,
-                                                                                        conversationId,
-                                                                                        text
-                                                                                    )
-                                                                                }
-                                                                            >
-                                                                                {isSpeakingTranslatedText ? (
-                                                                                    <SpeakerMotion />
-                                                                                ) : (
-                                                                                    <RxSpeakerLoud size={15} />
+                                                                        {format === 'markdown' ? (
+                                                                            <Panel title={actionName} key={actionName}>
+                                                                                <>
+                                                                                    <Markdown>{text}</Markdown>
+                                                                                </>
+                                                                            </Panel>
+                                                                        ) : format === 'latex' ? (
+                                                                            <>
+                                                                                <Latex>{text}</Latex>
+                                                                                {isLoading && (
+                                                                                    <span className={styles.caret} />
                                                                                 )}
-                                                                            </div>
-                                                                        </Tooltip>
-                                                                        <Tooltip
-                                                                            content={t('Copy to clipboard')}
-                                                                            placement='bottom'
+                                                                            </>
+                                                                        ) : (
+                                                                            text.split('\n').map((line, i) => (
+                                                                                <p
+                                                                                    className={styles.paragraph}
+                                                                                    key={`p-${i}`}
+                                                                                >
+                                                                                    {i === 0 ? (
+                                                                                        <div
+                                                                                            style={{
+                                                                                                display: 'flex',
+                                                                                                alignItems: 'center',
+                                                                                                gap: '5px',
+                                                                                            }}
+                                                                                        >
+                                                                                            {line}
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        line
+                                                                                    )}
+                                                                                </p>
+                                                                            ))
+                                                                        )}
+                                                                        <div
+                                                                            ref={actionButtonsRef}
+                                                                            className={styles.actionButtonsContainer}
                                                                         >
-                                                                            <div className={styles.actionButton}>
-                                                                                <CopyButton
-                                                                                    text={text}
-                                                                                    styles={styles}
-                                                                                ></CopyButton>
-                                                                            </div>
-                                                                        </Tooltip>
-                                                                        <Tooltip
-                                                                            content={t('Add to Anki')}
-                                                                            placement='bottom'
-                                                                        >
-                                                                            <div
-                                                                                onClick={() =>
-                                                                                    addToAnki(
-                                                                                        selectedGroup +
-                                                                                            ':' +
-                                                                                            key.split(':')[0], // assuming key is activateAction.name:editableText
-                                                                                        originalText,
-                                                                                        text
-                                                                                    )
-                                                                                }
-                                                                                className={styles.actionButton}
-                                                                            >
-                                                                                <AiOutlinePlusSquare size={15} />
-                                                                            </div>
-                                                                        </Tooltip>
-                                                                    </div>
+                                                                            <div style={{ marginRight: 'auto' }} />
+                                                                            {activeKey === actionName && (
+                                                                                <>
+                                                                                    {!isLoading && (
+                                                                                        <Tooltip
+                                                                                            content={t('Retry')}
+                                                                                            placement='bottom'
+                                                                                        >
+                                                                                            <div
+                                                                                                onClick={() =>
+                                                                                                    forceTranslate()
+                                                                                                }
+                                                                                                className={
+                                                                                                    styles.actionButton
+                                                                                                }
+                                                                                            >
+                                                                                                <RxReload size={15} />
+                                                                                            </div>
+                                                                                        </Tooltip>
+                                                                                    )}
+                                                                                    <Tooltip
+                                                                                        content={t('Speak')}
+                                                                                        placement='bottom'
+                                                                                    >
+                                                                                        <div
+                                                                                            className={
+                                                                                                styles.actionButton
+                                                                                            }
+                                                                                            onClick={() =>
+                                                                                                handleTranslatedSpeakAction(
+                                                                                                    messageId,
+                                                                                                    conversationId,
+                                                                                                    text
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            {isSpeakingTranslatedText ? (
+                                                                                                <SpeakerMotion />
+                                                                                            ) : (
+                                                                                                <RxSpeakerLoud
+                                                                                                    size={15}
+                                                                                                />
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </Tooltip>
+                                                                                    <Tooltip
+                                                                                        content={t('Copy to clipboard')}
+                                                                                        placement='bottom'
+                                                                                    >
+                                                                                        <div
+                                                                                            className={
+                                                                                                styles.actionButton
+                                                                                            }
+                                                                                        >
+                                                                                            <CopyButton
+                                                                                                text={text}
+                                                                                                styles={styles}
+                                                                                            ></CopyButton>
+                                                                                        </div>
+                                                                                    </Tooltip>
+                                                                                    <Tooltip
+                                                                                        content={t('Add to Anki')}
+                                                                                        placement='bottom'
+                                                                                    >
+                                                                                        <div
+                                                                                            onClick={() =>
+                                                                                                addToAnki(
+                                                                                                    selectedGroup +
+                                                                                                        ':' +
+                                                                                                        actionName.split(
+                                                                                                            ':'
+                                                                                                        )[0], // assuming key is activateAction.name:editableText
+                                                                                                    originalText,
+                                                                                                    text
+                                                                                                )
+                                                                                            }
+                                                                                            className={
+                                                                                                styles.actionButton
+                                                                                            }
+                                                                                        >
+                                                                                            <AiOutlinePlusSquare
+                                                                                                size={15}
+                                                                                            />
+                                                                                        </div>
+                                                                                    </Tooltip>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                    </Accordion>
                                                                 </div>
                                                             )
                                                         )}

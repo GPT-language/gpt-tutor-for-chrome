@@ -15,6 +15,7 @@ export interface ChatFileAction {
     deleteCategory: (category: string) => void
     searchWord: (searchTerm: string) => void
     selectWord: (word: Word) => void
+    selectWordNotInCurrentFile: (text: string) => void
     deleteWords: () => void
     loadWords: (fileId: number, pageNumber: number) => Promise<boolean>
     loadFiles: (selectedCategory: string) => Promise<void>
@@ -22,9 +23,10 @@ export interface ChatFileAction {
     setFiles: (files: SavedFile[]) => void
     setSelectedCategory: (category: string) => void
     addWordToLearningFile: (word: Word) => Promise<void>
+    addWordToHistoryFile: (word: Word) => Promise<void>
     checkIfInitialized: () => Promise<boolean>
     initializeReviewFiles(): Promise<void>
-    updateTranslationText: (translationText: string, actionName: string) => void
+    updateTranslationText: (translationText: string, actionName: string, wordContent?: string) => void
     setActions: (actions: Action[]) => void
     setAction: (action: Action) => void
 }
@@ -145,6 +147,40 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             }
         } catch (error) {
             console.error('Failed to add word to learning file:', error)
+        }
+    },
+
+    // 添加到历史记录的文件中
+
+    async addWordToHistoryFile(word: Word) {
+        try {
+            console.log('Starting to add/update word in History file', word)
+            const currentDate = new Date()
+            const formattedDate = currentDate.toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期
+            const fileName = formattedDate // 文件名为当前日期
+
+            const updatedWord = {
+                ...word,
+                lastReviewed: currentDate,
+                nextReview: undefined, // 假设 History 类别不需要复习日期
+                reviewCount: 0,
+            }
+
+            console.log('Updated word for History:', updatedWord)
+
+            // 尝试在历史文件中更新单词
+            console.log('Fetching files for category History')
+            const files = await fileService.fetchFilesByCategory('History')
+            const targetFile = files.find((file) => file.name === fileName)
+            if (targetFile?.id) {
+                console.log('Updating word in existing file:', targetFile.id)
+                await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
+            } else {
+                console.log('Creating new file with date:', fileName)
+                await fileService.createFile(fileName, '学习', [updatedWord])
+            }
+        } catch (error) {
+            console.error('Failed to add word to History file:', error)
         }
     },
 
@@ -269,6 +305,25 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             })
         )
     },
+
+    selectWordNotInCurrentFile: async (text) => {
+        const { addWordToHistoryFile } = get()
+        const category = 'History'
+        const currentDate = new Date()
+        const formattedDate = currentDate.toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期
+        const fileName = formattedDate
+        let wordIdx: number
+        const wordLength = await fileService.getFileLengthByName(category, fileName)
+        if (wordLength === 0) {
+            wordIdx = 1
+        } else {
+            wordIdx = wordLength + 1
+        }
+        const word: Word = { idx: wordIdx, text: text }
+        await addWordToHistoryFile(word)
+        set({ selectedWord: word })
+    },
+
     deleteWords: () => {
         set(
             produce((draft) => {
@@ -277,22 +332,39 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         )
     },
 
-    updateTranslationText: (newText: string, actionName: string) => {
+    // 该方法并不处理indexDB中的保存，只负责更新显示状态
+    updateTranslationText: (newText: string, actionName: string, wordContent?: string) => {
         set(
             produce((draft) => {
-                // 确保 selectedWord 和 translations 存在
-                if (!draft.selectedWord.translations) {
+                // 确保 selectedWord 存在并且有 translations 属性
+                if (!draft.selectedWord || !draft.selectedWord.translations) {
                     draft.selectedWord.translations = {} // 如果没有translations，则初始化为空对象
                 }
 
                 // 检查特定 actionName 是否存在于 translations 中
                 if (!draft.selectedWord.translations[actionName]) {
                     draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' } // 如果不存在，则创建并设置文本
-                    draft.words.find((word) => word.idx === draft.selectedWord.idx).translations =
-                        draft.selectedWord.translations
                 } else {
                     draft.selectedWord.translations[actionName].text = newText // 如果已存在，则更新文本
                 }
+
+                // 验证 selectedWord 是否存在于 words 数组中
+                const wordInWords = draft.words.find((word) => word.text === draft.selectedWord.text)
+
+                // 处理 selectedWord 不在 words 中的情况
+                if (!wordInWords) {
+                    console.error('Selected word is not found in words array.')
+                    // 这里可以根据需求添加更多的处理逻辑，比如添加这个 word 到数组中
+                    // 如果不在当前词组中，说明是手动输入的单词，那么应该是History类别中搜索，文件名为当天日期,输入参数单词
+                    const category = 'History'
+                    const formattedDate = new Date().toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期
+                    const fileName = formattedDate
+                    // 根据对应类别和文件来找到word, 然后返回
+                    return
+                }
+
+                // 更新 words 数组中的 word 的 translations 对象
+                wordInWords.translations = draft.selectedWord.translations
             })
         )
     },

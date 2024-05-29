@@ -204,31 +204,9 @@ export class ChatGPT extends AbstractEngine {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async listModels(apiKey_: string | undefined): Promise<IModel[]> {
         const fetcher = getUniversalFetch()
-        const sessionResp = await fetcher(utils.defaultChatGPTAPIAuthSession, {
-            cache: 'no-cache',
-            headers: {
-                'User-Agent':
-                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) chatall/1.29.40 Chrome/114.0.5735.134 Safari/537.36',
-            },
-        })
-        if (sessionResp.status !== 200) {
-            try {
-                const sessionRespJsn = await sessionResp.json()
-                if (sessionRespJsn && sessionRespJsn.error) {
-                    throw new Error(sessionRespJsn.error)
-                }
-                if (sessionRespJsn && sessionRespJsn.detail) {
-                    throw new Error(`Failed to fetch ChatGPT Web accessToken: ${sessionRespJsn.detail}`)
-                } else {
-                    throw new Error(`Failed to fetch ChatGPT Web accessToken: ${sessionResp.statusText}`)
-                }
-            } catch {
-                throw new Error(`Failed to fetch ChatGPT Web accessToken: ${sessionResp.statusText}`)
-            }
-        }
-        const sessionRespJsn = await sessionResp.json()
+        const accessToken = await utils.getAccessToken()
         const headers: Record<string, string> = {
-            Authorization: `Bearer ${sessionRespJsn.accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
         }
         const modelsResp = await fetcher(`${utils.defaultChatGPTWebAPI}/models`, {
             cache: 'no-cache',
@@ -380,7 +358,7 @@ export class ChatGPT extends AbstractEngine {
                         content: { content_type: 'text', parts: [`${req.rolePrompt}\n\n${req.commandPrompt}`] },
                     },
                 ],
-                model: this.model,
+                model: 'auto',
                 parent_message_id: uuidv4(),
                 conversation_mode: { kind: 'primary_assistant', plugin_ids: null },
                 force_nulligen: false,
