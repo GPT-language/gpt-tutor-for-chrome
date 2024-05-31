@@ -1,5 +1,6 @@
 import { Action } from '@/common/internal-services/db'
 export interface ChatState {
+    isLoading: boolean
     ttsProvider: string
     conversationId: string
     messageId: string
@@ -37,6 +38,7 @@ export const getInitialChatState = async () => {
 }
 
 export const initialChatState: ChatState = {
+    isLoading: false,
     actions: [],
     ttsProvider: '',
     conversationId: '',

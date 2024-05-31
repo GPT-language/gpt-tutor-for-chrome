@@ -1,22 +1,26 @@
 import { memo, useState, useEffect } from 'react'
 import { Action } from '../internal-services/db'
 import { useChatStore } from '@/store/file'
-
+import { ListHeading } from 'baseui-sd/list'
+import { Button, KIND, SHAPE, SIZE } from 'baseui-sd/button'
 interface ActionListProps {
     onActionClick: () => void // 从父组件传入的处理函数
     performAll: (actions: Action[]) => void
 }
 
 const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll }) => {
-    const { selectedWord, addWordToLearningFile, actions, setAction, activatedAction, isShowActionList } =
+    const { selectedWord, addWordToLearningFile, actions, setAction, activatedAction, isShowActionList, isLoading } =
         useChatStore()
-    const [unUsedActions, setUnUsedActions] = useState<Action[]>(actions)
+    const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
+    const [isComleted, setIsCompleted] = useState(false)
     const handlePerformAllClick = () => {
         performAll(actions)
     }
 
     const handleAddWordClick = async () => {
         console.log('selectedWord in handleAddWordClick', selectedWord)
+        setNextAction(undefined)
+        setIsCompleted(false)
         if (!selectedWord) {
             return
         }
@@ -27,18 +31,48 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         if (!actions) {
             return
         }
-        console.log('set unUsedActions', actions)
-        setUnUsedActions(actions)
+        if (actions.length === 1) {
+            setNextAction(undefined)
+            setIsCompleted(true)
+        }
+        if (actions.length > 1) {
+            setNextAction(
+                activatedAction?.idx ? actions.find((action) => action.idx === activatedAction?.idx + 1) : actions[1]
+            )
+            setIsCompleted(false)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [actions, selectedWord?.idx])
+    }, [actions])
 
-    const handleActionClick = async (action: Action) => {
-        console.log('handleActionClick', action)
+    useEffect(() => {
+        console.log('isComleted', isComleted)
+        console.log('isLoading', isLoading)
+        console.log('nextAction', nextAction)
+        console.log('actions', actions)
+        console.log('activatedAction', activatedAction)
+    }, [actions, activatedAction, isComleted, isLoading, nextAction])
+
+    const handleActionClick = async (action: Action | undefined) => {
+        if (!action) {
+            return
+        }
         setAction(action)
-        console.log('setAction', activatedAction)
         onActionClick()
-        setUnUsedActions(unUsedActions?.filter((a) => (a.idx = action.idx + 1)))
-        console.log('unUsedActions', unUsedActions)
+        console.log('handleActionClick', action)
+        if (!actions || !activatedAction?.idx) {
+            return
+        }
+        console.log('activatedAction?.idx', activatedAction?.idx)
+        console.log('actions is not empty', actions)
+
+        const nextAction = actions.find((action) => action.idx === action.idx + 1)
+        console.log('next action is not empty', nextAction)
+
+        if (nextAction) {
+            setNextAction(nextAction)
+        } else {
+            setIsCompleted(true)
+        }
     }
 
     if (!isShowActionList) {
@@ -48,14 +82,68 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     return (
         <div>
             <ol>
-                {unUsedActions?.map((action) => (
-                    <li key={action.idx}>
-                        <button onClick={() => handleActionClick(action)}>{action.name}</button>
-                    </li>
-                ))}
-                <button onClick={handleAddWordClick}>添加到学习列表中</button> {/* 新增按钮 */}
+                {!isComleted && nextAction && (
+                    <ListHeading
+                        overrides={{
+                            HeadingContainer: {
+                                style: ({ $theme }) => ({
+                                    fontSize: '18px', // 使用主题中的尺寸变量，也可以直接使用像素值
+                                }),
+                            },
+                            SubHeadingContainer: {
+                                style: ({ $theme }) => ({
+                                    fontSize: '14px', // 使用主题中的尺寸变量，也可以直接使用像素值
+                                    color: $theme.colors.contentSecondary,
+                                }),
+                            },
+                        }}
+                        key={nextAction?.idx}
+                        heading={nextAction?.name}
+                        subHeading={nextAction?.idx}
+                        endEnhancer={() => (
+                            <Button
+                                size={SIZE.compact}
+                                shape={SHAPE.default}
+                                kind={KIND.secondary}
+                                onClick={() => handleActionClick(nextAction)}
+                            >
+                                确定
+                            </Button>
+                        )}
+                        maxLines={2}
+                    />
+                )}
             </ol>
-            <button onClick={handlePerformAllClick}>一键完成学习</button> {/* 新增按钮 */}
+            {isComleted && !isLoading && (
+                <ListHeading
+                    overrides={{
+                        HeadingContainer: {
+                            style: ({ $theme }) => ({
+                                fontSize: '18px', // 使用主题中的尺寸变量，也可以直接使用像素值
+                            }),
+                        },
+                        SubHeadingContainer: {
+                            style: ({ $theme }) => ({
+                                fontSize: '14px', // 使用主题中的尺寸变量，也可以直接使用像素值
+                                color: $theme.colors.contentSecondary,
+                            }),
+                        },
+                    }}
+                    heading='完成学习！💖'
+                    subHeading='恭喜！你已经完成了该单词的学习，点击确定加入到复习中'
+                    endEnhancer={() => (
+                        <Button
+                            size={SIZE.compact}
+                            shape={SHAPE.default}
+                            kind={KIND.secondary}
+                            onClick={handleAddWordClick}
+                        >
+                            +
+                        </Button>
+                    )}
+                    maxLines={2}
+                />
+            )}
         </div>
     )
 })

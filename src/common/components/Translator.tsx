@@ -590,6 +590,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             return group === selectedGroup
         })
 
+        setActions(filteredActions)
+
         let displayedActions = filteredActions.slice(0, displayedActionsMaxCount)
         let hiddenActions = filteredActions.slice(displayedActionsMaxCount)
         if (!displayedActions.find((action) => action.id === activateAction?.id)) {
@@ -655,23 +657,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         getInitialFile()
     }, [getInitialFile])
 
-    useEffect(() => {
-        if (!actions) {
-            actionService.bulkPut(promptsData)
-            setDisplayedActions([])
-            setHiddenActions([])
-            refreshActions()
-            return
-        }
-        const filteredActions = actions.filter((action) => {
-            const group = action.group ?? 'English Learning'
-            return group === selectedGroup
-        })
-        setActions(filteredActions)
-        // 只需要在selectedGroup变化时执行一次
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedGroup, actions, refreshActions])
-
     const handleActionClick = async () => {
         forceTranslate()
     }
@@ -722,9 +707,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [errorMessage, setErrorMessage] = useState('')
     const startLoading = useCallback(() => {
         setIsLoading(true)
+        useChatStore.setState({ isLoading: true })
     }, [])
     const stopLoading = useCallback(() => {
         setIsLoading(false)
+        useChatStore.setState({ isLoading: false })
     }, [])
     const [sourceLang, setSourceLang] = useState<LangCode>('en')
     const [targetLang, setTargetLang] = useState<LangCode>('en')
@@ -1644,6 +1631,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     </div>
                                                     <Button
                                                         size='mini'
+                                                        kind='secondary'
                                                         onClick={async (e) => {
                                                             console.log('submit is working')
 

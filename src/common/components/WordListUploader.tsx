@@ -3,8 +3,7 @@ import { useChatStore } from '@/store/file/store'
 import { Word } from '../internal-services/db'
 import { fileService } from '../internal-services/file'
 import { Button, KIND, SIZE } from 'baseui-sd/button'
-import { WiDirectionRight, WiDirectionLeft } from 'react-icons/wi'
-import { Input } from 'baseui-sd/input'
+import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { Search } from 'baseui-sd/icon'
 const WordListUploader = () => {
     const {
@@ -156,12 +155,12 @@ const WordListUploader = () => {
                     alignItems: 'center',
                 }}
             >
-                <Button size={SIZE.mini} onClick={prevPageHandler} disabled={currentPage === 1}>
-                    <WiDirectionLeft size={16} />
+                <Button size={SIZE.mini} kind='secondary' onClick={prevPageHandler} disabled={currentPage === 1}>
+                    <BiFirstPage size={16} />
                 </Button>
                 <span>{currentPage}</span>
-                <Button size={SIZE.mini} onClick={nextPageHandler} disabled={currentPage === numPages}>
-                    <WiDirectionRight size={16} />
+                <Button size={SIZE.mini} kind='secondary' onClick={nextPageHandler} disabled={currentPage === numPages}>
+                    <BiLastPage size={16} />
                 </Button>
             </div>
             <div
