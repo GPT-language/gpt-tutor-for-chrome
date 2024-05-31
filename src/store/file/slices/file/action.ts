@@ -5,6 +5,7 @@ import { fileService } from '@/common/internal-services/file'
 import { ChatStore } from '../../store'
 import { Action, SavedFile, Word } from '@/common/internal-services/db'
 import { getInitialFileState } from '../file/initialState'
+import i18n from '@/common/i18n'
 
 export interface ChatFileAction {
     getInitialFile: () => Promise<boolean>
@@ -68,7 +69,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     async checkIfInitialized() {
-        const files = await fileService.fetchFilesByCategory('学习')
+        const files = await fileService.fetchFilesByCategory(i18n.t('学习'))
         if (files.length > 0) {
             return true
         }
@@ -83,7 +84,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             return
         }
         const intervals = [0, 1, 3, 5, 7] // 复习间隔天数
-        const category = '学习'
+        const category = i18n.t('学习')
         const files = []
 
         for (let i = 0; i < intervals.length; i++) {
@@ -114,10 +115,11 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             const currentDate = new Date()
             const reviewCount = word.reviewCount || 0
             const nextReviewDate = fileService.getNextReviewDate(currentDate, reviewCount)
-            const fileName = '待复习' + selectedCategory
-
+            const fileName = i18n.t('To review ') + selectedCategory
+            const fileLength = currentFileId ? await fileService.getFileLengthByName(i18n.t('学习'), fileName) : 0
             const updatedWord = {
                 ...word,
+                idx: fileLength + 1,
                 lastReviewed: currentDate,
                 nextReview: nextReviewDate,
                 reviewCount: reviewCount + 1,
@@ -125,7 +127,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
             console.log('Updated word:', updatedWord)
 
-            if (selectedCategory === '学习' && currentFileId) {
+            if (selectedCategory === i18n.t('学习') && currentFileId) {
                 console.log('Updating word in file with ID:', currentFileId)
                 await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
                 const reviewedWords = words.filter((w) => w.idx !== word.idx)
@@ -135,14 +137,14 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 console.log('Selected next word or cleared:', nextWord)
             } else {
                 console.log('Fetching files for category 学习')
-                const files = await fileService.fetchFilesByCategory('学习')
+                const files = await fileService.fetchFilesByCategory(i18n.t('学习'))
                 const targetFile = files.find((file) => file.name === fileName)
                 if (targetFile?.id) {
                     console.log('Updating word in existing file:', targetFile.id)
                     await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
                 } else {
                     console.log('Creating new file:', fileName)
-                    await fileService.createFile(fileName, '学习', [updatedWord])
+                    await fileService.createFile(fileName, i18n.t('学习'), [updatedWord])
                 }
             }
         } catch (error) {
@@ -158,7 +160,6 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             const currentDate = new Date()
             const formattedDate = currentDate.toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期
             const fileName = formattedDate // 文件名为当前日期
-
             const updatedWord = {
                 ...word,
                 lastReviewed: currentDate,
@@ -177,7 +178,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
             } else {
                 console.log('Creating new file with date:', fileName)
-                await fileService.createFile(fileName, '学习', [updatedWord])
+                await fileService.createFile(fileName, 'History', [updatedWord])
             }
         } catch (error) {
             console.error('Failed to add word to History file:', error)
@@ -187,7 +188,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     loadWords: async (fileId, pageNumber) => {
         const currentCategory = get().selectedCategory
         try {
-            if (currentCategory === '学习') {
+            if (currentCategory === i18n.t('学习')) {
                 const reviewWords = await fileService.getWordsToReviewByFileId(fileId)
                 if (reviewWords) {
                     set(

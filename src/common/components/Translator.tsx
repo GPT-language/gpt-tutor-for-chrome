@@ -67,7 +67,6 @@ import WordListUploader from './WordListUploader'
 import { fileService } from '../internal-services/file'
 import CategorySelector from './CategorySelector'
 import { Accordion, Panel } from 'baseui-sd/accordion'
-import { WiDirectionUp, WiDirectionDown } from 'react-icons/wi'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -964,7 +963,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
             if (actionName) {
                 setActivatedActionName(actionName)
+                setActiveKey(actionName)
             } else {
+                setActiveKey(action.name)
                 setActivatedActionName(action.name)
             }
 
@@ -1564,6 +1565,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             width: '100%',
                                                             height: '100%',
                                                             borderRadius: '0px',
+                                                            minHeight: '220px',
                                                         },
                                                     },
                                                     Input: {
@@ -1812,7 +1814,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                             </Panel>
                                                                         ) : format === 'latex' ? (
                                                                             <>
-                                                                                <Latex>{text}</Latex>
+                                                                                <Panel
+                                                                                    title={actionName}
+                                                                                    key={actionName}
+                                                                                >
+                                                                                    <Latex>{text}</Latex>
+                                                                                </Panel>
                                                                                 {isLoading && (
                                                                                     <span className={styles.caret} />
                                                                                 )}
@@ -1831,7 +1838,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                                                 gap: '5px',
                                                                                             }}
                                                                                         >
-                                                                                            {line}
+                                                                                            <Panel
+                                                                                                title={actionName}
+                                                                                                key={actionName}
+                                                                                            >
+                                                                                                {line}
+                                                                                            </Panel>
                                                                                         </div>
                                                                                     ) : (
                                                                                         line

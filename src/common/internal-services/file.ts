@@ -29,6 +29,10 @@ export class FileService {
         await this.db.files.delete(fileId)
     }
 
+    async deleteFilesByCategory(cat: string): Promise<void> {
+        await this.db.files.where({ category: cat }).delete()
+    }
+
     // 获取文件详情
     async fetchFileDetailsById(fileId: number): Promise<SavedFile> {
         return this.getFileOrThrow(fileId)
@@ -93,6 +97,11 @@ export class FileService {
             console.error('No word in this file:', error)
             throw new Error('No word in this file')
         }
+    }
+
+    async getFileLengthById(fileId: number): Promise<number> {
+        const file = await this.getFileOrThrow(fileId)
+        return file.words.length
     }
 
     // 创建文件

@@ -3,8 +3,9 @@ import { Select } from 'baseui-sd/select'
 import { AiOutlineUpload, AiOutlineDelete } from 'react-icons/ai'
 import { useChatStore } from '@/store/file/store'
 import { LuArrowLeftFromLine, LuArrowRightToLine } from 'react-icons/lu'
-import { ButtonGroup } from 'baseui-sd/button-group'
-import { Button, KIND, SIZE, SHAPE } from 'baseui-sd/button'
+import { Button, KIND, SIZE } from 'baseui-sd/button'
+import { fileService } from '../internal-services/file'
+import { FaHistory, FaBook } from 'react-icons/fa'
 
 const CategorySelector = () => {
     const {
@@ -62,8 +63,9 @@ const CategorySelector = () => {
         setShowNewCategoryInput(false)
     }
 
-    const handleDeleteCategory = (cat: string) => {
+    const handleDeleteCategory = async (cat: string) => {
         deleteCategory(cat)
+        await fileService.deleteFilesByCategory(cat)
     }
 
     const options = files.map((file) => ({
@@ -76,7 +78,6 @@ const CategorySelector = () => {
             const newFileId = value[0].id // 获取选中项的 id
             selectFile(newFileId)
         }
-        setShowSelectBox(false)
     }
 
     // 在渲染前检查 currentFileId 和 files 是否有效
@@ -107,13 +108,22 @@ const CategorySelector = () => {
                             onMouseLeave={() => setHoverCategory(null)}
                             style={{ display: 'inline-block', position: 'relative' }}
                         >
-                            <Button onClick={() => handleCategoryChange(cat)} kind={KIND.tertiary} size={SIZE.compact}>
+                            <Button
+                                onClick={() => handleCategoryChange(cat)}
+                                kind={KIND.tertiary}
+                                size={SIZE.compact}
+                                style={{ fontWeight: selectedCategory === cat ? 'bold' : 'normal' }}
+                            >
                                 <u>{cat}</u>
-                                {hoverCategory === cat && (
+                                {hoverCategory === cat && cat !== 'History' && cat !== '学习' && (
                                     <span
-                                        onClick={() => handleDeleteCategory(cat)}
+                                        onClick={(e) => {
+                                            e.stopPropagation() // 阻止点击事件冒泡到 Button
+                                            handleDeleteCategory(cat)
+                                        }}
                                         style={{
                                             position: 'absolute',
+                                            right: '2px',
                                             top: '-5px',
                                             cursor: 'pointer',
                                             color: 'black',
@@ -125,26 +135,37 @@ const CategorySelector = () => {
                             </Button>
                         </div>
                     ))}
+                {showCategories && (
+                    <Button
+                        onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
+                        kind={KIND.tertiary}
+                        size={SIZE.compact}
+                    >
+                        +
+                    </Button>
+                )}
                 {showNewCategoryInput && (
-                    <div>
+                    <div style={{ display: 'flex', flexDirection: 'row', maxWidth: '50%', maxHeight: '28px' }}>
                         <input
                             type='text'
                             value={newCategory}
                             onChange={(e) => setNewCategory(e.target.value)}
                             placeholder='输入新分类'
                         />
-                        <button
+                        <Button
+                            kind={KIND.tertiary}
+                            size={SIZE.mini}
                             onClick={() => {
                                 handleAddCategory()
                                 setShowNewCategoryInput(false)
                             }}
                         >
-                            保存
-                        </button>
+                            √
+                        </Button>
                     </div>
                 )}
-                {showSelectBox && (
-                    <div style={{ display: 'flex', alignItems: 'center', width: '80%', maxWidth: '300px' }}>
+                {showSelectBox && showCategories && (
+                    <div style={{ display: 'flex', alignItems: 'center', width: '50%', maxWidth: '300px' }}>
                         <Select
                             size={SIZE.compact}
                             options={options}

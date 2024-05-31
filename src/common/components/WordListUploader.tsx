@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useChatStore } from '@/store/file/store'
 import { Word } from '../internal-services/db'
 import { fileService } from '../internal-services/file'
-import { Button, SIZE } from 'baseui-sd/button'
+import { Button, KIND, SIZE } from 'baseui-sd/button'
 import { WiDirectionRight, WiDirectionLeft } from 'react-icons/wi'
+import { Input } from 'baseui-sd/input'
+import { Search } from 'baseui-sd/icon'
 const WordListUploader = () => {
     const {
         words,
@@ -24,7 +26,7 @@ const WordListUploader = () => {
     const [IsInitialized, setIsInitialized] = useState<boolean>(false)
     const [currentPage, setCurrentPage] = useState<number>(1)
     const [displayWords, setDisplayWors] = useState<Word[]>(words)
-
+    const [isHovering, setIsHovering] = useState(false)
     useEffect(() => {
         if (words.length > 10) {
             setCurrentPage(1)
@@ -41,6 +43,7 @@ const WordListUploader = () => {
 
     const handleSearchSubmit = () => {
         searchWord(searchTerm)
+        setIsHovering(false)
     }
 
     const handleWordClick = (word: Word) => {
@@ -126,22 +129,24 @@ const WordListUploader = () => {
     }, [selectedCategory, loadFiles])
 
     return (
-        <div style={{ height: '100%', overflow: 'auto' }}>
-            <ol start={(currentPage - 1) * itemsPerPage + 1}>
-                {displayWords.map((entry, index) => (
-                    <li
-                        key={index}
-                        style={{
-                            cursor: 'pointer',
-                            backgroundColor:
-                                selectedWord && entry.text === selectedWord.text ? 'yellow' : 'transparent',
-                        }}
-                        onClick={() => handleWordClick(entry)}
-                    >
-                        {entry.text}
-                    </li>
-                ))}
-            </ol>
+        <div style={{ height: '100%', overflow: 'auto', width: 'auto' }}>
+            <div style={{ minHeight: '160px' }}>
+                <ol start={(currentPage - 1) * itemsPerPage + 1}>
+                    {displayWords.map((entry, index) => (
+                        <li
+                            key={index}
+                            style={{
+                                cursor: 'pointer',
+                                backgroundColor:
+                                    selectedWord && entry.text === selectedWord.text ? 'yellow' : 'transparent',
+                            }}
+                            onClick={() => handleWordClick(entry)}
+                        >
+                            {entry.text}
+                        </li>
+                    ))}
+                </ol>
+            </div>
             <div
                 style={{
                     display: 'flex',
@@ -159,23 +164,43 @@ const WordListUploader = () => {
                     <WiDirectionRight size={16} />
                 </Button>
             </div>
-            <div>
-                <input
-                    type='text'
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder='输入搜索文本'
-                />
-                <button
-                    onClick={handleSearchSubmit}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            handleSearchSubmit()
-                        }
-                    }}
-                >
-                    搜索
-                </button>
+            <div
+                onMouseEnter={() => setIsHovering(true)}
+                style={{ display: 'flex', marginTop: '10px', marginLeft: '20px', maxHeight: '20px' }}
+            >
+                {isHovering ? (
+                    <input
+                        style={{ width: '120px' }} // 确保输入框的宽度与 div 一致
+                        type='text'
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder='在当前文件中搜索'
+                    />
+                ) : (
+                    <div
+                        style={{
+                            width: '120px',
+                            height: '20px', // 指定高度以匹配 input 默认高度，可以根据实际情况调整
+                            background: 'transparent', // 可选，确保背景透明
+                            border: 'none', // 可选，移除边框
+                            display: 'inline-block', // 确保与 input 的显示方式一臀
+                        }}
+                    ></div>
+                )}
+                <div onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
+                    <Button
+                        kind={KIND.tertiary}
+                        size='mini'
+                        onClick={handleSearchSubmit}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                handleSearchSubmit()
+                            }
+                        }}
+                    >
+                        <Search size='18px' title='' />
+                    </Button>
+                </div>
             </div>
         </div>
     )
