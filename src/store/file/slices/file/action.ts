@@ -116,7 +116,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             const reviewCount = word.reviewCount || 0
             const nextReviewDate = fileService.getNextReviewDate(currentDate, reviewCount)
             const fileName = i18n.t('To review ') + selectedCategory
-            const fileLength = currentFileId ? await fileService.getFileLengthByName(i18n.t('学习'), fileName) : 0
+            const fileLength = currentFileId ? await fileService.getFileLengthByName(i18n.t('Review'), fileName) : 0
             const updatedWord = {
                 ...word,
                 idx: fileLength + 1,
@@ -127,7 +127,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
             console.log('Updated word:', updatedWord)
 
-            if (selectedCategory === i18n.t('学习') && currentFileId) {
+            if (selectedCategory === i18n.t('Review') && currentFileId) {
                 console.log('Updating word in file with ID:', currentFileId)
                 await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
                 const reviewedWords = words.filter((w) => w.idx !== word.idx)
@@ -137,7 +137,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 console.log('Selected next word or cleared:', nextWord)
             } else {
                 console.log('Fetching files for category 学习')
-                const files = await fileService.fetchFilesByCategory(i18n.t('学习'))
+                const files = await fileService.fetchFilesByCategory(i18n.t('Review'))
                 const targetFile = files.find((file) => file.name === fileName)
                 if (targetFile?.id) {
                     console.log('Updating word in existing file:', targetFile.id)

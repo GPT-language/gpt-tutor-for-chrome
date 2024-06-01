@@ -76,6 +76,7 @@
   "Updated At": "Updated At",
   "Name": "Name",
   "Icon": "Icon",
+  "Group": "Group",
   "Description": "Description",
   "Placeholders": "Placeholders",
   "Role Prompt": "Role Prompt",
@@ -102,9 +103,15 @@
   "Output rendering format": "Output rendering format",
   "disable collecting statistics": "Disable collecting statistics",
   "History": "History",
-  "Leraning":"Leraning",
+  "Review":"Review",
   "Word": "Word",
+  "Vocabulary": "Vocabulary",
   "Expression": "Expression",
   "Grammar": "Grammar",
-  "To review": "To review"
+  "To review": "To review",
+  "Create a new category": "Create a new category",
+  "Select a file": "Select a file",
+  "Delete this file": "Delete this file",
+  "Upload a file": "Upload a file",
+  "Finish": "Finish"
 }

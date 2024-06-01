@@ -127,6 +127,9 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='group' label={t('Group')}>
                 <Input size='compact' />
             </FormItem>
+            <FormItem required name='description' label={t('Description')}>
+                <Input size='compact' />
+            </FormItem>
             <FormItem name='rolePrompt' label={t('Role Prompt')} caption={rolePromptCaption}>
                 <Textarea size='compact' />
             </FormItem>

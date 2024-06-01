@@ -4,6 +4,7 @@ import { Action, ActionOutputRenderingFormat, getLocalDB } from './db'
 export interface ICreateActionOption {
     name: string
     group?: string
+    description?: string
     mode?: TranslateMode
     icon?: string
     rolePrompt?: string

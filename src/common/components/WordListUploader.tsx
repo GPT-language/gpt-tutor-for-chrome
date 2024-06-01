@@ -100,7 +100,6 @@ const WordListUploader = () => {
         if (!IsInitialized) {
             return
         }
-        console.log('selectedWords', selectedWords)
         if (!selectedWords) {
             loadWords(currentFileId, 1)
             setCurrentPage(1)
@@ -137,7 +136,7 @@ const WordListUploader = () => {
                             style={{
                                 cursor: 'pointer',
                                 backgroundColor:
-                                    selectedWord && entry.text === selectedWord.text ? 'yellow' : 'transparent',
+                                    selectedWord && entry.text === selectedWord.text ? 'gray' : 'transparent',
                             }}
                             onClick={() => handleWordClick(entry)}
                         >

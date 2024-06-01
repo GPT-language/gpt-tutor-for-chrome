@@ -5,7 +5,7 @@ import { useChatStore } from '@/store/file/store'
 import { LuArrowLeftFromLine, LuArrowRightToLine } from 'react-icons/lu'
 import { Button, KIND, SIZE } from 'baseui-sd/button'
 import { fileService } from '../internal-services/file'
-import { FaHistory, FaBook } from 'react-icons/fa'
+import { useTranslation } from 'react-i18next'
 
 const CategorySelector = () => {
     const {
@@ -16,9 +16,9 @@ const CategorySelector = () => {
         addFile,
         selectFile,
         deleteFile,
-        setCurrentFileId,
         addCategory,
         deleteCategory,
+        setCurrentFileId,
         loadFiles,
         deleteWords,
         setSelectedCategory,
@@ -30,6 +30,8 @@ const CategorySelector = () => {
     const [showCategories, setShowCategories] = useState(true)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [isHovering, setIsHovering] = useState(false)
+    const { t } = useTranslation()
+
     useEffect(() => {
         setShowSelectBox(!currentFileId)
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,7 +116,7 @@ const CategorySelector = () => {
                                 size={SIZE.compact}
                                 style={{ fontWeight: selectedCategory === cat ? 'bold' : 'normal' }}
                             >
-                                <u>{cat}</u>
+                                <u>{t(cat)}</u>
                                 {hoverCategory === cat && cat !== 'History' && cat !== '学习' && (
                                     <span
                                         onClick={(e) => {
@@ -150,7 +152,7 @@ const CategorySelector = () => {
                             type='text'
                             value={newCategory}
                             onChange={(e) => setNewCategory(e.target.value)}
-                            placeholder='输入新分类'
+                            placeholder={t('Create a new category') ?? 'Create a new category'}
                         />
                         <Button
                             kind={KIND.tertiary}
@@ -173,7 +175,7 @@ const CategorySelector = () => {
                             valueKey='id'
                             onChange={onChange}
                             value={validValue}
-                            placeholder='Select a file'
+                            placeholder={t('Select a file') ?? 'Select a file'}
                             overrides={{
                                 Root: {
                                     style: ({ $theme }) => ({
@@ -218,7 +220,7 @@ const CategorySelector = () => {
                         />
 
                         <AiOutlineUpload
-                            title='Upload new file'
+                            title={t('Upload a file') ?? 'Upload a file'}
                             onClick={(e) => {
                                 e.stopPropagation()
                                 if (fileInputRef.current) {
@@ -235,7 +237,7 @@ const CategorySelector = () => {
                         />
 
                         <AiOutlineDelete
-                            title='Delete this file'
+                            title={t('Delete this file') ?? 'Delete this file'}
                             onClick={(e) => {
                                 e.stopPropagation()
                                 deleteFile(currentFileId)

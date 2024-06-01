@@ -3,6 +3,7 @@ import { Action } from '../internal-services/db'
 import { useChatStore } from '@/store/file'
 import { ListHeading } from 'baseui-sd/list'
 import { Button, KIND, SHAPE, SIZE } from 'baseui-sd/button'
+import { useTranslation } from 'react-i18next'
 interface ActionListProps {
     onActionClick: () => void // 从父组件传入的处理函数
     performAll: (actions: Action[]) => void
@@ -13,6 +14,8 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         useChatStore()
     const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
     const [isComleted, setIsCompleted] = useState(false)
+    const { t } = useTranslation()
+    const finished = t('finished')
     const handlePerformAllClick = () => {
         performAll(actions)
     }
@@ -99,7 +102,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                         }}
                         key={nextAction?.idx}
                         heading={nextAction?.name}
-                        subHeading={nextAction?.idx}
+                        subHeading={nextAction?.description}
                         endEnhancer={() => (
                             <Button
                                 size={SIZE.compact}
@@ -107,7 +110,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                                 kind={KIND.secondary}
                                 onClick={() => handleActionClick(nextAction)}
                             >
-                                确定
+                                {t('确定')}
                             </Button>
                         )}
                         maxLines={2}
@@ -129,8 +132,8 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                             }),
                         },
                     }}
-                    heading='完成学习！💖'
-                    subHeading='恭喜！你已经完成了该单词的学习，点击确定加入到复习中'
+                    heading={t('完成学习！💖')}
+                    subHeading={t('恭喜！你已经完成了该单词的学习，点击确定加入到复习中')}
                     endEnhancer={() => (
                         <Button
                             size={SIZE.compact}
@@ -138,7 +141,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                             kind={KIND.secondary}
                             onClick={handleAddWordClick}
                         >
-                            +
+                            {t('完成学习')}
                         </Button>
                     )}
                     maxLines={2}
