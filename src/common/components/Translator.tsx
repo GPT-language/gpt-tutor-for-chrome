@@ -622,6 +622,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             if (message.type === 'Text') {
                 const text = message.text
                 setOriginalText(text)
+                setEditableText(text)
             }
         }
 

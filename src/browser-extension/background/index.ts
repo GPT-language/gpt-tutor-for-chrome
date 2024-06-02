@@ -26,7 +26,7 @@ browser.contextMenus?.onClicked.addListener(async function (info) {
     const [tab] = await chrome.tabs.query({ active: true })
     tab.id &&
         browser.tabs.sendMessage(tab.id, {
-            type: 'open-translator',
+            type: 'gpt-tutor',
             info,
         })
 })

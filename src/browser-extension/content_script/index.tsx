@@ -124,8 +124,9 @@ async function main() {
     })
 
     browser.runtime.onMessage.addListener(function (request) {
-        if (request.type === 'open-translator') {
-            if (window !== window.top) return
+        if (request.type === 'gpt-tutor') {
+            console.log('gpt-tutor', request)
+
             const text = request.info.selectionText ?? ''
             sendText(text)
         }
