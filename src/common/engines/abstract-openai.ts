@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { useChatStore } from '@/store/file'
 import { fetchSSE } from '../utils'
 import { AbstractEngine } from './abstract-engine'
 import { IMessageRequest, IModel } from './interfaces'
@@ -53,13 +54,31 @@ export abstract class AbstractOpenAI extends AbstractEngine {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async getBaseRequestBody(): Promise<Record<string, any>> {
         const model = await this.getAPIModel()
-        return {
-            model,
-            temperature: 0,
-            top_p: 1,
-            frequency_penalty: 1,
-            presence_penalty: 1,
-            stream: true,
+        const response_format = { type: 'json_object' }
+        const activatedActionName = useChatStore.getInitialState().activatedActionName
+        console.log('请求中的activatedActionName', activatedActionName)
+
+        if (model === 'gpt-3.5-turbo-1106' || model === 'gpt-4-turbo') {
+            console.log('启用json模式')
+
+            return {
+                model,
+                response_format,
+                temperature: 0,
+                top_p: 1,
+                frequency_penalty: 1,
+                presence_penalty: 1,
+                stream: true,
+            }
+        } else {
+            return {
+                model,
+                temperature: 0,
+                top_p: 1,
+                frequency_penalty: 1,
+                presence_penalty: 1,
+                stream: true,
+            }
         }
     }
 

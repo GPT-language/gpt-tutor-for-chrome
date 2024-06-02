@@ -385,7 +385,7 @@ export class ChatGPT extends AbstractEngine {
                         content: { content_type: 'text', parts: [`${req.rolePrompt}\n\n${req.commandPrompt}`] },
                     },
                 ],
-                model: 'auto',
+                model: this.model,
                 parent_message_id: uuidv4(),
                 conversation_mode: { kind: 'primary_assistant', plugin_ids: null },
                 force_nulligen: false,
