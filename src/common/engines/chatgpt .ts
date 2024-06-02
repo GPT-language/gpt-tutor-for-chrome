@@ -89,35 +89,62 @@ async function getChatRequirements(accessToken: string) {
     }
 }
 
+function toBase64(str: string) {
+    const encoder = new TextEncoder() // 创建一个 TextEncoder 实例
+    const bytes = encoder.encode(str) // 编码字符串为UTF-8字节序列
+    const base64String = btoa(String.fromCharCode.apply(null, bytes)) // 将字节序列转换为字符，然后编码为Base64
+    return base64String
+}
+
+// https://github.com/tctien342/chatgpt-proxy/blob/9147a4345b34eece20681f257fd475a8a2c81171/src/openai.ts#L103
+// https://github.com/zatxm/aiproxy
 async function GenerateProofToken(seed: string, diff: string | number | unknown[], userAgent: string) {
-    const cores = [8, 12, 16, 24]
-    const screens = [3000, 4000, 6000]
+    const cores = [1, 2, 4]
+    const screens = [3008, 4010, 6000]
+    const reacts = ['_reactListeningcfilawjnerp', '_reactListening9ne2dfo1i47', '_reactListening410nzwhan2a']
+    const acts = ['alert', 'ontransitionend', 'onprogress']
     const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
 
     const core = cores[randomInt(0, cores.length)]
-    const screen = screens[randomInt(0, screens.length)]
+    const screen = screens[randomInt(0, screens.length)] + core
+    const react = cores[randomInt(0, reacts.length)]
+    const act = screens[randomInt(0, acts.length)]
 
-    const now = new Date(Date.now() - 8 * 3600 * 1000)
-    const parseTime = now.toUTCString().replace('GMT', 'GMT-0500 (Eastern Time)')
+    const parseTime = new Date().toString()
 
-    const config = [core + screen, parseTime, 4294705152, 0, userAgent]
-    if (typeof diff === 'string') {
-        const diffLen = Math.floor(diff.length / 2)
-        // Continue with your code logic that uses diffLen
-        for (let i = 0; i < 100000; i++) {
-            config[3] = i
-            const jsonData = JSON.stringify(config)
-            const base = btoa(decodeURIComponent(encodeURIComponent(jsonData)))
-            const hashValue = sha3_512(seed + base)
+    const config = [
+        screen,
+        parseTime,
+        4294705152,
+        0,
+        userAgent,
+        'https://tcr9i.chat.openai.com/v2/35536E1E-65B4-4D96-9D97-6ADB7EFF8147/api.js',
+        'dpl=1440a687921de39ff5ee56b92807faaadce73f13',
+        'en',
+        'en-US',
+        4294705152,
+        'plugins−[object PluginArray]',
+        react,
+        act,
+    ]
 
-            if (hashValue.substring(0, diffLen) <= diff) {
-                const result = 'gAAAAAB' + base
-                return result
-            }
+    const diffLen = diff.length
+
+    for (let i = 0; i < 200000; i++) {
+        config[3] = i
+        const jsonData = JSON.stringify(config)
+        // eslint-disable-next-line no-undef
+        const base = toBase64(jsonData)
+        const hashValue = sha3_512.create().update(seed + base)
+
+        if (hashValue.hex().substring(0, diffLen) <= diff) {
+            const result = 'gAAAAAB' + base
+            return result
         }
     }
 
-    const fallbackBase = btoa(decodeURIComponent(encodeURIComponent(`"${seed}"`)))
+    // eslint-disable-next-line no-undef
+    const fallbackBase = toBase64(`"${seed}"`)
     return 'gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D' + fallbackBase
 }
 
