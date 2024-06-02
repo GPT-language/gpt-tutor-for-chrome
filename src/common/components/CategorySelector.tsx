@@ -117,7 +117,7 @@ const CategorySelector = () => {
                                 style={{ fontWeight: selectedCategory === cat ? 'bold' : 'normal' }}
                             >
                                 <u>{t(cat)}</u>
-                                {hoverCategory === cat && cat !== 'History' && cat !== '学习' && (
+                                {hoverCategory === cat && cat !== 'History' && cat !== 'Review' && (
                                     <span
                                         onClick={(e) => {
                                             e.stopPropagation() // 阻止点击事件冒泡到 Button

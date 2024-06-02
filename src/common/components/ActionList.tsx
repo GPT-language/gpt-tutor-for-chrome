@@ -5,17 +5,24 @@ import { ListHeading } from 'baseui-sd/list'
 import { Button, KIND, SHAPE, SIZE } from 'baseui-sd/button'
 import { useTranslation } from 'react-i18next'
 interface ActionListProps {
-    onActionClick: () => void // 从父组件传入的处理函数
+    onActionClick: (action: Action) => void // 从父组件传入的处理函数
     performAll: (actions: Action[]) => void
 }
 
 const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll }) => {
-    const { selectedWord, addWordToLearningFile, actions, setAction, activatedAction, isShowActionList, isLoading } =
-        useChatStore()
+    const {
+        selectedWord,
+        addWordToLearningFile,
+        actions,
+        setAction,
+        activatedAction,
+        isShowActionList,
+        isLoading,
+        selectedCategory,
+    } = useChatStore()
     const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
     const [isComleted, setIsCompleted] = useState(false)
     const { t } = useTranslation()
-    const finished = t('finished')
     const handlePerformAllClick = () => {
         performAll(actions)
     }
@@ -45,22 +52,14 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             setIsCompleted(false)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [actions])
-
-    useEffect(() => {
-        console.log('isComleted', isComleted)
-        console.log('isLoading', isLoading)
-        console.log('nextAction', nextAction)
-        console.log('actions', actions)
-        console.log('activatedAction', activatedAction)
-    }, [actions, activatedAction, isComleted, isLoading, nextAction])
+    }, [selectedCategory])
 
     const handleActionClick = async (action: Action | undefined) => {
         if (!action) {
             return
         }
         setAction(action)
-        onActionClick()
+        onActionClick(action)
         console.log('handleActionClick', action)
         if (!actions || !activatedAction?.idx) {
             return
@@ -85,7 +84,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     return (
         <div>
             <ol>
-                {!isComleted && nextAction && (
+                {!isComleted && nextAction && !isLoading && (
                     <ListHeading
                         overrides={{
                             HeadingContainer: {
@@ -141,7 +140,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                             kind={KIND.secondary}
                             onClick={handleAddWordClick}
                         >
-                            {t('完成学习')}
+                            {t('Finish')}
                         </Button>
                     )}
                     maxLines={2}

@@ -5,6 +5,7 @@ import { fileService } from '../internal-services/file'
 import { Button, KIND, SIZE } from 'baseui-sd/button'
 import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { Search } from 'baseui-sd/icon'
+import { rgb } from 'polished'
 const WordListUploader = () => {
     const {
         words,
@@ -136,7 +137,7 @@ const WordListUploader = () => {
                             style={{
                                 cursor: 'pointer',
                                 backgroundColor:
-                                    selectedWord && entry.text === selectedWord.text ? 'gray' : 'transparent',
+                                    selectedWord && entry.text === selectedWord.text ? rgb(255, 255, 0) : 'transparent',
                             }}
                             onClick={() => handleWordClick(entry)}
                         >

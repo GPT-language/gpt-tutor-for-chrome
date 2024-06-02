@@ -63,6 +63,7 @@ const TextParser: React.FC<TextParserProps> = ({ jsonContent, setOriginalText })
 
         const cleanJson = jsonContent.replace(/```json\n|\n```/g, '').trim()
         console.log('cleanJson', cleanJson)
+
         try {
             if (cleanJson !== '{}' && cleanJson.startsWith('{')) {
                 const textContent: TextContent = parse(cleanJson)
@@ -77,8 +78,8 @@ const TextParser: React.FC<TextParserProps> = ({ jsonContent, setOriginalText })
 
     return (
         <div>
-            <h1>Original Sentence: {textContent?.originalSentence}</h1>
-            <h2>Translation: {textContent?.sentenceTranslation}</h2>
+            <h3> {textContent?.originalSentence}</h3>
+            <h4>{textContent?.sentenceTranslation}</h4>
             <div>
                 {textContent?.sentences?.map((sentence, index) => (
                     <WordSegment

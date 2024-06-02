@@ -657,7 +657,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         getInitialFile()
     }, [getInitialFile])
 
-    const handleActionClick = async () => {
+    const handleActionClick = async (action: Action) => {
+        setActivateAction(action)
         forceTranslate()
     }
 
@@ -1181,11 +1182,33 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         [originalText, translateText]
     )
     useEffect(() => {
-        if (translatedText && activateAction?.name === 'JSON输出') {
+        console.log('translations', translations['Sentence analysis']?.text)
+
+        if (ActivatedActionName === t('Sentence analysis') || translations[t('Sentence analysis')]) {
+            console.log('启用分析器')
+
             setShowTextParser(true)
-            setjsonText(translatedText)
+            if (translatedText) {
+                setjsonText(translatedText)
+            }
+
+            if (translations[t('Sentence analysis')]) {
+                setjsonText(translations[t('Sentence analysis')].text)
+            }
+        } else {
+            setShowTextParser(false)
+            setjsonText('')
+            console.log('启动器中的activateAction?.name', activateAction?.name)
+            console.log('启动器中的ActivatedActionName', ActivatedActionName)
+            console.log('启动器中的translatedText', t('Sentence analysis'))
+
+            console.log('分析器未启用')
         }
-    }, [translatedText, activateAction])
+    }, [translatedText, t, ActivatedActionName, activateAction?.name, translations])
+
+    useEffect(() => {
+        console.log('isShowTextParser', showTextParser)
+    }, [showTextParser])
 
     useEffect(() => {
         if (editableText !== originalText) {
@@ -1763,7 +1786,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                         setOriginalText={setOriginalText}
                                                     ></TextParser>
                                                 ) : null}
-                                                {activateAction?.name !== 'JSON输出' && (
+                                                {activateAction?.name !== t('Sentence analysis') && (
                                                     <>
                                                         {Object.entries(translations).map(
                                                             ([
