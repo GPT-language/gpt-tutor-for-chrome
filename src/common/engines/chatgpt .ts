@@ -231,7 +231,8 @@ export class ChatGPT extends AbstractEngine {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async listModels(apiKey_: string | undefined): Promise<IModel[]> {
         const fetcher = getUniversalFetch()
-        const accessToken = await utils.getAccessToken()
+        const accessToken = await utils.getAccessToken(true)
+
         const headers: Record<string, string> = {
             Authorization: `Bearer ${accessToken}`,
         }
@@ -306,6 +307,7 @@ export class ChatGPT extends AbstractEngine {
             this.model = await this.getModel()
 
             const messageId = uuidv4()
+
             const lastConversationId = await this.getConversationId(req.activatedActionName, this.model)
 
             const userAgent =

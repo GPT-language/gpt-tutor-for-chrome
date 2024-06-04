@@ -1,5 +1,6 @@
 import { v } from '@tauri-apps/api/event-30ea0228'
 import { SavedFile, Translations, Word, getLocalDB, ActionOutputRenderingFormat } from './db'
+import { useChatStore } from '@/store/file'
 
 export class FileService {
     private db = getLocalDB()
@@ -177,8 +178,9 @@ export class FileService {
         conversationId?: string
     ): Promise<void> {
         const file = await this.fetchFileDetailsById(fileId)
-        let word = file.words?.find((w) => w.text === wordText)
-
+        let word: Word | undefined
+        console.log('file words is ', file.words)
+        word = file.words?.find((w) => w.idx === wordIdx)
         if (!word) {
             // 使用更安全的方式生成新 idx
             const maxIdx = file.words?.reduce((max, w) => Math.max(max, w.idx), 0)

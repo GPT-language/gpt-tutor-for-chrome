@@ -489,19 +489,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return activateAction.mode
     }, [activateAction])
 
-    useLiveQuery(async () => {
-        if (settings?.defaultTranslateMode && settings.defaultTranslateMode !== 'nop') {
-            let action: Action | undefined
-            const actionID = parseInt(settings.defaultTranslateMode, 10)
-            if (isNaN(actionID)) {
-                action = await actionService.getByMode(settings.defaultTranslateMode)
-            } else {
-                action = await actionService.get(actionID)
-            }
-            setActivateAction(action)
-        }
-    }, [settings?.defaultTranslateMode])
-
     const headerRef = useRef<HTMLDivElement>(null)
     const { width: headerWidth = 0, height: headerHeight = 0 } = useResizeObserver<HTMLDivElement>({ ref: headerRef })
 
@@ -654,6 +641,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setActiveKey(expanded.length > 0 ? expanded[0] : null)
     }
 
+    const handTextParserClick = (word: string, originalSentence: string) => {
+        const text = originalSentence + ',请解释以上句子中的' + word
+        setEditableText(text)
+    }
+
     useEffect(() => {
         getInitialFile()
     }, [getInitialFile])
@@ -667,7 +659,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         console.log('selectedWord', selectedWord)
         if (!selectedWord) {
             console.log('selectedWord is empty')
-            setTranslations({})
+            if (activateAction?.name !== t('Sentence analysis')) {
+                setTranslations({})
+            }
             return
         }
         if (selectedWord.text && selectedWord.idx) {
@@ -924,12 +918,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [headerRef])
 
     const [isNotLogin, setIsNotLogin] = useState(false)
-    const activatedAction = useChatStore.getState().activatedAction
 
-    const activateActionRef = useRef(activatedAction)
+    const activateActionRef = useRef(activateAction)
     useEffect(() => {
-        activateActionRef.current = activatedAction
-    }, [activatedAction])
+        activateActionRef.current = activateAction
+    }, [activateAction])
 
     const translateText = useCallback(
         async (text: string, signal: AbortSignal, actionName?: string) => {
@@ -937,10 +930,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 return
             }
             if (text !== selectedWord?.text) {
-                setTranslations({})
+                if (activateAction.name !== (t('Sentence analysis') || '解释句子内容')) {
+                    setTranslations({})
+                }
                 selectWordNotInCurrentFile(text)
             }
-            const latestActivateAction = activateActionRef.current
+            const latestActivateAction = activateAction
             if (!latestActivateAction || !latestActivateAction.id) {
                 return // Handle the case where latestActivateAction is undefined
             }
@@ -1076,6 +1071,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     useChatStore.getState().updateTranslationText(translatedText, activatedAction?.name)
                                     setIsShowActionList(true)
                                     // 更新selectedWord的翻译
+                                    console.log('selectWordIdx is ', selectWordIdx)
+                                    console.log('selectedWord is ', selectedWord?.idx)
+
                                     handleTranslationUpdate(
                                         selectWordIdx,
                                         activatedAction?.name,
@@ -1126,7 +1124,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         conversationId?: string
     ) => {
         let finalFileId
-        if (originalText === selectedWord?.text) {
+        if (originalText === selectedWord?.text || activateAction?.name === '解释句子内容') {
             finalFileId = currentFileId
         } else {
             const category = 'History'
@@ -1183,9 +1181,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         [originalText, translateText]
     )
     useEffect(() => {
-        console.log('translations', translations['Sentence analysis']?.text)
-
-        if (ActivatedActionName === t('Sentence analysis') || translations[t('Sentence analysis')]) {
+        if (activateAction?.name === t('Sentence analysis') || translations[t('Sentence analysis')]) {
             console.log('启用分析器')
 
             setShowTextParser(true)
@@ -1202,10 +1198,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             console.log('启动器中的activateAction?.name', activateAction?.name)
             console.log('启动器中的ActivatedActionName', ActivatedActionName)
             console.log('启动器中的translatedText', t('Sentence analysis'))
+            console.log('启动器中的translations', translations[t('Sentence analysis')])
 
             console.log('分析器未启用')
         }
-    }, [translatedText, t, ActivatedActionName, activateAction?.name, translations])
+    }, [translatedText, t, ActivatedActionName, activateAction?.name, translations, editableText])
 
     useEffect(() => {
         console.log('isShowTextParser', showTextParser)
@@ -1607,11 +1604,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             e.preventDefault()
                                                             e.stopPropagation()
                                                             if (!activateAction) {
-                                                                setActivateAction(
-                                                                    actions?.find(
-                                                                        (action) => action.mode === 'translate'
-                                                                    )
-                                                                )
+                                                                setActivateAction(activateAction)
                                                             }
                                                             setOriginalText(editableText)
                                                         }
@@ -1663,6 +1656,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             e.preventDefault()
                                                             e.stopPropagation()
                                                             if (!activateAction) {
+                                                                console.log('activateAction is null')
                                                                 setActivateAction(
                                                                     actions?.find(
                                                                         (action) => action.mode === 'translate'
@@ -1784,183 +1778,165 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 {showTextParser ? (
                                                     <TextParser
                                                         jsonContent={jsonText}
-                                                        setOriginalText={setOriginalText}
+                                                        setOriginalText={handTextParserClick}
                                                     ></TextParser>
                                                 ) : null}
-                                                {activateAction?.name !== t('Sentence analysis') && (
-                                                    <>
-                                                        {Object.entries(translations).map(
-                                                            ([
-                                                                actionName,
-                                                                { text, format, messageId, conversationId },
-                                                            ]) => (
-                                                                <div key={actionName}>
-                                                                    <Accordion
-                                                                        initialState={{
-                                                                            expanded: [ActivatedActionName], // 初始时展开的 Panel 的 key
-                                                                        }}
-                                                                        onChange={({ expanded }) =>
-                                                                            handleAccordionChange(expanded)
-                                                                        }
-                                                                        overrides={{
-                                                                            ToggleIcon: {
-                                                                                component: () =>
-                                                                                    actionName === activeKey ? (
-                                                                                        <mdIcons.MdArrowDropUp
-                                                                                            size={24}
-                                                                                        />
-                                                                                    ) : (
-                                                                                        <mdIcons.MdArrowDropDown
-                                                                                            size={24}
-                                                                                        />
-                                                                                    ),
-                                                                            },
-                                                                        }}
-                                                                        accordion={true}
-                                                                    >
-                                                                        {format === 'markdown' ? (
-                                                                            <Panel title={actionName} key={actionName}>
-                                                                                <>
-                                                                                    <Markdown>{text}</Markdown>
-                                                                                </>
-                                                                            </Panel>
-                                                                        ) : format === 'latex' ? (
+                                                <>
+                                                    {Object.entries(translations).map(
+                                                        ([actionName, { text, format, messageId, conversationId }]) => (
+                                                            <div key={actionName}>
+                                                                <Accordion
+                                                                    initialState={{
+                                                                        expanded: [ActivatedActionName], // 初始时展开的 Panel 的 key
+                                                                    }}
+                                                                    onChange={({ expanded }) =>
+                                                                        handleAccordionChange(expanded)
+                                                                    }
+                                                                    overrides={{
+                                                                        ToggleIcon: {
+                                                                            component: () =>
+                                                                                actionName === activeKey ? (
+                                                                                    <mdIcons.MdArrowDropUp size={24} />
+                                                                                ) : (
+                                                                                    <mdIcons.MdArrowDropDown
+                                                                                        size={24}
+                                                                                    />
+                                                                                ),
+                                                                        },
+                                                                    }}
+                                                                    accordion={true}
+                                                                >
+                                                                    {format === 'markdown' ? (
+                                                                        <Panel title={actionName} key={actionName}>
                                                                             <>
-                                                                                <Panel
-                                                                                    title={actionName}
-                                                                                    key={actionName}
-                                                                                >
-                                                                                    <Latex>{text}</Latex>
-                                                                                </Panel>
-                                                                                {isLoading && (
-                                                                                    <span className={styles.caret} />
-                                                                                )}
+                                                                                <Markdown>{text}</Markdown>
                                                                             </>
-                                                                        ) : (
-                                                                            text.split('\n').map((line, i) => (
-                                                                                <p
-                                                                                    className={styles.paragraph}
-                                                                                    key={`p-${i}`}
-                                                                                >
-                                                                                    {i === 0 ? (
-                                                                                        <div
-                                                                                            style={{
-                                                                                                display: 'flex',
-                                                                                                alignItems: 'center',
-                                                                                                gap: '5px',
-                                                                                            }}
-                                                                                        >
-                                                                                            <Panel
-                                                                                                title={actionName}
-                                                                                                key={actionName}
-                                                                                            >
-                                                                                                {line}
-                                                                                            </Panel>
-                                                                                        </div>
-                                                                                    ) : (
-                                                                                        line
-                                                                                    )}
-                                                                                </p>
-                                                                            ))
-                                                                        )}
-                                                                        <div
-                                                                            ref={actionButtonsRef}
-                                                                            className={styles.actionButtonsContainer}
-                                                                        >
-                                                                            <div style={{ marginRight: 'auto' }} />
-                                                                            {activeKey === actionName && (
-                                                                                <>
-                                                                                    {!isLoading && (
-                                                                                        <Tooltip
-                                                                                            content={t('Retry')}
-                                                                                            placement='bottom'
-                                                                                        >
-                                                                                            <div
-                                                                                                onClick={() =>
-                                                                                                    forceTranslate()
-                                                                                                }
-                                                                                                className={
-                                                                                                    styles.actionButton
-                                                                                                }
-                                                                                            >
-                                                                                                <RxReload size={15} />
-                                                                                            </div>
-                                                                                        </Tooltip>
-                                                                                    )}
-                                                                                    <Tooltip
-                                                                                        content={t('Speak')}
-                                                                                        placement='bottom'
-                                                                                    >
-                                                                                        <div
-                                                                                            className={
-                                                                                                styles.actionButton
-                                                                                            }
-                                                                                            onClick={() =>
-                                                                                                handleTranslatedSpeakAction(
-                                                                                                    messageId,
-                                                                                                    conversationId,
-                                                                                                    text
-                                                                                                )
-                                                                                            }
-                                                                                        >
-                                                                                            {isSpeakingTranslatedText ? (
-                                                                                                <SpeakerMotion />
-                                                                                            ) : (
-                                                                                                <RxSpeakerLoud
-                                                                                                    size={15}
-                                                                                                />
-                                                                                            )}
-                                                                                        </div>
-                                                                                    </Tooltip>
-                                                                                    <Tooltip
-                                                                                        content={t('Copy to clipboard')}
-                                                                                        placement='bottom'
-                                                                                    >
-                                                                                        <div
-                                                                                            className={
-                                                                                                styles.actionButton
-                                                                                            }
-                                                                                        >
-                                                                                            <CopyButton
-                                                                                                text={text}
-                                                                                                styles={styles}
-                                                                                            ></CopyButton>
-                                                                                        </div>
-                                                                                    </Tooltip>
-                                                                                    <Tooltip
-                                                                                        content={t('Add to Anki')}
-                                                                                        placement='bottom'
-                                                                                    >
-                                                                                        <div
-                                                                                            onClick={() =>
-                                                                                                addToAnki(
-                                                                                                    selectedGroup +
-                                                                                                        ':' +
-                                                                                                        actionName.split(
-                                                                                                            ':'
-                                                                                                        )[0], // assuming key is activateAction.name:editableText
-                                                                                                    originalText,
-                                                                                                    text
-                                                                                                )
-                                                                                            }
-                                                                                            className={
-                                                                                                styles.actionButton
-                                                                                            }
-                                                                                        >
-                                                                                            <AiOutlinePlusSquare
-                                                                                                size={15}
-                                                                                            />
-                                                                                        </div>
-                                                                                    </Tooltip>
-                                                                                </>
+                                                                        </Panel>
+                                                                    ) : format === 'latex' ? (
+                                                                        <>
+                                                                            <Panel title={actionName} key={actionName}>
+                                                                                <Latex>{text}</Latex>
+                                                                            </Panel>
+                                                                            {isLoading && (
+                                                                                <span className={styles.caret} />
                                                                             )}
-                                                                        </div>
-                                                                    </Accordion>
-                                                                </div>
-                                                            )
-                                                        )}
-                                                    </>
-                                                )}
+                                                                        </>
+                                                                    ) : (
+                                                                        text.split('\n').map((line, i) => (
+                                                                            <p
+                                                                                className={styles.paragraph}
+                                                                                key={`p-${i}`}
+                                                                            >
+                                                                                {i === 0 ? (
+                                                                                    <div
+                                                                                        style={{
+                                                                                            display: 'flex',
+                                                                                            alignItems: 'center',
+                                                                                            gap: '5px',
+                                                                                        }}
+                                                                                    >
+                                                                                        <Panel
+                                                                                            title={actionName}
+                                                                                            key={actionName}
+                                                                                        >
+                                                                                            {line}
+                                                                                        </Panel>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    line
+                                                                                )}
+                                                                            </p>
+                                                                        ))
+                                                                    )}
+                                                                    <div
+                                                                        ref={actionButtonsRef}
+                                                                        className={styles.actionButtonsContainer}
+                                                                    >
+                                                                        <div style={{ marginRight: 'auto' }} />
+                                                                        {activeKey === actionName && (
+                                                                            <>
+                                                                                {!isLoading && (
+                                                                                    <Tooltip
+                                                                                        content={t('Retry')}
+                                                                                        placement='bottom'
+                                                                                    >
+                                                                                        <div
+                                                                                            onClick={() =>
+                                                                                                forceTranslate()
+                                                                                            }
+                                                                                            className={
+                                                                                                styles.actionButton
+                                                                                            }
+                                                                                        >
+                                                                                            <RxReload size={15} />
+                                                                                        </div>
+                                                                                    </Tooltip>
+                                                                                )}
+                                                                                <Tooltip
+                                                                                    content={t('Speak')}
+                                                                                    placement='bottom'
+                                                                                >
+                                                                                    <div
+                                                                                        className={styles.actionButton}
+                                                                                        onClick={() =>
+                                                                                            handleTranslatedSpeakAction(
+                                                                                                messageId,
+                                                                                                conversationId,
+                                                                                                text
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        {isSpeakingTranslatedText ? (
+                                                                                            <SpeakerMotion />
+                                                                                        ) : (
+                                                                                            <RxSpeakerLoud size={15} />
+                                                                                        )}
+                                                                                    </div>
+                                                                                </Tooltip>
+                                                                                <Tooltip
+                                                                                    content={t('Copy to clipboard')}
+                                                                                    placement='bottom'
+                                                                                >
+                                                                                    <div
+                                                                                        className={styles.actionButton}
+                                                                                    >
+                                                                                        <CopyButton
+                                                                                            text={text}
+                                                                                            styles={styles}
+                                                                                        ></CopyButton>
+                                                                                    </div>
+                                                                                </Tooltip>
+                                                                                <Tooltip
+                                                                                    content={t('Add to Anki')}
+                                                                                    placement='bottom'
+                                                                                >
+                                                                                    <div
+                                                                                        onClick={() =>
+                                                                                            addToAnki(
+                                                                                                selectedGroup +
+                                                                                                    ':' +
+                                                                                                    actionName.split(
+                                                                                                        ':'
+                                                                                                    )[0], // assuming key is activateAction.name:editableText
+                                                                                                originalText,
+                                                                                                text
+                                                                                            )
+                                                                                        }
+                                                                                        className={styles.actionButton}
+                                                                                    >
+                                                                                        <AiOutlinePlusSquare
+                                                                                            size={15}
+                                                                                        />
+                                                                                    </div>
+                                                                                </Tooltip>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                </Accordion>
+                                                            </div>
+                                                        )
+                                                    )}
+                                                </>
                                             </div>
                                         </div>
                                         <ActionList

@@ -4,15 +4,16 @@ import { parse } from 'best-effort-json-parser'
 // Sentence 接口定义
 interface Sentence {
     word: string
+    originalSentence: string
     subject: string
     category?: string
     translation?: string
-    onClick: (word: string) => void
+    onClick: (word: string, sentence: string) => void
 }
 
 interface TextParserProps {
     jsonContent: string
-    setOriginalText: (word: string) => void
+    setOriginalText: (word: string, sentence: string) => void
 }
 
 interface TextContent {
@@ -20,27 +21,34 @@ interface TextContent {
     originalSentence: string
     sentences: Sentence[]
 }
-const WordSegment: React.FC<Sentence> = React.memo(({ word, subject, category, translation, onClick }) => {
-    return (
-        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', margin: '5px' }}>
-            <div style={{ fontSize: 'smaller', color: '#666', marginRight: '10px' }}>{subject}</div>
-            <div style={{ fontSize: 'smaller', color: '#666', marginRight: '10px' }}>{category}</div>
-            <div
-                style={{
-                    margin: '0 10px',
-                    background: styles[subject as keyof typeof styles],
-                    padding: '5px 10px',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                }}
-                onClick={() => onClick(word)}
-            >
-                {word}
+const WordSegment: React.FC<Sentence> = React.memo(
+    ({ word, originalSentence, subject, category, translation, onClick }) => {
+        // 将word数组转换为以空格分隔的字符串
+        const words = Array.isArray(word) ? word.join(' ') : word
+
+        return (
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', margin: '5px' }}>
+                <div style={{ fontSize: 'smaller', color: '#666', marginRight: '10px' }}>{subject}</div>
+                <div style={{ fontSize: 'smaller', color: '#666', marginRight: '10px' }}>{category}</div>
+                <div
+                    style={{
+                        margin: '0 10px',
+                        background: styles[subject as keyof typeof styles],
+                        padding: '5px 10px',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                    }}
+                    onClick={() => onClick(words, originalSentence)} // 使用处理后的words
+                >
+                    {words}
+                </div>
+                {translation && (
+                    <div style={{ fontSize: 'smaller', color: '#666', marginLeft: '10px' }}>{translation}</div>
+                )}
             </div>
-            {translation && <div style={{ fontSize: 'smaller', color: '#666', marginLeft: '10px' }}>{translation}</div>}
-        </div>
-    )
-})
+        )
+    }
+)
 
 const styles = {
     主语: '#E8F4FF', // 浅蓝色，用于主语
@@ -56,7 +64,7 @@ const styles = {
 
 const TextParser: React.FC<TextParserProps> = ({ jsonContent, setOriginalText }) => {
     const [textContent, setTextContent] = useState<TextContent | null>(null)
-
+    const [originalSentence, setOriginalSentence] = useState<string>('')
     useEffect(() => {
         // 清洗 JSON 字符串，去除 Markdown 反引号
         console.log('jsonContent', jsonContent)
@@ -70,6 +78,7 @@ const TextParser: React.FC<TextParserProps> = ({ jsonContent, setOriginalText })
                 console.log('content', textContent)
 
                 setTextContent(textContent)
+                setOriginalSentence(textContent.originalSentence)
             }
         } catch (error) {
             console.error('Failed to parse JSON content', error)
@@ -85,6 +94,7 @@ const TextParser: React.FC<TextParserProps> = ({ jsonContent, setOriginalText })
                     <WordSegment
                         key={index}
                         word={sentence.word}
+                        originalSentence={originalSentence}
                         category={sentence.category}
                         subject={sentence.subject}
                         translation={sentence.translation}

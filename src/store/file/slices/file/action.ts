@@ -308,7 +308,11 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     selectWordNotInCurrentFile: async (text) => {
-        const { addWordToHistoryFile } = get()
+        const { addWordToHistoryFile, activatedAction } = get()
+        if (activatedAction?.parentNames) {
+            console.log('activatedAction.parentNames', activatedAction.parentNames)
+            return
+        }
         const category = 'History'
         const currentDate = new Date()
         const formattedDate = currentDate.toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期

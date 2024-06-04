@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable camelcase */
-import * as utils from '../common/utils'
 import * as lang from './components/lang/lang'
-import { urlJoin } from 'url-join-ts'
 import { v4 as uuidv4 } from 'uuid'
 import { getLangConfig, LangCode } from './components/lang/lang'
 import { getUniversalFetch } from './universal-fetch'
@@ -11,11 +9,10 @@ import { oneLine } from 'common-tags'
 import { ResponseContent } from './types'
 import Browser from 'webextension-polyfill'
 import { sha3_512 } from 'js-sha3'
-import { getEngine } from './engines'
 import { getSettings } from './utils'
 import { IEngine } from './engines/interfaces'
 
-export type TranslateMode = 'built-in' | 'translate' | 'explain-code'
+export type TranslateMode = 'built-in' | 'translate' | 'explain-code' | 'Sentence analysis' 
 
 export type APIModel =
     | 'gpt-3.5-turbo'

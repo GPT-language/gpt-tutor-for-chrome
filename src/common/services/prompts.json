@@ -1,6 +1,7 @@
 
 [
   {
+    "ufeffufeffid": "33",
     "idx": 26,
     "name": "翻译",
     "icon": "Md360",
@@ -50,19 +51,6 @@
   "createdAt": "1697395537594",
   "updatedAt": "1699039329783",
   "id": 28,
-  "outputRenderingFormat": "markdown"
-},
-{
-  "ufeffufeffid": "32",
-  "idx": 3,
-  "name": "自由回答",
-  "icon": "MdMusicVideo",
-  "rolePrompt": "",
-  "commandPrompt": "${text}",
-  "group": "英语单词学习",
-  "createdAt": "1699551078340",
-  "updatedAt": "1699551078340",
-  "id": 1,
   "outputRenderingFormat": "markdown"
 }
 ]

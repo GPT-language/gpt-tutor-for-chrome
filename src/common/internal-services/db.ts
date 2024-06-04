@@ -16,6 +16,8 @@ export interface Action {
     outputRenderingFormat?: ActionOutputRenderingFormat
     updatedAt: string
     createdAt: string
+    parentNames?: string[]
+    childrenNames?: string[]
 }
 
 export interface Translation {
@@ -52,8 +54,8 @@ export class LocalDB extends Dexie {
 
     constructor() {
         super('gpt-tutor')
-        this.version(3).stores({
-            action: '++id, idx, mode, name, group, description, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt',
+        this.version(5).stores({
+            action: '++id, idx, mode, name, group, description, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt, parentNames, childrenNames',
             files: '++id, name, words,category',
         })
         this.action = this.table('action')
