@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand'
 import { ChatState } from './initialState'
 import { produce } from 'immer'
+import { Action } from '@/common/internal-services/db'
 
 export interface ChatAction {
     setConversationId: (id: string) => void
@@ -10,6 +11,8 @@ export interface ChatAction {
     setActivatedProvider: (provider: string) => void
     setAccessToken: (token: string) => void
     setIsShowActionList: (isShow: boolean) => void
+    setActions: (actions: Action[]) => void
+    setAction: (action: Action) => void
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set) => ({
@@ -34,4 +37,11 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
     setActivatedProvider: (provider) => set({ activatedProvider: provider }),
     setAccessToken: (token) => set({ accessToken: token }),
     setIsShowActionList: (isShow) => set({ isShowActionList: isShow }),
+    setActions: (actions: Action[]) => {
+        set({ actions })
+    },
+
+    setAction: (activateAction: Action) => {
+        set({ activateAction })
+    },
 })

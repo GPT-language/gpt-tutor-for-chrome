@@ -11,7 +11,7 @@ export interface ChatState {
     activatedProvider: string
     accessToken: string
     actions: Action[]
-    activatedAction: Action | undefined
+    activateAction: Action | undefined
     isShowActionList: boolean
 }
 
@@ -47,7 +47,7 @@ export const initialChatState: ChatState = {
     ttsProvider: '',
     conversationId: '',
     messageId: '',
-    activatedAction: undefined,
+    activateAction: getFromStorage('savedAction', undefined) as Action,
     activatedActionName: '',
     activatedModel: '',
     activatedProvider: '',

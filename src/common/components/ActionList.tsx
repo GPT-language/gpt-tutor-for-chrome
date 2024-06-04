@@ -15,7 +15,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         addWordToLearningFile,
         actions,
         setAction,
-        activatedAction,
+        activateAction,
         isShowActionList,
         isLoading,
         selectedCategory,
@@ -47,12 +47,11 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         }
         if (actions.length > 1) {
             setNextAction(
-                activatedAction?.idx ? actions.find((action) => action.idx === activatedAction?.idx + 1) : actions[1]
+                activateAction?.idx ? actions.find((action) => action.idx === activateAction?.idx + 1) : actions[1]
             )
             setIsCompleted(false)
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCategory])
+    }, [actions, activateAction?.idx, selectedCategory])
 
     const handleActionClick = async (action: Action | undefined) => {
         if (!action) {
@@ -61,10 +60,10 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         setAction(action)
         onActionClick(action)
         console.log('handleActionClick', action)
-        if (!actions || !activatedAction?.idx) {
+        if (!actions || !activateAction?.idx) {
             return
         }
-        console.log('activatedAction?.idx', activatedAction?.idx)
+        console.log('activateAction?.idx', activateAction?.idx)
         console.log('actions is not empty', actions)
 
         const nextAction = actions.find((action) => action.idx === action.idx + 1)

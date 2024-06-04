@@ -28,8 +28,6 @@ export interface ChatFileAction {
     checkIfInitialized: () => Promise<boolean>
     initializeReviewFiles(): Promise<void>
     updateTranslationText: (translationText: string, actionName: string, wordContent?: string) => void
-    setActions: (actions: Action[]) => void
-    setAction: (action: Action) => void
 }
 
 export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatFileAction> = (set, get) => ({
@@ -374,11 +372,4 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         )
     },
 
-    setActions: (actions: Action[]) => {
-        set({ actions })
-    },
-
-    setAction: (activatedAction: Action) => {
-        set({ activatedAction })
-    },
 })
