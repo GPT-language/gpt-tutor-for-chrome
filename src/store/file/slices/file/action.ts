@@ -306,9 +306,9 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     selectWordNotInCurrentFile: async (text) => {
-        const { addWordToHistoryFile, activatedAction } = get()
-        if (activatedAction?.parentNames) {
-            console.log('activatedAction.parentNames', activatedAction.parentNames)
+        const { addWordToHistoryFile, activateAction } = get()
+        if (activateAction?.parentNames) {
+            console.log('activatedAction.parentNames', activateAction.parentNames)
             return
         }
         const category = 'History'
@@ -336,7 +336,14 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     // 该方法并不处理indexDB中的保存，只负责更新显示状态
-    updateTranslationText: (newText: string, actionName: string, wordContent?: string) => {
+    // selectWordNotInCurrentFile方法负责将搜索结果中的单词idx和text添加到历史文件中，该方法则负责更新其中的translations
+    updateTranslationText: async (newText: string, actionName: string, wordContent?: string) => {
+        const category = 'History'
+        const formattedDate = new Date().toISOString().slice(0, 10).replace(/-/g, '/')
+        const files = await fileService.fetchFilesByCategory(category)
+        const file = files.find((file) => file.category === category && file.name === formattedDate)
+        const wordInFile = file?.words.find((w) => w.text === wordContent)
+
         set(
             produce((draft) => {
                 // 确保 selectedWord 存在并且有 translations 属性
@@ -352,24 +359,36 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 }
 
                 // 验证 selectedWord 是否存在于 words 数组中
-                const wordInWords = draft.words.find((word) => word.text === draft.selectedWord.text)
-
+                const wordInWords = draft.words.find((word: Word) => word.text === wordContent)
+                console.log('wordInFile is', wordInFile)
+                console.log('file words is', file?.words)
                 // 处理 selectedWord 不在 words 中的情况
+                // 不在words就从历史记录中找
                 if (!wordInWords) {
-                    console.error('Selected word is not found in words array.')
-                    // 这里可以根据需求添加更多的处理逻辑，比如添加这个 word 到数组中
-                    // 如果不在当前词组中，说明是手动输入的单词，那么应该是History类别中搜索，文件名为当天日期,输入参数单词
-                    const category = 'History'
-                    const formattedDate = new Date().toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期
-                    const fileName = formattedDate
-                    // 根据对应类别和文件来找到word, 然后返回
+                    draft.selectedWord = wordInFile
+
+                    if (!draft.selectedWord || !draft.selectedWord.translations) {
+                        draft.selectedWord.translations = {} // 如果没有translations，则初始化为空对象
+                    }
+                    if (!draft.selectedWord.translations[actionName]) {
+                        draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' }
+                    } else {
+                        draft.selectedWord.translations[actionName].text = newText
+                    }
                     return
                 }
 
+                if (!wordInWords.translations) {
+                    wordInWords.translations = {} // 如果没有translations，则初始化为空对象
+                }
+                if (!wordInWords.translations[actionName]) {
+                    wordInWords.translations[actionName] = { text: newText, format: 'markdown' }
+                } else {
+                    wordInWords.translations[actionName].text = newText
+                }
                 // 更新 words 数组中的 word 的 translations 对象
                 wordInWords.translations = draft.selectedWord.translations
             })
         )
     },
-
 })

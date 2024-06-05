@@ -67,6 +67,7 @@ import WordListUploader from './WordListUploader'
 import { fileService } from '../internal-services/file'
 import CategorySelector from './CategorySelector'
 import { Accordion, Panel } from 'baseui-sd/accordion'
+import { set } from 'date-fns'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -601,7 +602,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         const handleRuntimeMessage = (message: { type: string; text: string }) => {
             if (message.type === 'Text') {
                 const text = message.text
-                setOriginalText(text)
                 setEditableText(text)
             }
         }
@@ -623,7 +623,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [editableText, setEditableText] = useState(props.text)
     const [selectWordIdx, setSelectWordIdx] = useState(0)
     const [isSpeakingEditableText, setIsSpeakingEditableText] = useState(false)
-    const [originalText, setOriginalText] = useState(props.text)
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
@@ -658,12 +657,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             return
         }
         if (selectedWord.text && selectedWord.idx) {
-            console.log('words is not empty', words)
-
             const translations = words.find((w) => w.idx === selectedWord.idx)?.translations || {}
-            console.log('translations', translations)
             setEditableText(selectedWord.text)
-            setOriginalText(selectedWord.text)
             setSelectWordIdx(selectedWord.idx)
             if (translations) {
                 setTranslations(translations)
@@ -671,7 +666,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 setTranslations({})
             }
         } else {
-            console.log('word is empty')
+            console.debug('word is empty')
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedWord?.idx, words])
@@ -684,10 +679,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setEngine(engine)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [settings?.apiModel, settings?.provider, settings?.apiKey])
-
-    useEffect(() => {
-        setOriginalText(props.text)
-    }, [props.text, props.uuid])
 
     useEffect(() => {
         setTranslatedLines(translatedText.split('\n'))
@@ -709,6 +700,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const settingsIsUndefined = settings === undefined
     const [showTextParser, setShowTextParser] = useState(false)
     const [jsonText, setjsonText] = useState('')
+    const wordIdxRef = useRef(selectedWord?.idx)
     useEffect(() => {
         if (settingsIsUndefined) {
             return
@@ -738,7 +730,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             })
         })()
     }, [
-        originalText,
         isTranslate,
         settingsIsUndefined,
         settings?.defaultTargetLanguage,
@@ -917,13 +908,17 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         activateActionRef.current = activateAction
     }, [activateAction])
 
+    useEffect(() => {
+        console.log('selectedWordIdx is ', selectedWord?.idx)
+    }, [selectedWord])
+
     const translateText = useCallback(
         async (text: string, signal: AbortSignal, actionName?: string) => {
             if (!text || !activateAction?.id) {
                 return
             }
             if (text !== selectedWord?.text) {
-                if (activateAction.name !== (t('Sentence analysis') || '解释句子内容')) {
+                if (!activateAction.parentNames) {
                     setTranslations({})
                 }
                 selectWordNotInCurrentFile(text)
@@ -934,7 +929,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
             const action = await actionService.get(latestActivateAction.id)
             if (!action) {
-                console.log('action is undefined')
+                console.debug('action is undefined')
                 return
             }
 
@@ -1031,6 +1026,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     })
                                 } else {
                                     setTranslations((prev) => {
+
                                         const newTranslations = { ...prev }
                                         if (newTranslations[activateAction?.name]) {
                                             newTranslations[activateAction?.name] = {
@@ -1057,18 +1053,24 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             setTranslatedText((translatedText) => {
                                 const result = translatedText
                                 cache.set(cachedKey, result)
-                                const { messageId, conversationId, activateAction, setIsShowActionList } =
-                                    useChatStore.getState()
-                                const key = `${activateAction?.name}:${editableText}`
+                                const {
+                                    messageId,
+                                    conversationId,
+                                    activateAction,
+                                    setIsShowActionList,
+                                    updateTranslationText,
+                                } = useChatStore.getState()
+                                console.log('activateAction is ', activateAction)
+                                console.log('translatedText is ', translatedText)
+                                console.log('selectedWord idx is ', selectedWord?.idx)
+                                console.log('selectWordIdx is ', selectWordIdx)
+
                                 if (translatedText && activateAction?.name) {
-                                    useChatStore.getState().updateTranslationText(translatedText, activateAction?.name)
+                                    updateTranslationText(translatedText, activateAction?.name, editableText)
                                     setIsShowActionList(true)
-                                    // 更新selectedWord的翻译
-                                    console.log('selectWordIdx is ', selectWordIdx)
-                                    console.log('selectedWord is ', selectedWord?.idx)
 
                                     handleTranslationUpdate(
-                                        selectWordIdx,
+                                        selectedWord?.idx || selectWordIdx,
                                         activateAction?.name,
                                         editableText,
                                         translatedText,
@@ -1130,6 +1132,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             if (!finalFileId) {
                 return
             }
+
             await fileService.addOrUpdateTranslationInWord(
                 finalFileId,
                 wordIdx,
@@ -1160,7 +1163,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 // 等待更新状态，然后调用翻译函数
                 await new Promise((r) => setTimeout(r, 0)) // 确保状态更新完成
 
-                await translateText(originalText, signal, action.name) // 使用更新后的action执行翻译
+                await translateText(editableText, signal, action.name) // 使用更新后的action执行翻译
 
                 // 可能需要处理更多逻辑，比如检查是否有错误，是否需要停止等
             }
@@ -1171,11 +1174,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 controller.abort()
             }
         },
-        [originalText, setAction, translateText]
+        [editableText, setAction, translateText]
     )
     useEffect(() => {
         if (activateAction?.name === t('Sentence analysis') || translations[t('Sentence analysis')]) {
-            console.log('启用分析器')
 
             setShowTextParser(true)
             if (translatedText) {
@@ -1189,19 +1191,16 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             setShowTextParser(false)
             setjsonText('')
         }
-    }, [translatedText, t, ActivatedActionName, activateAction?.name, translations, editableText])
+    }, [translatedText, t, activateAction?.name, translations, editableText])
 
     useEffect(() => {
         console.log('isShowTextParser', showTextParser)
     }, [showTextParser])
 
     useEffect(() => {
-        if (editableText !== originalText) {
-            return
-        }
         const controller = new AbortController()
         const { signal } = controller
-        translateText(originalText, signal)
+        translateText(editableText, signal)
         return () => {
             controller.abort()
         }
@@ -1592,7 +1591,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             if (activateAction) {
                                                                 setAction(activateAction)
                                                             }
-                                                            setOriginalText(editableText)
                                                         }
                                                     }
                                                 }}
@@ -1644,7 +1642,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                 return
                                                             }
                                                             forceTranslate()
-                                                            setOriginalText(editableText)
                                                         }}
                                                         startEnhancer={<IoIosRocket size={13} />}
                                                         overrides={{
@@ -1899,7 +1896,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                                                     actionName.split(
                                                                                                         ':'
                                                                                                     )[0], // assuming key is activateAction.name:editableText
-                                                                                                originalText,
+                                                                                                editableText,
                                                                                                 text
                                                                                             )
                                                                                         }
