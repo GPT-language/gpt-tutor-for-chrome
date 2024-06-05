@@ -180,7 +180,6 @@ export class FileService {
         let word: Word | undefined
         console.log('file words is ', file.words)
         // 这里传入的wordText是最新的输入内容，但是传入的idx仍然是之前激活action的idx
-        // 所以当存在有父action时，使用idx将translation保存在父action中；否则使用wordText将translation保存在当前action中
         if (isParent) {
             word = file?.words.find((w) => w.idx === wordIdx)
         } else {
@@ -201,7 +200,13 @@ export class FileService {
             if (!word.translations) {
                 word.translations = {}
             }
-            word.translations[actionName] = { text, format, messageId, conversationId }
+            if (word.translations[actionName]) {
+                // 如果已存在翻译，追加新的翻译文本
+                word.translations[actionName].text += '\n' + text
+            } else {
+                // 如果不存在翻译，则新建
+                word.translations[actionName] = { text, format, messageId, conversationId }
+            }
         }
 
         await this.updateFile(fileId, { words: file.words })
