@@ -445,6 +445,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
     }, [i18n, settings?.i18n])
 
+    useEffect(() => {
+        const savedAction = localStorage.getItem('savedAction')
+        if (savedAction) {
+            const action = JSON.parse(savedAction)
+            setAction(action)
+        }
+    }, [setAction])
+
     const [autoFocus, setAutoFocus] = useState(false)
 
     useEffect(() => {
@@ -920,8 +928,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             if (text !== selectedWord?.text) {
                 if (!activateAction.parentNames) {
                     setTranslations({})
+                    selectWordNotInCurrentFile(text)
                 }
-                selectWordNotInCurrentFile(text)
             }
             const latestActivateAction = activateAction
             if (!latestActivateAction || !latestActivateAction.id) {
@@ -1134,9 +1142,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
 
             await fileService.addOrUpdateTranslationInWord(
+                activateAction?.parentNames ? true : false,
                 finalFileId,
-                wordIdx,
                 actionName,
+                wordIdx,
                 originalText,
                 translatedText,
                 outputFormat,
@@ -1169,7 +1178,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
 
             // 恢复原始action
-            setAction(originalAction)
+            setAction(originalAction as Action)
             return () => {
                 controller.abort()
             }
@@ -1192,10 +1201,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             setjsonText('')
         }
     }, [translatedText, t, activateAction?.name, translations, editableText])
-
-    useEffect(() => {
-        console.log('isShowTextParser', showTextParser)
-    }, [showTextParser])
 
     useEffect(() => {
         const controller = new AbortController()

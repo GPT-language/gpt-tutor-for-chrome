@@ -164,6 +164,11 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 nextReview: undefined, // 假设 History 类别不需要复习日期
                 reviewCount: 0,
             }
+            const activateAction = get().activateAction
+
+            if (activateAction?.parentNames) {
+                return
+            }
 
             console.log('Updated word for History:', updatedWord)
 
@@ -307,10 +312,6 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
     selectWordNotInCurrentFile: async (text) => {
         const { addWordToHistoryFile, activateAction } = get()
-        if (activateAction?.parentNames) {
-            console.log('activatedAction.parentNames', activateAction.parentNames)
-            return
-        }
         const category = 'History'
         const currentDate = new Date()
         const formattedDate = currentDate.toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期

@@ -35,10 +35,6 @@ function getObjectFromStorage(key: string, defaultValue: unknown) {
     return item ? JSON.parse(item) : defaultValue
 }
 
-export const getInitialChatState = async () => {
-    return initialChatState
-}
-
 export const initialChatState: ChatState = {
     currentText: '',
     sessionId: '',
@@ -47,7 +43,7 @@ export const initialChatState: ChatState = {
     ttsProvider: '',
     conversationId: '',
     messageId: '',
-    activateAction: getFromStorage('savedAction', undefined) as Action,
+    activateAction: undefined,
     activatedActionName: '',
     activatedModel: '',
     activatedProvider: '',

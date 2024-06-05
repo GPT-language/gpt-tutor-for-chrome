@@ -1,6 +1,4 @@
-import { v } from '@tauri-apps/api/event-30ea0228'
-import { SavedFile, Translations, Word, getLocalDB, ActionOutputRenderingFormat } from './db'
-import { useChatStore } from '@/store/file'
+import { Action, SavedFile, Translations, Word, getLocalDB, ActionOutputRenderingFormat } from './db'
 
 export class FileService {
     private db = getLocalDB()
@@ -168,9 +166,10 @@ export class FileService {
 
     // 添加翻译到文件中的某个单词
     async addOrUpdateTranslationInWord(
+        isParent: boolean,
         fileId: number,
-        wordIdx: number,
         actionName: string,
+        wordIdx: number,
         wordText: string,
         text: string,
         format: ActionOutputRenderingFormat,
@@ -180,7 +179,13 @@ export class FileService {
         const file = await this.fetchFileDetailsById(fileId)
         let word: Word | undefined
         console.log('file words is ', file.words)
-        word = file.words?.find((w) => w.text === wordText)
+        // 这里传入的wordText是最新的输入内容，但是传入的idx仍然是之前激活action的idx
+        // 所以当存在有父action时，使用idx将translation保存在父action中；否则使用wordText将translation保存在当前action中
+        if (isParent) {
+            word = file?.words.find((w) => w.idx === wordIdx)
+        } else {
+            word = file?.words.find((w) => w.text === wordText)
+        }
         if (!word) {
             // 使用更安全的方式生成新 idx
             const maxIdx = file.words?.reduce((max, w) => Math.max(max, w.idx), 0)
