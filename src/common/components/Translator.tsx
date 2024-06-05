@@ -680,6 +680,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [selectedWord?.idx, words])
 
     useEffect(() => {
+        if (!selectedWord) {
+            setShowTextParser(false)
+            return
+        }
+        if (!selectedWord.translations) {
+            setShowTextParser(false)
+            return
+        }
+        if (!selectedWord.translations[t('Sentence analysis')]) {
+            setShowTextParser(false)
+        }
+    }, [selectedWord, t, translations])
+
+    useEffect(() => {
         if (!settings) {
             return
         }
@@ -708,7 +722,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const settingsIsUndefined = settings === undefined
     const [showTextParser, setShowTextParser] = useState(false)
     const [jsonText, setjsonText] = useState('')
-    const wordIdxRef = useRef(selectedWord?.idx)
     useEffect(() => {
         if (settingsIsUndefined) {
             return
@@ -1008,6 +1021,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 if (message.isFullText) {
                                     return message.content
                                 }
+                                if (activateAction?.name === t('Sentence analysis') && !showTextParser) {
+                                    setShowTextParser(true)
+                                }
                                 const newTranslatedText = message.isFullText
                                     ? message.content
                                     : translatedText + message.content
@@ -1034,7 +1050,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     })
                                 } else {
                                     setTranslations((prev) => {
-
                                         const newTranslations = { ...prev }
                                         if (newTranslations[activateAction?.name]) {
                                             newTranslations[activateAction?.name] = {
@@ -1068,10 +1083,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     setIsShowActionList,
                                     updateTranslationText,
                                 } = useChatStore.getState()
-                                console.log('activateAction is ', activateAction)
-                                console.log('translatedText is ', translatedText)
-                                console.log('selectedWord idx is ', selectedWord?.idx)
-                                console.log('selectWordIdx is ', selectWordIdx)
 
                                 if (translatedText && activateAction?.name) {
                                     updateTranslationText(translatedText, activateAction?.name, editableText)
@@ -1186,8 +1197,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         [editableText, setAction, translateText]
     )
     useEffect(() => {
-        if (activateAction?.name === t('Sentence analysis') || translations[t('Sentence analysis')]) {
-
+        if (translations[t('Sentence analysis')]) {
             setShowTextParser(true)
             if (translatedText) {
                 setjsonText(translatedText)
@@ -1200,7 +1210,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             setShowTextParser(false)
             setjsonText('')
         }
-    }, [translatedText, t, activateAction?.name, translations, editableText])
+    }, [translatedText, t, activateAction?.name, translations])
 
     useEffect(() => {
         const controller = new AbortController()
