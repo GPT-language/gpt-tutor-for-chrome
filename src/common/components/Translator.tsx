@@ -939,7 +939,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 return
             }
             if (text !== selectedWord?.text) {
-                if (!activateAction.parentNames) {
+                if (!activateAction.parentIds) {
                     setTranslations({})
                     selectWordNotInCurrentFile(text)
                 }

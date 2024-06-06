@@ -89,26 +89,31 @@ async function getChatRequirements(accessToken: string) {
     }
 }
 
-function toBase64(str: string) {
-    const encoder = new TextEncoder() // 创建一个 TextEncoder 实例
-    const bytes = encoder.encode(str) // 编码字符串为UTF-8字节序列
-    const base64String = btoa(String.fromCharCode.apply(null, bytes)) // 将字节序列转换为字符，然后编码为Base64
-    return base64String
+function toBase64(str: string): string {
+    try {
+        const encoder = new TextEncoder() // 创建一个 TextEncoder 实例
+        const bytes = encoder.encode(str) // 编码字符串为UTF-8字节序列
+        const base64String = btoa(String.fromCharCode.apply(null, bytes as unknown as number[])) // 将字节序列转换为字符，然后编码为Base64
+        return base64String
+    } catch (error) {
+        console.error('Error encoding to Base64:', error, 'Input string:', str)
+        throw new Error('Failed to encode to Base64.') // 抛出新的错误，可以提供给调用者更清晰的错误信息
+    }
 }
 
 // https://github.com/tctien342/chatgpt-proxy/blob/9147a4345b34eece20681f257fd475a8a2c81171/src/openai.ts#L103
 // https://github.com/zatxm/aiproxy
-async function GenerateProofToken(seed: string, diff: string | number | unknown[], userAgent: string) {
+async function GenerateProofToken(seed: string, diff: string | number | unknown[], userAgent: string): Promise<string> {
     const cores = [1, 2, 4]
     const screens = [3008, 4010, 6000]
     const reacts = ['_reactListeningcfilawjnerp', '_reactListening9ne2dfo1i47', '_reactListening410nzwhan2a']
     const acts = ['alert', 'ontransitionend', 'onprogress']
     const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
 
-    const core = cores[randomInt(0, cores.length)]
-    const screen = screens[randomInt(0, screens.length)] + core
-    const react = cores[randomInt(0, reacts.length)]
-    const act = screens[randomInt(0, acts.length)]
+    const core = cores[randomInt(0, cores.length - 1)]
+    const screen = screens[randomInt(0, screens.length - 1)] + core
+    const react = reacts[randomInt(0, reacts.length - 1)]
+    const act = acts[randomInt(0, acts.length - 1)]
 
     const parseTime = new Date().toString()
 
@@ -128,22 +133,18 @@ async function GenerateProofToken(seed: string, diff: string | number | unknown[
         act,
     ]
 
-    const diffLen = diff.length
-
     for (let i = 0; i < 200000; i++) {
         config[3] = i
         const jsonData = JSON.stringify(config)
-        // eslint-disable-next-line no-undef
         const base = toBase64(jsonData)
         const hashValue = sha3_512.create().update(seed + base)
 
-        if (hashValue.hex().substring(0, diffLen) <= diff) {
+        if (hashValue.hex().substring(0, diff.length) <= diff) {
             const result = 'gAAAAAB' + base
             return result
         }
     }
 
-    // eslint-disable-next-line no-undef
     const fallbackBase = toBase64(`"${seed}"`)
     return 'gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D' + fallbackBase
 }
@@ -371,6 +372,7 @@ export class ChatGPT extends AbstractEngine {
                 headers = {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`,
+                    'Openai-Sentinel-Arkose-Token': arkoseToken,
                     'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
                     'openai-sentinel-proof-token': proofToken,
                     'Oai-Device-Id': oaiDeviceId!,

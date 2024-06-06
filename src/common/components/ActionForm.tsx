@@ -5,13 +5,15 @@ import { createForm } from './Form'
 import { Input } from 'baseui-sd/input'
 import { Textarea } from 'baseui-sd/textarea'
 import { Button } from 'baseui-sd/button'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { actionService } from '../services/action'
 import { createUseStyles } from 'react-jss'
 import { IThemedStyleProps } from '../types'
 import { useTheme } from '../hooks/useTheme'
 import { IconPicker } from './IconPicker'
 import { RenderingFormatSelector } from './RenderingFormatSelector'
+import ActionSelect from './ActionSelect'
+import { useChatStore } from '@/store/file'
 
 const useStyles = createUseStyles({
     placeholder: (props: IThemedStyleProps) => ({
@@ -42,11 +44,11 @@ export interface IActionFormProps {
 const { Form, FormItem } = createForm<ICreateActionOption>()
 
 export function ActionForm(props: IActionFormProps) {
+    const [actions, setActions] = useState<Action[]>([])
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType })
-
     const { t } = useTranslation()
-
+    const { activateAction } = useChatStore()
     const [loading, setLoading] = useState(false)
 
     const onSubmit = useCallback(
@@ -63,6 +65,30 @@ export function ActionForm(props: IActionFormProps) {
         },
         [props]
     )
+
+    useEffect(() => {
+        const fetchActions = async () => {
+            setLoading(true)
+            try {
+                const fetchedActions = await actionService.list() // Assuming this returns an array of actions
+                setActions(fetchedActions)
+            } catch (error) {
+                console.error('Failed to fetch actions:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchActions()
+    }, [])
+
+    useEffect(() => {
+        const childrenActionsId = activateAction?.childrenIds
+
+        if (childrenActionsId && activateAction?.id) {
+            actionService.addParentIdToChildren(activateAction.id, childrenActionsId)
+        }
+    }, [activateAction?.childrenIds, activateAction?.id])
 
     const rolePlaceholdersCaption = (
         <ul className={styles.placeholderCaptionContainer}>
@@ -121,13 +147,16 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='name' label={t('Name')}>
                 <Input size='compact' />
             </FormItem>
+            <FormItem name='childrenIds' label={t('Parent Actions')}>
+                <ActionSelect initialActions={actions}></ActionSelect>
+            </FormItem>
             <FormItem required name='icon' label={t('Icon')}>
                 <IconPicker />
             </FormItem>
             <FormItem required name='group' label={t('Group')}>
                 <Input size='compact' />
             </FormItem>
-            <FormItem required name='description' label={t('Description')}>
+            <FormItem name='description' label={t('Description')}>
                 <Input size='compact' />
             </FormItem>
             <FormItem name='rolePrompt' label={t('Role Prompt')} caption={rolePromptCaption}>
