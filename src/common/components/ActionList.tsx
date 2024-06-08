@@ -1,34 +1,30 @@
 import { memo, useState, useEffect } from 'react'
 import { Action } from '../internal-services/db'
 import { useChatStore } from '@/store/file'
-import { ListHeading } from 'baseui-sd/list'
 import { Button, KIND, SHAPE, SIZE } from 'baseui-sd/button'
 import { useTranslation } from 'react-i18next'
+import { actionInternalService } from '../internal-services/action'
+import { Select, Value } from 'baseui-sd/select'
 interface ActionListProps {
-    onActionClick: (action: Action) => void // 从父组件传入的处理函数
+    onActionClick: (action: Action | undefined) => void // 从父组件传入的处理函数
     performAll: (actions: Action[]) => void
 }
 
 const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll }) => {
-    const {
-        selectedWord,
-        addWordToLearningFile,
-        actions,
-        setAction,
-        activateAction,
-        isShowActionList,
-        isLoading,
-        selectedCategory,
-    } = useChatStore()
+    const { selectedWord, addWordToLearningFile, actions, activateAction, isShowActionList } = useChatStore()
+    const parentActions = actions.filter((action) => !action.parentIds)
     const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
-    const [isComleted, setIsCompleted] = useState(false)
+    const [isCompleted, setIsCompleted] = useState(false)
+    const [assistantActions, setAssistantActions] = useState<Action[]>([])
+    const [isShowAssistantList, setIsShowAssistantList] = useState(false)
+    const [value, setValue] = useState<Value>([])
     const { t } = useTranslation()
+
     const handlePerformAllClick = () => {
         performAll(actions)
     }
 
     const handleAddWordClick = async () => {
-        console.log('selectedWord in handleAddWordClick', selectedWord)
         setNextAction(undefined)
         setIsCompleted(false)
         if (!selectedWord) {
@@ -38,113 +34,107 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     }
 
     useEffect(() => {
-        if (!actions) {
+        if (!parentActions || !activateAction?.idx || activateAction.parentIds) {
             return
         }
-        if (actions.length === 1) {
+        if (parentActions.length === 1) {
             setNextAction(undefined)
             setIsCompleted(true)
         }
-        if (actions.length > 1) {
-            setNextAction(
-                activateAction?.idx ? actions.find((action) => action.idx === activateAction?.idx + 1) : actions[1]
-            )
+        if (parentActions.length > 1 && activateAction?.idx < parentActions.length - 1) {
+            setNextAction(actions.find((action) => action.idx === activateAction?.idx + 1))
             setIsCompleted(false)
-        }
-    }, [actions, activateAction?.idx, selectedCategory])
-
-    const handleActionClick = async (action: Action | undefined) => {
-        if (!action) {
-            return
-        }
-        setAction(action)
-        onActionClick(action)
-        console.log('handleActionClick', action)
-        if (!actions || !activateAction?.idx) {
-            return
-        }
-        console.log('activateAction?.idx', activateAction?.idx)
-        console.log('actions is not empty', actions)
-
-        const nextAction = actions.find((action) => action.idx === action.idx + 1)
-        console.log('next action is not empty', nextAction)
-
-        if (nextAction) {
-            setNextAction(nextAction)
-        } else {
+        } else if (parentActions.length > 1 && activateAction?.idx === parentActions.length - 1) {
             setIsCompleted(true)
         }
+    }, [actions, activateAction?.idx, activateAction?.parentIds, parentActions])
+
+    const handleShowActionList = (isShow: boolean) => {
+        setIsShowAssistantList(isShow)
     }
+
+    const handleSelectAndExecuteAction = (selectedIdx: number | string | undefined) => {
+        console.log('handleSelectAndExecuteAction', selectedIdx)
+        if (!selectedIdx) return
+        const action = assistantActions.find((a) => a.idx === selectedIdx)
+        console.log('handleSelectAndExecuteAction', action)
+        if (action) onActionClick(action)
+    }
+
+    useEffect(() => {
+        if (activateAction?.parentIds) {
+            handleShowActionList(false)
+            setAssistantActions([])
+        }
+    }, [activateAction?.parentIds])
+
+    useEffect(() => {
+        const fetchActions = async () => {
+            if (activateAction?.parentIds || !activateAction?.childrenIds) return
+            const childrenActionsId = activateAction?.childrenIds
+            console.log('childrenActionsId', childrenActionsId)
+
+            const childrenActions = await actionInternalService.getByChildrenIds(childrenActionsId)
+            console.log('childrenActions', childrenActions)
+
+            if (childrenActions) {
+                setAssistantActions(childrenActions)
+            }
+
+            console.log('assistantActions', assistantActions)
+        }
+        fetchActions()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activateAction?.childrenIds])
 
     if (!isShowActionList) {
         return null
     }
 
     return (
-        <div>
-            <ol>
-                {!isComleted && nextAction && !isLoading && (
-                    <ListHeading
-                        overrides={{
-                            HeadingContainer: {
-                                style: ({ $theme }) => ({
-                                    fontSize: '18px', // 使用主题中的尺寸变量，也可以直接使用像素值
-                                }),
-                            },
-                            SubHeadingContainer: {
-                                style: ({ $theme }) => ({
-                                    fontSize: '14px', // 使用主题中的尺寸变量，也可以直接使用像素值
-                                    color: $theme.colors.contentSecondary,
-                                }),
-                            },
-                        }}
-                        key={nextAction?.idx}
-                        heading={nextAction?.name}
-                        subHeading={nextAction?.description}
-                        endEnhancer={() => (
-                            <Button
-                                size={SIZE.compact}
-                                shape={SHAPE.default}
-                                kind={KIND.secondary}
-                                onClick={() => handleActionClick(nextAction)}
-                            >
-                                {t('确定')}
-                            </Button>
-                        )}
-                        maxLines={2}
-                    />
-                )}
-            </ol>
-            {isComleted && !isLoading && (
-                <ListHeading
-                    overrides={{
-                        HeadingContainer: {
-                            style: ({ $theme }) => ({
-                                fontSize: '18px', // 使用主题中的尺寸变量，也可以直接使用像素值
-                            }),
-                        },
-                        SubHeadingContainer: {
-                            style: ({ $theme }) => ({
-                                fontSize: '14px', // 使用主题中的尺寸变量，也可以直接使用像素值
-                                color: $theme.colors.contentSecondary,
-                            }),
-                        },
-                    }}
-                    heading={t('完成学习！💖')}
-                    subHeading={t('恭喜！你已经完成了该单词的学习，点击确定加入到复习中')}
-                    endEnhancer={() => (
-                        <Button
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <div style={{ width: '50%' }}>
+                {isShowAssistantList && (
+                    <div style={{ display: 'flex', marginBottom: '8px' }}>
+                        <Select
                             size={SIZE.compact}
-                            shape={SHAPE.default}
+                            options={assistantActions.map((action) => ({ id: action.idx, label: action.name }))}
+                            placeholder={t('Select an action')}
+                            value={value}
+                            labelKey='label'
+                            valueKey='id' // 确保每个选项的 value 对应于它的 id 属性
+                            onChange={({ value }) => setValue(value)}
+                        />
+                        <Button
                             kind={KIND.secondary}
-                            onClick={handleAddWordClick}
+                            size={SIZE.compact}
+                            onClick={() => handleSelectAndExecuteAction(value[0]?.id)}
                         >
-                            {t('Finish')}
+                            {t('Execute')}
                         </Button>
-                    )}
-                    maxLines={2}
-                />
-            )}
+                    </div>
+                )}
+                <div style={{ display: 'flex', marginBottom: '8px' }}>
+                    <Button
+                        size={SIZE.compact}
+                        shape={SHAPE.default}
+                        kind={KIND.tertiary}
+                        onClick={() => handleShowActionList(true)}
+                        style={{ width: '50%', marginRight: '8px' }}
+                    >
+                        <u>{t('存在疑惑？')}</u>
+                    </Button>
+                    <Button
+                        size={SIZE.compact}
+                        shape={SHAPE.default}
+                        kind={KIND.tertiary}
+                        onClick={isCompleted ? handleAddWordClick : () => onActionClick(nextAction)}
+                        style={{ width: '50%' }}
+                    >
+                        <u>{isCompleted ? t('Finish') : t('继续学习')}</u>
+                    </Button>
+                </div>
+            </div>
         </div>
     )
 })

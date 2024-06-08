@@ -361,8 +361,6 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
                 // 验证 selectedWord 是否存在于 words 数组中
                 const wordInWords = draft.words.find((word: Word) => word.text === wordContent)
-                console.log('wordInFile is', wordInFile)
-                console.log('file words is', file?.words)
                 // 处理 selectedWord 不在 words 中的情况
                 // 不在words就从历史记录中找
                 if (!wordInWords) {

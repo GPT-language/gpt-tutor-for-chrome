@@ -103,7 +103,7 @@ class ActionInternalService implements IActionInternalService {
 
     async getByChildrenIds(childrenIds: number[]): Promise<Action[] | undefined> {
         return await this.db.action
-            .where('childrenIds')
+            .where('id')
             .anyOf([...childrenIds])
             .toArray()
     }
