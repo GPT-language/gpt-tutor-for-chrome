@@ -13,6 +13,9 @@ export interface ChatState {
     actions: Action[]
     activateAction: Action | undefined
     isShowActionList: boolean
+    isShowMessageCard: boolean
+    showActionManager: boolean
+    showSettings: boolean
 }
 
 function getFromStorage(key: string, defaultValue: unknown) {
@@ -49,4 +52,7 @@ export const initialChatState: ChatState = {
     activatedProvider: '',
     accessToken: '',
     isShowActionList: false,
+    isShowMessageCard: false,
+    showActionManager: false,
+    showSettings: false,
 }

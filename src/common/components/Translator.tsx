@@ -7,7 +7,7 @@ import { Provider as StyletronProvider } from 'styletron-react'
 import { BaseProvider } from 'baseui-sd'
 import { Textarea } from 'baseui-sd/textarea'
 import { createUseStyles } from 'react-jss'
-import { AiOutlineTranslation, AiOutlineLock, AiOutlinePlusSquare } from 'react-icons/ai'
+import { AiOutlineTranslation, AiOutlineLock, AiOutlinePlusSquare, AiOutlineQuestionCircle } from 'react-icons/ai'
 import { GoSignOut } from 'react-icons/go'
 import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
@@ -67,7 +67,7 @@ import WordListUploader from './WordListUploader'
 import { fileService } from '../internal-services/file'
 import CategorySelector from './CategorySelector'
 import { Accordion, Panel } from 'baseui-sd/accordion'
-import { set } from 'date-fns'
+import MessageCard from './MessageCard'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -422,12 +422,16 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         words,
         setAction,
         isShowActionList,
+        isShowMessageCard,
+        toggleMessageCard,
         setIsShowActionList,
         selectWordNotInCurrentFile,
+        showActionManager,
+        setShowActionManager,
+        showSettings,
+        setShowSettings,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
-
-    const [showActionManager, setShowActionManager] = useState(false)
 
     const [translationFlag, forceTranslate] = useReducer((x: number) => x + 1, 0)
 
@@ -1153,7 +1157,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
 
             await fileService.addOrUpdateTranslationInWord(
-                activateAction?.parentNames ? true : false,
+                activateAction?.parentIds ? true : false,
                 finalFileId,
                 actionName,
                 wordIdx,
@@ -1229,7 +1233,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         chrome.storage.local.set({ selectedWord: JSON.stringify(selectedWord) })
     }, [selectedWord, translations])
 
-    const [showSettings, setShowSettings] = useState(false)
     useEffect(() => {
         if (!props.defaultShowSettings) {
             return
@@ -1241,7 +1244,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         ) {
             setShowSettings(true)
         }
-    }, [props.defaultShowSettings, settings])
+    }, [props.defaultShowSettings, setShowSettings, settings])
 
     const [isOCRProcessing, setIsOCRProcessing] = useState(false)
     const [showOCRProcessing, setShowOCRProcessing] = useState(false)
@@ -1922,6 +1925,23 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                                         />
                                                                                     </div>
                                                                                 </Tooltip>
+                                                                                <Tooltip
+                                                                                    content={t(
+                                                                                        'Any question to this answer?'
+                                                                                    )}
+                                                                                    placement='bottom'
+                                                                                >
+                                                                                    <div
+                                                                                        onClick={() =>
+                                                                                            toggleMessageCard()
+                                                                                        }
+                                                                                        className={styles.actionButton}
+                                                                                    >
+                                                                                        <AiOutlineQuestionCircle
+                                                                                            size={15}
+                                                                                        />
+                                                                                    </div>
+                                                                                </Tooltip>
                                                                             </>
                                                                         )}
                                                                     </div>
@@ -1958,7 +1978,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             {props.showSettings && (
                 <div className={styles.footer}>
                     <Tooltip content={showSettings ? t('Go to Translator') : t('Go to Settings')} placement='right'>
-                        <div onClick={() => setShowSettings((s) => !s)}>
+                        <div onClick={() => setShowSettings(!showSettings)}>
                             {showSettings ? <AiOutlineTranslation size={15} /> : <IoSettingsOutline size={15} />}
                         </div>
                     </Tooltip>
@@ -1988,6 +2008,28 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 </ModalHeader>
                 <ModalBody>
                     <ActionManager draggable={props.showSettings} />
+                </ModalBody>
+            </Modal>
+            <Modal
+                isOpen={isShowMessageCard}
+                onClose={() => {
+                    toggleMessageCard()
+                }}
+                closeable
+                size='auto'
+                autoFocus
+                animate
+                role='dialog'
+            >
+                <ModalHeader>
+                    <div
+                        style={{
+                            padding: 5,
+                        }}
+                    />
+                </ModalHeader>
+                <ModalBody>
+                    <MessageCard />
                 </ModalBody>
             </Modal>
             <Toaster />

@@ -11,6 +11,9 @@ export interface ChatAction {
     setActivatedProvider: (provider: string) => void
     setAccessToken: (token: string) => void
     setIsShowActionList: (isShow: boolean) => void
+    setShowActionManager: (isShow: boolean) => void
+    setShowSettings: (isShow: boolean) => void
+    toggleMessageCard: () => void
     setActions: (actions: Action[]) => void
     setAction: (action: Action) => void
 }
@@ -37,6 +40,9 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
     setActivatedProvider: (provider) => set({ activatedProvider: provider }),
     setAccessToken: (token) => set({ accessToken: token }),
     setIsShowActionList: (isShow) => set({ isShowActionList: isShow }),
+    setShowActionManager: (isShow) => set({ showActionManager: isShow }),
+    setShowSettings: (isShow) => set({ showSettings: isShow }),
+    toggleMessageCard: () => set((state) => ({ isShowMessageCard: !state.isShowMessageCard })),
     setActions: (actions: Action[]) => {
         set({ actions })
     },

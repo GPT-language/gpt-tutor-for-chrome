@@ -114,5 +114,17 @@
   "Delete this file": "Delete this file",
   "Upload a file": "Upload a file",
   "Sentence analysis": "Sentence analysis",
-  "Finish": "Finish"
+  "Open Settings": "Open Settings",
+  "Open ActionManager": "Open Action Manager",
+  "Visit Reddit": "Visit Reddit",
+  "Better Model": "Better Model",
+  "Prompt Enginering": "Prompt Enginering",
+  "Ask for Help on Reddit": "Ask for Help on Reddit",
+  "Join Our Learning Group": "Join Our Learning Group",
+  "Use a better model to get more accurate results": "Use a better model to get more accurate results",
+  "Adjust your prompt in the actionManager to get more accurate results": "Adjust your prompt in the actionManager to get more accurate results",
+  "There are a large number of native speakers on Reddit, where you can get quick and accurate answers": "There are a large number of native speakers on Reddit, where you can get quick and accurate answers",
+  "Join our learning group to get help": "Join our learning group to get help",
+  "Any question to this answer?": "Any question to this answer?",
+  "Finish": "Finish this subject and add to review"
 }
