@@ -103,6 +103,17 @@ export class FileService {
         return file.words.length
     }
 
+    // 通过文件名来获取length
+    async getWordLengthByName(category: string, name: string): Promise<number> {
+        const fileId = await this.getFileIdByName(category, name)
+        if (fileId) {
+            return this.getFileLengthById(fileId)
+        } else {
+            return 0
+        }
+    }
+
+
     // 创建文件
     async createFile(name: string, category: string, words?: Word[]): Promise<number> {
         if (words) {
@@ -142,16 +153,19 @@ export class FileService {
     }
 
     // 更新文件中的某个单词
-    async updateWordInFile(fileId: number, wordId: number, updatedWord: Word): Promise<void> {
+    async updateWordInFile(fileId: number, wordId: number, updatedWord: Word): Promise<Word[]> {
         const file = await this.fetchFileDetailsById(fileId)
         // 找到需要更新的单词的正确索引
         const index = file.words.findIndex((w) => w.idx === wordId)
         if (index !== -1) {
-            file.words[index] = updatedWord
+            file.words.splice(index, 1)
+            // 然后将更新后的单词添加到数组末尾
+            file.words.push(updatedWord)
             await this.updateFile(fileId, { words: file.words })
         } else {
             this.addWordToFile(fileId, updatedWord)
         }
+        return file.words
     }
 
     // 删除文件中的某个单词

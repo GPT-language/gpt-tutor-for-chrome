@@ -3,6 +3,7 @@ import i18n from '@/common/i18n'
 export interface ChatFileState {
     words: Word[]
     currentFileId: number
+    currentPage: number
     files: SavedFile[]
     categories: string[]
     selectedCategory: string
@@ -82,6 +83,7 @@ export const getInitialFileState = async (): Promise<ChatFileState> => {
     return {
         words: [],
         currentFileId,
+        currentPage: 1,
         files: [],
         categories,
         selectedCategory,
@@ -93,6 +95,7 @@ export const getInitialFileState = async (): Promise<ChatFileState> => {
 export const initialFileState: ChatFileState = {
     words: [], // 当前文件的单词
     currentFileId: getNumberFromStorage('currentFileId', 0),
+    currentPage: 1,
     files: [],
     categories: getFromStorage('categories', ['词汇', '表达', '语法', '复习', '历史记录']),
     selectedCategory: getFromStorage('currentCategory', '默认'),

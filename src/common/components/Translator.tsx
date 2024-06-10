@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { Key, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast, { Toaster } from 'react-hot-toast'
@@ -68,6 +67,7 @@ import { fileService } from '../internal-services/file'
 import CategorySelector from './CategorySelector'
 import { Accordion, Panel } from 'baseui-sd/accordion'
 import MessageCard from './MessageCard'
+import { autoUpdater } from 'electron'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -365,7 +365,6 @@ const useStyles = createUseStyles({
     }),
 })
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface IActionStrItem {
     beforeStr: string
     afterStr: string
@@ -430,6 +429,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowActionManager,
         showSettings,
         setShowSettings,
+        assistantActionText,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -602,7 +602,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setDisplayedActions(displayedActions)
         setHiddenActions(hiddenActions)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [actions, selectedGroup, activateAction])
+    }, [actions, selectedGroup, activateAction, displayedActionsMaxCount])
 
     const isTranslate = currentTranslateMode === 'translate'
 
@@ -629,7 +629,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
     const [isLoading, setIsLoading] = useState(false)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [newYouGlish, setNewYouGlish] = useState(false)
     const [showYouGlish, setShowYouGlish] = useState(false)
     const [editableText, setEditableText] = useState(props.text)
@@ -640,7 +639,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
     const [translations, setTranslations] = useState<Translations>({})
     const [activeKey, setActiveKey] = useState<Key | null>(null)
-
+    const [currentAction, setCurrentAction] = useState<Action | undefined>(undefined)
     const handleAccordionChange = (expanded: Array<React.Key>) => {
         setActiveKey(expanded.length > 0 ? expanded[0] : null)
     }
@@ -654,9 +653,19 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         getInitialFile()
     }, [getInitialFile])
 
-    const handleActionClick = async (action: Action) => {
+    const handleActionClick = async (action: Action | undefined) => {
+        if (!action) {
+            return
+        }
+
+        // 保存当前状态
+        if (action.parentIds) {
+            setCurrentAction(activateAction)
+        }
+
+        // 如果不需要暂时更改状态，只执行当前操作
         setAction(action)
-        forceTranslate()
+        forceTranslate() // 执行操作
     }
 
     useEffect(() => {
@@ -948,7 +957,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     selectWordNotInCurrentFile(text)
                 }
             }
+
             const latestActivateAction = activateAction
+
             if (!latestActivateAction || !latestActivateAction.id) {
                 return // Handle the case where latestActivateAction is undefined
             }
@@ -1169,6 +1180,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             )
         } catch (error) {
             console.error('Failed to update translation:', error)
+        } finally {
+            if (activateAction?.parentIds) {
+                // 使用辅助动作后返回到父动作
+                setAction(currentAction)
+            }
         }
     }
 
@@ -1219,7 +1235,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     useEffect(() => {
         const controller = new AbortController()
         const { signal } = controller
-        translateText(editableText, signal)
+        let finalText
+        if (activateAction?.parentIds && activateAction.name === t('Open Questioning')) {
+            finalText = assistantActionText
+        } else {
+            finalText = editableText
+        }
+        translateText(finalText, signal)
         return () => {
             controller.abort()
         }

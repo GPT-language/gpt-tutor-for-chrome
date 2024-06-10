@@ -15,9 +15,11 @@ const CategorySelector = () => {
         selectedCategory,
         addFile,
         selectFile,
+        selectWord,
         deleteFile,
         addCategory,
         deleteCategory,
+        deleteSelectedWord,
         setCurrentFileId,
         loadFiles,
         deleteWords,
@@ -53,10 +55,16 @@ const CategorySelector = () => {
         setSelectedCategory(cat)
         setHoverCategory(cat)
         localStorage.setItem('currentCategory', JSON.stringify(cat))
-        loadFiles(cat)
+        loadFiles(t(cat))
         deleteWords()
+        deleteSelectedWord()
         setCurrentFileId(0)
     }
+
+    useEffect(() => {
+        console.log('cat is' + selectedCategory)
+        console.log('t(cat) is ' + t(selectedCategory))
+    }, [selectedCategory, t])
 
     const handleAddCategory = () => {
         if (newCategory?.trim()) {
@@ -191,7 +199,6 @@ const CategorySelector = () => {
                                         'height': '38px',
                                         'maxWidth': '300px',
                                         'backgroundColor': 'rgba(255, 255, 255, 0.5)',
-                                        'borderColor': $theme.colors.borderError,
                                         ':hover': {
                                             borderColor: $theme.colors.borderPositive,
                                         },
@@ -241,7 +248,7 @@ const CategorySelector = () => {
                             onClick={(e) => {
                                 e.stopPropagation()
                                 deleteFile(currentFileId)
-                                loadFiles(selectedCategory)
+                                loadFiles(t(selectedCategory))
                             }}
                             style={{
                                 marginLeft: '5px',

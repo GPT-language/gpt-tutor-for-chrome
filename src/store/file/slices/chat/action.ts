@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { StateCreator } from 'zustand'
 import { ChatState } from './initialState'
 import { produce } from 'immer'
@@ -5,6 +6,8 @@ import { Action } from '@/common/internal-services/db'
 
 export interface ChatAction {
     setConversationId: (id: string) => void
+    setAssistantActionSessionId: (id: string) => void
+    setAssistantActionText: (text: string) => void
     setMessageId: (id: string) => void
     setActivatedActionName: (name: string) => void
     setActivatedModel: (model: string) => void
@@ -15,7 +18,8 @@ export interface ChatAction {
     setShowSettings: (isShow: boolean) => void
     toggleMessageCard: () => void
     setActions: (actions: Action[]) => void
-    setAction: (action: Action) => void
+    setAction: (action: Action | undefined) => void
+    setAssistantAction: (action: Action | undefined) => void
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set) => ({
@@ -27,6 +31,15 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
                 }
             })
         ),
+    setAssistantActionSessionId: (id) =>
+        set(
+            produce((draft: ChatState) => {
+                if (draft.assistantActionSessionId !== id) {
+                    draft.assistantActionSessionId = id
+                }
+            })
+        ),
+    setAssistantActionText: (text) => set({ assistantActionText: text }),
     setMessageId: (id) =>
         set(
             produce((draft: ChatState) => {
@@ -47,7 +60,6 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
         set({ actions })
     },
 
-    setAction: (activateAction: Action) => {
-        set({ activateAction })
-    },
+    setAction: (action) =>set({activateAction: action}),
+    setAssistantAction: (action) => set({ assistantAction: action }),
 })

@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand'
-import { produce } from 'immer'
+import { current, produce } from 'immer'
 import { parse } from 'papaparse'
 import { fileService } from '@/common/internal-services/file'
 import { ChatStore } from '../../store'
@@ -14,6 +14,7 @@ export interface ChatFileAction {
     deleteFile: (fileId: number) => Promise<void>
     addCategory: (category: string) => void
     deleteCategory: (category: string) => void
+    deleteSelectedWord: () => void
     searchWord: (searchTerm: string) => void
     selectWord: (word: Word) => void
     selectWordNotInCurrentFile: (text: string) => void
@@ -21,9 +22,10 @@ export interface ChatFileAction {
     loadWords: (fileId: number, pageNumber: number) => Promise<boolean>
     loadFiles: (selectedCategory: string) => Promise<void>
     setCurrentFileId: (fileId: number) => void
+    setCurrentPage: (page: number) => void
     setFiles: (files: SavedFile[]) => void
     setSelectedCategory: (category: string) => void
-    addWordToLearningFile: (word: Word) => Promise<void>
+    addWordToLearningFile: (word: Word, fileName: string, reviewCategory: string, isForget?: boolean) => Promise<void>
     addWordToHistoryFile: (word: Word) => Promise<void>
     checkIfInitialized: () => Promise<boolean>
     initializeReviewFiles(): Promise<void>
@@ -106,43 +108,59 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         console.log('Review files initialized successfully.')
     },
 
-    async addWordToLearningFile(word: Word) {
+    async addWordToLearningFile(word: Word, fileName: string, reviewCategory: string, isForget?: boolean) {
         try {
-            console.log('Starting to add/update word', word)
-            const { selectedCategory, currentFileId, selectWord, words } = get()
+            let fileLength
+            let nextReviewDate
+            let reviewCount
+            let newWordIdx
+            const { selectedCategory, currentFileId, selectWord } = get()
             const currentDate = new Date()
-            const reviewCount = word.reviewCount || 0
-            const nextReviewDate = fileService.getNextReviewDate(currentDate, reviewCount)
-            const fileName = i18n.t('To review ') + selectedCategory
-            const fileLength = currentFileId ? await fileService.getFileLengthByName(i18n.t('Review'), fileName) : 0
+            if (isForget) {
+                nextReviewDate = currentDate
+                reviewCount = 1
+            } else {
+                reviewCount = word.reviewCount || 0
+                nextReviewDate = fileService.getNextReviewDate(currentDate, reviewCount)
+            }
+
+            if (selectedCategory !== 'Review') {
+                fileLength = await fileService.getFileLengthByName(reviewCategory, fileName)
+            } else {
+                fileLength = await fileService.getFileLengthById(currentFileId)
+            }
+
+            if (reviewCount === 0) {
+                newWordIdx = fileLength + 1
+            } else {
+                newWordIdx = word.idx
+            }
+
             const updatedWord = {
                 ...word,
-                idx: fileLength + 1,
+                idx: newWordIdx,
                 lastReviewed: currentDate,
                 nextReview: nextReviewDate,
                 reviewCount: reviewCount + 1,
             }
 
-            console.log('Updated word:', updatedWord)
-
-            if (selectedCategory === i18n.t('Review') && currentFileId) {
-                console.log('Updating word in file with ID:', currentFileId)
-                await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
-                const reviewedWords = words.filter((w) => w.idx !== word.idx)
-                set({ words: reviewedWords })
-                const nextWord = reviewedWords[0]
+            if (selectedCategory === reviewCategory && currentFileId) {
+                const updatedWords = await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
+                const disPlayedWords = updatedWords.filter((word) => word.nextReview && word.nextReview <= currentDate)
+                set({ words: disPlayedWords })
+                const nextWord = disPlayedWords[0]
                 selectWord(nextWord || null)
                 console.log('Selected next word or cleared:', nextWord)
             } else {
-                console.log('Fetching files for category 学习')
-                const files = await fileService.fetchFilesByCategory(i18n.t('Review'))
+                console.log('Fetching files for category' + reviewCategory)
+                const files = await fileService.fetchFilesByCategory(reviewCategory)
                 const targetFile = files.find((file) => file.name === fileName)
                 if (targetFile?.id) {
                     console.log('Updating word in existing file:', targetFile.id)
                     await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
                 } else {
                     console.log('Creating new file:', fileName)
-                    await fileService.createFile(fileName, i18n.t('学习'), [updatedWord])
+                    await fileService.createFile(fileName, reviewCategory, [updatedWord])
                 }
             }
         } catch (error) {
@@ -166,7 +184,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             }
             const activateAction = get().activateAction
 
-            if (activateAction?.parentNames) {
+            if (activateAction?.parentIds) {
                 return
             }
 
@@ -189,9 +207,12 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     loadWords: async (fileId, pageNumber) => {
+        if (fileId === 0) {
+            return false
+        }
         const currentCategory = get().selectedCategory
         try {
-            if (currentCategory === i18n.t('学习')) {
+            if (currentCategory === 'Review') {
                 const reviewWords = await fileService.getWordsToReviewByFileId(fileId)
                 if (reviewWords) {
                     set(
@@ -230,6 +251,10 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     setCurrentFileId: (fileId: number) => {
         set({ currentFileId: fileId })
         localStorage.setItem('currentFileId', fileId.toString())
+    },
+
+    setCurrentPage: (page: number) => {
+        set({ currentPage: page })
     },
 
     setFiles: (files: SavedFile[]) => {
@@ -334,6 +359,10 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 draft.words = []
             })
         )
+    },
+
+    deleteSelectedWord: () => {
+        set({ selectedWord: null })
     },
 
     // 该方法并不处理indexDB中的保存，只负责更新显示状态

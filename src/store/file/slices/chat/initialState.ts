@@ -1,7 +1,8 @@
 import { Action } from '@/common/internal-services/db'
 export interface ChatState {
-    currentText: string
+    assistantActionText: string
     sessionId: string
+    assistantActionSessionId: string
     isLoading: boolean
     ttsProvider: string
     conversationId: string
@@ -11,6 +12,7 @@ export interface ChatState {
     activatedProvider: string
     accessToken: string
     actions: Action[]
+    assistantAction: Action | undefined
     activateAction: Action | undefined
     isShowActionList: boolean
     isShowMessageCard: boolean
@@ -39,14 +41,16 @@ function getObjectFromStorage(key: string, defaultValue: unknown) {
 }
 
 export const initialChatState: ChatState = {
-    currentText: '',
+    assistantActionText: '',
     sessionId: '',
+    assistantActionSessionId: '',
     isLoading: false,
     actions: [],
     ttsProvider: '',
     conversationId: '',
     messageId: '',
     activateAction: undefined,
+    assistantAction: undefined,
     activatedActionName: '',
     activatedModel: '',
     activatedProvider: '',

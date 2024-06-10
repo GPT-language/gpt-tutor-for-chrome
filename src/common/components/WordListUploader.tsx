@@ -19,27 +19,15 @@ const WordListUploader = () => {
         loadFiles,
         getInitialFile,
         setIsShowActionList,
+        currentPage,
+        setCurrentPage,
     } = useChatStore()
     const itemsPerPage = 10
     const [searchTerm, setSearchTerm] = useState<string>('')
     const [numPages, setNumPages] = useState<number>(1)
     const [IsInitialized, setIsInitialized] = useState<boolean>(false)
-    const [currentPage, setCurrentPage] = useState<number>(1)
-    const [displayWords, setDisplayWors] = useState<Word[]>(words)
     const [isHovering, setIsHovering] = useState(false)
-    useEffect(() => {
-        if (words.length > 10) {
-            setCurrentPage(1)
-            console.log('getDisplayedWords', words)
-            const startIndex = 1
-            const endIndex = 10
-            console.log(words.slice(startIndex - 1, endIndex))
-            setDisplayWors(words.slice(startIndex - 1, endIndex))
-        } else {
-            setDisplayWors(words)
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [words, selectedWord?.idx])
+    const [displayWords, setDisplayWords] = useState<Word[]>(words)
 
     const handleSearchSubmit = () => {
         searchWord(searchTerm)
@@ -76,13 +64,14 @@ const WordListUploader = () => {
 
     useEffect(() => {
         async function initialize() {
-            const isInitialized = await getInitialFile() // 确保这个函数是异步的且返回布尔值
+            const isInitialized = await getInitialFile()
             if (isInitialized) {
                 setIsInitialized(true)
             }
         }
 
         initialize()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
@@ -101,7 +90,7 @@ const WordListUploader = () => {
         if (!IsInitialized) {
             return
         }
-        if (!selectedWords) {
+        if (!selectedWords[currentFileId]) {
             loadWords(currentFileId, 1)
             setCurrentPage(1)
             selectWord(words[0])
@@ -126,6 +115,18 @@ const WordListUploader = () => {
     useEffect(() => {
         loadFiles(selectedCategory)
     }, [selectedCategory, loadFiles])
+
+    useEffect(() => {
+        // 筛除nextReview还没到的单词
+        // 后续还要增加reviewCount的筛除
+        if (selectedCategory === 'Review') {
+            setDisplayWords(words.filter((word) => word.nextReview && word.nextReview <= new Date()))
+        } else {
+            setDisplayWords(words)
+        }
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [words])
 
     return (
         <div style={{ height: '100%', overflow: 'auto', width: 'auto' }}>
