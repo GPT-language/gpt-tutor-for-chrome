@@ -20,6 +20,10 @@ export function RenderingFormatSelector({ value, onChange, ...props }: IRenderin
             id: 'latex',
             label: 'LaTeX',
         },
+        {
+            id: 'json',
+            label: 'JSON',
+        }
     ] as {
         id: ActionOutputRenderingFormat
         label: React.ReactNode

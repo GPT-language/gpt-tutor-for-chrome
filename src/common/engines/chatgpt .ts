@@ -305,11 +305,18 @@ export class ChatGPT extends AbstractEngine {
                 getChatRequirements(accessToken), // 确保传递 apiKey
             ])
 
-            this.model = await this.getModel()
+            let model
+
+            if (req.activateAction.useBetterModel) {
+                model = 'gpt-4'
+            } else {
+                model = await this.getModel()
+            }
+            this.model = model
 
             const messageId = uuidv4()
 
-            const lastConversationId = await this.getConversationId(req.activatedActionName, this.model)
+            const lastConversationId = await this.getConversationId(req.activateAction.name, this.model)
 
             const userAgent =
                 process.env.USER_AGENT ||
@@ -412,7 +419,7 @@ export class ChatGPT extends AbstractEngine {
             })
 
             if (response.status === 404) {
-                this.removeConversationId(req.activatedActionName, this.model)
+                this.removeConversationId(req.activateAction.name, this.model)
                 throw new Error(
                     `API call failed with status ${response.status}: ${response.statusText}, please try again.`
                 )
@@ -488,7 +495,7 @@ export class ChatGPT extends AbstractEngine {
             if (finished) return
             try {
                 resp = JSON.parse(message)
-                this.saveConversationContext(req.activatedActionName, this.model, {
+                this.saveConversationContext(req.activateAction.name, this.model, {
                     conversationId: resp.conversation_id,
                 })
 

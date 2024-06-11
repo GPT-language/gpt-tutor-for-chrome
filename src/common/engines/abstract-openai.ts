@@ -3,6 +3,7 @@ import { useChatStore } from '@/store/file'
 import { fetchSSE } from '../utils'
 import { AbstractEngine } from './abstract-engine'
 import { IMessageRequest, IModel } from './interfaces'
+import { Action } from '../internal-services/db'
 
 export abstract class AbstractOpenAI extends AbstractEngine {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -52,41 +53,42 @@ export abstract class AbstractOpenAI extends AbstractEngine {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async getBaseRequestBody(): Promise<Record<string, any>> {
+    async getBaseRequestBody(activatedAction?: Action): Promise<Record<string, any>> {
         const model = await this.getAPIModel()
         const response_format = { type: 'json_object' }
-        const activatedActionName = useChatStore.getInitialState().activatedActionName
-        console.log('请求中的activatedActionName', activatedActionName)
-
-        if (model === 'gpt-3.5-turbo-1106' || model === 'gpt-4-turbo') {
-            console.log('启用json模式')
-
-            return {
-                model,
-                response_format,
-                temperature: 0,
-                top_p: 1,
-                frequency_penalty: 1,
-                presence_penalty: 1,
-                stream: true,
-            }
-        } else {
-            return {
-                model,
-                temperature: 0,
-                top_p: 1,
-                frequency_penalty: 1,
-                presence_penalty: 1,
-                stream: true,
-            }
+        const requestBody = {
+            model,
+            temperature: 0,
+            top_p: 1,
+            frequency_penalty: 1,
+            presence_penalty: 1,
+            stream: true,
         }
+
+        // Check if a better model should be used
+        if (activatedAction?.useBetterModel) {
+            requestBody.model = 'gpt-4-turbo'
+        }
+
+        // Handle different output formats
+        switch (activatedAction?.outputRenderingFormat) {
+            case 'json':
+                response_format.type = 'json_object'
+                requestBody.model = 'gpt-4-1106-preview'
+                break
+            default:
+                // The default case will use the model set above
+                break
+        }
+
+        return requestBody
     }
 
     async sendMessage(req: IMessageRequest): Promise<void> {
         const url = `${await this.getAPIURL()}${await this.getAPIURLPath()}`
         const headers = await this.getHeaders()
         const isChatAPI = await this.isChatAPI()
-        const body = await this.getBaseRequestBody()
+        const body = await this.getBaseRequestBody(req.activateAction)
         if (!isChatAPI) {
             // Azure OpenAI Service supports multiple API.
             // We should check if the settings.apiURLPath is match `/deployments/{deployment-id}/chat/completions`.
