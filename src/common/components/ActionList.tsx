@@ -205,7 +205,15 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                                     alignItems: 'center',
                                 }}
                             >
-                                <div style={{ display: 'flex', marginBottom: '8px', justifyContent: 'center' }}>
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'row',
+                                        marginBottom: '8px',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                    }}
+                                >
                                     <Select
                                         size={SIZE.compact}
                                         options={assistantActions.map((action) => ({
@@ -226,7 +234,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                                         {t('Execute')}
                                     </Button>
                                 </div>
-                                <div style={{ minWidth: '300px' }}>
+                                <div style={{ minWidth: '200px' }}>
                                     <Textarea
                                         onChange={(e) => setAssistantActionText(e.currentTarget.value)}
                                         value={assistantActionText}
