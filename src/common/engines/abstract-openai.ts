@@ -1,5 +1,4 @@
 /* eslint-disable camelcase */
-import { useChatStore } from '@/store/file'
 import { fetchSSE } from '../utils'
 import { AbstractEngine } from './abstract-engine'
 import { IMessageRequest, IModel } from './interfaces'

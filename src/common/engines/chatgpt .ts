@@ -153,6 +153,39 @@ export async function registerWebsocket(accessToken: string): Promise<{ wss_url:
     return callBackendAPIWithToken(accessToken, 'POST', '/register-websocket').then((resp) => resp.json())
 }
 
+export async function listModels(): Promise<IModel[]> {
+    const fetcher = getUniversalFetch()
+    const accessToken = await utils.getAccessToken(true)
+
+    const headers: Record<string, string> = {
+        Authorization: `Bearer ${accessToken}`,
+    }
+    const modelsResp = await fetcher(`${utils.defaultChatGPTWebAPI}/models`, {
+        cache: 'no-cache',
+        headers,
+    })
+    const modelsRespJsn = await modelsResp.json()
+    if (!modelsRespJsn) {
+        return []
+    }
+    if (modelsResp.status !== 200) {
+        if (modelsResp.status === 401) {
+            throw new Error('ChatGPT is not login')
+        }
+        return []
+    }
+    const { models } = modelsRespJsn
+    if (!models) {
+        return []
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return models.map((model: any) => ({
+        name: `${model.title} (${model.tags.join(', ')})`,
+        description: model.description,
+        id: model.slug,
+    }))
+}
+
 interface ConversationContext {
     messageId?: string
     conversationId?: string
@@ -169,7 +202,7 @@ export class ChatGPT extends AbstractEngine {
     constructor() {
         super()
         this.context = {}
-        this.model = 'gpt-3.5-turbo'
+        this.model = 'text-davinci-003'
         this.store = useChatStore
     }
 
@@ -305,10 +338,13 @@ export class ChatGPT extends AbstractEngine {
                 getChatRequirements(accessToken), // 确保传递 apiKey
             ])
 
-            let model
+            let model = 'text-davinci-003'
 
-            if (req.activateAction.useBetterModel) {
-                model = 'gpt-4'
+            if (req.activateAction.model) {
+                const [provider, modelName] = req.activateAction.model.split('&')
+                if (provider === 'ChatGPT') {
+                    model = modelName
+                }
             } else {
                 model = await this.getModel()
             }

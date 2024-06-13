@@ -14,6 +14,7 @@ import { IconPicker } from './IconPicker'
 import { RenderingFormatSelector } from './RenderingFormatSelector'
 import ActionSelect from './ActionSelect'
 import { useChatStore } from '@/store/file'
+import ModelSelect from './ModelSelect'
 
 const useStyles = createUseStyles({
     placeholder: (props: IThemedStyleProps) => ({
@@ -147,7 +148,7 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='name' label={t('Name')}>
                 <Input size='compact' />
             </FormItem>
-            <FormItem name='childrenIds' label={t('Parent Actions')}>
+            <FormItem name='childrenIds' label={t('Assistant Actions')}>
                 <ActionSelect initialActions={actions}></ActionSelect>
             </FormItem>
             <FormItem required name='icon' label={t('Icon')}>
@@ -164,6 +165,9 @@ export function ActionForm(props: IActionFormProps) {
             </FormItem>
             <FormItem required name='commandPrompt' label={t('Command Prompt')} caption={commandPromptCaption}>
                 <Textarea size='compact' />
+            </FormItem>
+            <FormItem name='model' label={t('Model')}>
+                <ModelSelect></ModelSelect>
             </FormItem>
             <FormItem name='outputRenderingFormat' label={t('Output rendering format')}>
                 <RenderingFormatSelector />

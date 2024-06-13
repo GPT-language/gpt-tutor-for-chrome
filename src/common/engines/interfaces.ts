@@ -1,3 +1,5 @@
+import { Action } from '../internal-services/db'
+
 export interface IModel {
     id: string
     name: string
@@ -10,7 +12,7 @@ export interface IMessage {
 }
 
 export interface IMessageRequest {
-    activatedActionName: string
+    activateAction: Action
     rolePrompt: string
     commandPrompt: string
     assistantPrompts?: string[]

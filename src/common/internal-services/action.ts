@@ -5,9 +5,9 @@ export interface ICreateActionOption {
     name: string
     parentIds?: number[]
     childrenIds?: number[]
+    model?: string
     group?: string
     description?: string
-    useBetterModel?: boolean
     mode?: TranslateMode
     icon?: string
     rolePrompt?: string
@@ -20,7 +20,7 @@ export interface IUpdateActionOption {
     name?: string
     parentIds?: number[]
     description?: string
-    useBetterModel?: boolean
+    model?: string
     group?: string
     mode?: TranslateMode
     icon?: string

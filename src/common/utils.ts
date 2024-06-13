@@ -4,6 +4,9 @@ import { IBrowser, ISettings } from './types'
 import { getUniversalFetch } from './universal-fetch'
 import { Action } from './internal-services/db'
 import Browser from 'webextension-polyfill'
+import { Provider } from './engines'
+import { IModel } from './engines/interfaces'
+import { listModels } from './engines/chatgpt '
 
 export const defaultAPIURL = 'https://api.openai.com'
 export const defaultAPIURLPath = '/v1/chat/completions'
@@ -72,6 +75,26 @@ export async function getAccessToken(refresh = false): Promise<string> {
             // Token 未过期，直接从 localStorage 返回
             return localStorage.getItem('accessToken') || '' // 确保返回类型一致，避免 null
         }
+    } catch (error) {
+        console.error('Error fetching accessToken:', error)
+        throw error // 重新抛出错误，确保错误处理
+    }
+}
+
+export async function getAccessTokenWithoutLocalStorage(): Promise<string> {
+    let resp: Response | null = null
+    const controller = new AbortController()
+    const signal = controller.signal // 使用 AbortController 获取 signal
+
+    try {
+        resp = await fetch(defaultChatGPTAPIAuthSession, { signal: signal })
+        if (resp.status !== 200) {
+            throw new Error('Failed to fetch ChatGPT Web accessToken.')
+        }
+        const respJson = await resp.json()
+        const apiKey = respJson.accessToken
+
+        return apiKey
     } catch (error) {
         console.error('Error fetching accessToken:', error)
         throw error // 重新抛出错误，确保错误处理
@@ -502,4 +525,37 @@ export async function callBackendAPIWithToken(token: string, method: string, end
         throw new Error('Token expired or invalid, please try again.')
     }
     return response
+}
+
+export async function getModels(provider: Provider): Promise<IModel[]> {
+    switch (provider) {
+        case 'OpenAI':
+            return [
+                { name: 'gpt-3.5-turbo-1106', id: 'OpenAI&gpt-3.5-turbo-1106' },
+                { name: 'gpt-3.5-turbo', id: 'OpenAI&gpt-3.5-turbo' },
+                { name: 'gpt-3.5-turbo-0613', id: 'OpenAI&gpt-3.5-turbo-0613' },
+                { name: 'gpt-3.5-turbo-0301', id: 'OpenAI&gpt-3.5-turbo-0301' },
+                { name: 'gpt-3.5-turbo-16k', id: 'OpenAI&gpt-3.5-turbo-16k' },
+                { name: 'gpt-3.5-turbo-16k-0613', id: 'OpenAI-gpt-3.5-turbo-16k-0613' },
+                { name: 'gpt-4', id: 'OpenAI-gpt-4' },
+                { name: 'gpt-4-turbo (recommended)', id: 'OpenAI&gpt-4-turbo' },
+                { name: 'gpt-4-turbo-2024-04-09', id: 'OpenAI&gpt-4-turbo-2024-04-09' },
+                { name: 'gpt-4-turbo-preview', id: 'OpenAI&gpt-4-turbo-preview' },
+                { name: 'gpt-4-0125-preview ', id: 'OpenAI&gpt-4-0125-preview' },
+                { name: 'gpt-4-1106-preview', id: 'OpenAI&gpt-4-1106-preview' },
+                { name: 'gpt-4-0314', id: 'OpenAI&gpt-4-0314' },
+                { name: 'gpt-4-0613', id: 'OpenAI&gpt-4-0613' },
+                { name: 'gpt-4-32k', id: 'OpenAI&gpt-4-32k' },
+                { name: 'gpt-4-32k-0314', id: 'OpenAI&gpt-4-32k-0314' },
+                { name: 'gpt-4-32k-0613', id: 'OpenAI&gpt-4-32k-0613' },
+            ]
+        case 'ChatGPT':
+            return [
+                { name: 'gpt-3.5', id: 'ChatGPT&text-davinci-003' },
+                { name: 'gpt-4', id: 'ChatGPT&gpt-4' },
+                { name: 'gpt-4o', id: 'ChatGPT&gpt-4o' },
+            ]
+        default:
+            throw new Error('Unsupported provider')
+    }
 }

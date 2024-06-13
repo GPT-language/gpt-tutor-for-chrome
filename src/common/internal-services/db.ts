@@ -8,7 +8,7 @@ export interface Action {
     idx: number
     mode?: TranslateMode
     name: string
-    useBetterModel?: boolean
+    model?: string
     description?: string
     group?: string
     icon?: string
@@ -56,8 +56,8 @@ export class LocalDB extends Dexie {
 
     constructor() {
         super('gpt-tutor')
-        this.version(8).stores({
-            action: '++id, idx, mode, name, group, description, useBetterModel, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt, parentIds, childrenIds',
+        this.version(9).stores({
+            action: '++id, idx, mode, name, group, description, model, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt, parentIds, childrenIds',
             files: '++id, name, words,category',
         })
         this.action = this.table('action')

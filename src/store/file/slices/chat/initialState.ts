@@ -18,6 +18,7 @@ export interface ChatState {
     isShowMessageCard: boolean
     showActionManager: boolean
     showSettings: boolean
+    actionStr: string
 }
 
 function getFromStorage(key: string, defaultValue: unknown) {
@@ -59,4 +60,5 @@ export const initialChatState: ChatState = {
     isShowMessageCard: false,
     showActionManager: false,
     showSettings: false,
+    actionStr: '',
 }
