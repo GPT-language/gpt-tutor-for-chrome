@@ -117,16 +117,25 @@ const WordListUploader = () => {
     }, [selectedCategory, loadFiles])
 
     useEffect(() => {
+        loadWords(currentFileId, currentPage)
+    }, [currentFileId, currentPage, loadWords])
+
+    useEffect(() => {
         // 筛除nextReview还没到的单词
         // 后续还要增加reviewCount的筛除
         if (selectedCategory === 'Review') {
-            setDisplayWords(words.filter((word) => word.nextReview && word.nextReview <= new Date()))
+            const reviewWords = words.filter((word) => word.nextReview && word.nextReview <= new Date())
+            // 根据当前页码计算起始索引和终止索引
+            const startIndex = (currentPage - 1) * itemsPerPage
+            const endIndex = startIndex + itemsPerPage
+            // 切割数组以只包含当前页的单词
+            setDisplayWords(reviewWords.slice(startIndex, endIndex))
         } else {
             setDisplayWords(words)
         }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [words])
+    }, [words, currentPage, selectedCategory])
 
     return (
         <div style={{ height: '100%', overflow: 'auto', width: 'auto' }}>
