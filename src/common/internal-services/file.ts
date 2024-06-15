@@ -192,7 +192,7 @@ export class FileService {
     ): Promise<void> {
         const file = await this.fetchFileDetailsById(fileId)
         let word: Word | undefined
-        console.log('file words is ', file.words)
+        console.log('file words is in addOrUpdateTranslationInWord ', file.words)
         // 这里传入的wordText是最新的输入内容，但是传入的idx仍然是之前激活action的idx
         if (isParent) {
             word = file?.words.find((w) => w.idx === wordIdx)

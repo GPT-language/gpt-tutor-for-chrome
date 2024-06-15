@@ -20,6 +20,7 @@ export interface ChatAction {
     setActions: (actions: Action[]) => void
     setAction: (action: Action | undefined) => void
     setAssistantAction: (action: Action | undefined) => void
+    setActionStr: (text: string) => void
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set) => ({
@@ -62,4 +63,5 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
 
     setAction: (action) =>set({activateAction: action}),
     setAssistantAction: (action) => set({ assistantAction: action }),
+    setActionStr: (text) => set({ actionStr: text }),
 })

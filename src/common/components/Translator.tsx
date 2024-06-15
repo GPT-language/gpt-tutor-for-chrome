@@ -58,7 +58,7 @@ import { GlobalSuspense } from './GlobalSuspense'
 import YouGlishComponent from '../youglish/youglish'
 import { LANG_CONFIGS } from '../components/lang/data'
 import { useChatStore } from '@/store/file'
-import { getEngine } from '../engines'
+import { Provider, getEngine } from '../engines'
 import { IEngine } from '../engines/interfaces'
 import TextParser from './TextParser'
 import ActionList from './ActionList'
@@ -67,7 +67,6 @@ import { fileService } from '../internal-services/file'
 import CategorySelector from './CategorySelector'
 import { Accordion, Panel } from 'baseui-sd/accordion'
 import MessageCard from './MessageCard'
-import { autoUpdater } from 'electron'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -416,20 +415,21 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         activateAction,
         currentFileId,
         selectedWord,
+        deleteSelectedWord,
         getInitialFile,
         setActions,
         words,
         setAction,
-        isShowActionList,
         isShowMessageCard,
         toggleMessageCard,
-        setIsShowActionList,
         selectWordNotInCurrentFile,
         showActionManager,
         setShowActionManager,
         showSettings,
         setShowSettings,
         assistantActionText,
+        actionStr,
+        setActionStr,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -665,55 +665,48 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
         // 如果不需要暂时更改状态，只执行当前操作
         setAction(action)
+        if (!selectedWord || editableText !== selectedWord?.text) {
+            setEditableText(selectedWord?.text ?? '')
+        }
         forceTranslate() // 执行操作
     }
 
+    // 只有在selectedWord存在且idx改变时触发
     useEffect(() => {
-        console.log('selectedWord', selectedWord)
         if (!selectedWord) {
-            console.log('selectedWord is empty')
-            if (activateAction?.name !== t('Sentence analysis')) {
-                setTranslations({})
-            }
+            console.log('selectedWord is empty, clear translations')
             return
         }
         if (selectedWord.text && selectedWord.idx) {
-            const translations = words.find((w) => w.idx === selectedWord.idx)?.translations || {}
+            const selectedWordTranslations = words.find((w) => w.idx === selectedWord.idx)?.translations || {}
             setEditableText(selectedWord.text)
             setSelectWordIdx(selectedWord.idx)
-            if (translations) {
-                setTranslations(translations)
-            } else {
-                setTranslations({})
+            if (selectedWordTranslations) {
+                setTranslations(selectedWordTranslations)
+                if (translations[t('Sentence Analysis')]) {
+                    setjsonText(translations[t('Sentence Analysis')].text)
+                }
             }
         } else {
             console.debug('word is empty')
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedWord?.idx, words])
 
-    useEffect(() => {
-        if (!selectedWord) {
-            setShowTextParser(false)
-            return
-        }
-        if (!selectedWord.translations) {
-            setShowTextParser(false)
-            return
-        }
-        if (!selectedWord.translations[t('Sentence analysis')]) {
-            setShowTextParser(false)
-        }
-    }, [selectedWord, t, translations])
+    }, [selectedWord?.idx])
 
     useEffect(() => {
         if (!settings) {
             return
         }
-        const engine = getEngine(settings.provider)
+        let engineProvider
+        if (activateAction && activateAction.model) {
+            const [provider, modelName] = activateAction.model.split('&')
+            engineProvider = provider as Provider
+        } else {
+            engineProvider = settings.provider
+        }
+        const engine = getEngine(engineProvider)
         setEngine(engine)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [settings?.apiModel, settings?.provider, settings?.apiKey])
+    }, [settings.apiModel, settings.provider, settings.apiKey, settings, activateAction])
 
     useEffect(() => {
         setTranslatedLines(translatedText.split('\n'))
@@ -771,8 +764,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         settings?.defaultYouglishLanguage,
         props.uuid,
     ])
-
-    const [actionStr, setActionStr] = useState('')
 
     useEffect(() => {
         const editor = editorRef.current
@@ -942,18 +933,17 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         activateActionRef.current = activateAction
     }, [activateAction])
 
-    useEffect(() => {
-        console.log('selectedWordIdx is ', selectedWord?.idx)
-    }, [selectedWord])
-
     const translateText = useCallback(
         async (text: string, signal: AbortSignal, actionName?: string) => {
             if (!text || !activateAction?.id) {
                 return
             }
+            console.log('translateText', text)
+            console.log('editableText', editableText)
+            console.log('selectedWord.text', selectedWord?.text)
+
             if (text !== selectedWord?.text) {
                 if (!activateAction.parentIds) {
-                    setTranslations({})
                     selectWordNotInCurrentFile(text)
                 }
             }
@@ -1015,11 +1005,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
             let isStopped = false
             try {
-                const activatedActionName = actionName || action.name
-
                 await translate(
                     {
-                        activatedActionName,
+                        activateAction,
                         detectFrom: sourceLang,
                         detectTo: targetLang,
                         action,
@@ -1036,8 +1024,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 if (message.isFullText) {
                                     return message.content
                                 }
-                                if (activateAction?.name === t('Sentence analysis') && !showTextParser) {
+                                if (activateAction.outputRenderingFormat === 'json' && !showTextParser) {
                                     setShowTextParser(true)
+                                }
+                                if (!selectedWord) {
+                                    setTranslations({})
                                 }
                                 const newTranslatedText = message.isFullText
                                     ? message.content
@@ -1099,14 +1090,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     updateTranslationText,
                                 } = useChatStore.getState()
 
-                                if (translatedText && activateAction?.name) {
-                                    updateTranslationText(translatedText, activateAction?.name, editableText)
+                                if (activateAction?.name) {
+                                    let finalText
+                                    if (!selectedWord?.text) {
+                                        finalText = editableText
+                                    } else {
+                                        finalText = selectedWord.text
+                                    }
+                                    updateTranslationText(translatedText, activateAction?.name, finalText)
                                     setIsShowActionList(true)
 
                                     handleTranslationUpdate(
                                         selectedWord?.idx || selectWordIdx,
                                         activateAction?.name,
-                                        editableText,
+                                        finalText,
                                         translatedText,
                                         activateAction?.outputRenderingFormat || 'markdown',
                                         messageId,
@@ -1146,14 +1143,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const handleTranslationUpdate = async (
         wordIdx: number,
         actionName: string,
-        originalText: string,
+        finalText: string,
         translatedText: string,
         outputFormat: ActionOutputRenderingFormat,
         messageId?: string,
         conversationId?: string
     ) => {
         let finalFileId
-        if (originalText === selectedWord?.text || activateAction?.name === '解释句子内容') {
+        if (activateAction?.parentIds) {
             finalFileId = currentFileId
         } else {
             const category = 'History'
@@ -1172,7 +1169,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 finalFileId,
                 actionName,
                 wordIdx,
-                originalText,
+                finalText,
                 translatedText,
                 outputFormat,
                 messageId,
@@ -1230,7 +1227,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             setShowTextParser(false)
             setjsonText('')
         }
-    }, [translatedText, t, activateAction?.name, translations])
+    }, [translatedText, t, activateAction?.name, translations, selectedWord])
+
+    useEffect(() => {
+        console.log('showTextParser', showTextParser)
+    }, [showTextParser])
 
     useEffect(() => {
         const controller = new AbortController()
@@ -1238,8 +1239,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         let finalText
         if (activateAction?.parentIds && activateAction.name === t('Open Questioning')) {
             finalText = assistantActionText
-        } else {
+        } else if (!selectedWord?.text) {
             finalText = editableText
+        } else {
+            finalText = selectedWord.text
         }
         translateText(finalText, signal)
         return () => {
@@ -1305,6 +1308,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             onFinish: () => setIsSpeakingEditableText(false),
         })
         editableStopSpeakRef.current = stopSpeak
+    }
+
+    const handlesetEditableText = (text: string) => {
+        if (selectedWord) {
+            deleteSelectedWord()
+        }
+        setEditableText(text)
     }
 
     const handleYouglishSpeakAction = async () => {
@@ -1621,7 +1631,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 value={editableText}
                                                 size='mini'
                                                 resize='vertical'
-                                                onChange={(e) => setEditableText(e.target.value)}
+                                                onChange={(e) => handlesetEditableText(e.target.value)}
                                                 onKeyPress={async (e) => {
                                                     if (e.key === 'Enter') {
                                                         forceTranslate()
@@ -1974,10 +1984,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 </>
                                             </div>
                                         </div>
-                                        <ActionList
-                                            onActionClick={handleActionClick}
-                                            performAll={performActionsTranslations}
-                                        />
+                                        <div>
+                                            <ActionList
+                                                onActionClick={handleActionClick}
+                                                performAll={performActionsTranslations}
+                                            />
+                                        </div>
                                     </div>
                                 )}
                                 {isNotLogin && settings?.provider === 'ChatGPT' && (

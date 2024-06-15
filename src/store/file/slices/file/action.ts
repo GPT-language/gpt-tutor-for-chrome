@@ -1,9 +1,9 @@
 import { StateCreator } from 'zustand'
-import { current, produce } from 'immer'
+import { produce } from 'immer'
 import { parse } from 'papaparse'
 import { fileService } from '@/common/internal-services/file'
 import { ChatStore } from '../../store'
-import { Action, SavedFile, Word } from '@/common/internal-services/db'
+import { SavedFile, Word } from '@/common/internal-services/db'
 import { getInitialFileState } from '../file/initialState'
 import i18n from '@/common/i18n'
 
@@ -38,7 +38,6 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         set(ChatFileState)
         return true
     },
-
     addFile: async (file, category) => {
         const response = await new Promise<{ data: string[][] }>((resolve) =>
             parse(file, {
@@ -150,16 +149,12 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 set({ words: disPlayedWords })
                 const nextWord = disPlayedWords[0]
                 selectWord(nextWord || null)
-                console.log('Selected next word or cleared:', nextWord)
             } else {
-                console.log('Fetching files for category' + reviewCategory)
                 const files = await fileService.fetchFilesByCategory(reviewCategory)
                 const targetFile = files.find((file) => file.name === fileName)
                 if (targetFile?.id) {
-                    console.log('Updating word in existing file:', targetFile.id)
                     await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
                 } else {
-                    console.log('Creating new file:', fileName)
                     await fileService.createFile(fileName, reviewCategory, [updatedWord])
                 }
             }
@@ -336,7 +331,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     selectWordNotInCurrentFile: async (text) => {
-        const { addWordToHistoryFile, activateAction } = get()
+        const { addWordToHistoryFile, selectWord } = get()
         const category = 'History'
         const currentDate = new Date()
         const formattedDate = currentDate.toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期
@@ -350,7 +345,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         }
         const word: Word = { idx: wordIdx, text: text }
         await addWordToHistoryFile(word)
-        set({ selectedWord: word })
+        selectWord(word)
     },
 
     deleteWords: () => {
@@ -376,27 +371,31 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
         set(
             produce((draft) => {
-                // 确保 selectedWord 存在并且有 translations 属性
-                if (!draft.selectedWord || !draft.selectedWord.translations) {
-                    draft.selectedWord.translations = {} // 如果没有translations，则初始化为空对象
+                // 如果 selectedWord 为 null，初始化为一个空对象
+                if (!draft.selectedWord) {
+                    draft.selectedWord = {}
+                }
+
+                // 确保 selectedWord 有 translations 属性
+                if (!draft.selectedWord.translations) {
+                    draft.selectedWord.translations = {}
                 }
 
                 // 检查特定 actionName 是否存在于 translations 中
                 if (!draft.selectedWord.translations[actionName]) {
-                    draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' } // 如果不存在，则创建并设置文本
+                    draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' }
                 } else {
-                    draft.selectedWord.translations[actionName].text = newText // 如果已存在，则更新文本
+                    draft.selectedWord.translations[actionName].text = newText
                 }
 
                 // 验证 selectedWord 是否存在于 words 数组中
-                const wordInWords = draft.words.find((word: Word) => word.text === wordContent)
-                // 处理 selectedWord 不在 words 中的情况
-                // 不在words就从历史记录中找
-                if (!wordInWords) {
-                    draft.selectedWord = wordInFile
+                const wordInWords = draft.words.find((word) => word.text === wordContent)
 
-                    if (!draft.selectedWord || !draft.selectedWord.translations) {
-                        draft.selectedWord.translations = {} // 如果没有translations，则初始化为空对象
+                if (!wordInWords) {
+                    draft.selectedWord = wordInFile || {} // 如果 wordInFile 为 null，初始化为空对象
+
+                    if (!draft.selectedWord.translations) {
+                        draft.selectedWord.translations = {}
                     }
                     if (!draft.selectedWord.translations[actionName]) {
                         draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' }
@@ -407,7 +406,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 }
 
                 if (!wordInWords.translations) {
-                    wordInWords.translations = {} // 如果没有translations，则初始化为空对象
+                    wordInWords.translations = {}
                 }
                 if (!wordInWords.translations[actionName]) {
                     wordInWords.translations[actionName] = { text: newText, format: 'markdown' }
