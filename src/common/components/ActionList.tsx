@@ -5,8 +5,8 @@ import { Button, KIND, SHAPE, SIZE } from 'baseui-sd/button'
 import { useTranslation } from 'react-i18next'
 import { actionInternalService } from '../internal-services/action'
 import { Select, Value } from 'baseui-sd/select'
-import { Input } from 'baseui-sd/input'
 import { Textarea } from 'baseui-sd/textarea'
+import { fileService } from '../internal-services/file'
 interface ActionListProps {
     onActionClick: (action: Action | undefined) => void // 从父组件传入的处理函数
     performAll: (actions: Action[]) => void
@@ -14,19 +14,27 @@ interface ActionListProps {
 
 const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll }) => {
     const {
+        words,
         selectedWord,
+        selectWord,
+        currentFileId,
         selectedCategory,
         addWordToLearningFile,
         actions,
         activateAction,
+        setAction,
         isShowActionList,
         assistantActionText,
         setAssistantActionText,
-        setAssistantAction,
+        setActionStr,
+        currentPage,
+        setCurrentPage,
     } = useChatStore()
     const parentActions = actions.filter((action) => !action.parentIds)
     const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
     const [isCompleted, setIsCompleted] = useState(false)
+    const [showNext, setShowNext] = useState(false)
+    const [isNextWord, setIsNextWord] = useState(false)
     const [assistantActions, setAssistantActions] = useState<Action[]>([])
     const { t } = useTranslation()
     const [isShowAssistantList, setIsShowAssistantList] = useState(false)
@@ -41,10 +49,53 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     const handleAddWordClick = async () => {
         setNextAction(undefined)
         setIsCompleted(false)
+        setIsNextWord(false)
         if (!selectedWord) {
             return
         }
-        await addWordToLearningFile(selectedWord, reviewFileName, reviewCategory)
+        try {
+            await addWordToLearningFile(selectedWord, reviewFileName, reviewCategory)
+            setActionStr(t('Added to review'))
+        } catch (error) {
+            setActionStr(t('Failed to add to review'))
+        }
+        const file = await fileService.fetchFileDetailsById(currentFileId)
+        if (selectedWord && file.category !== 'History' && !showNext) {
+            setShowNext(true)
+        }
+    }
+
+    const handleNextWordClick = async () => {
+        if (!selectedWord) {
+            return // Exit if no word is selected
+        }
+
+        // Attempt to find the next word
+        const nextWord = words.find((word) => word.idx === selectedWord.idx + 1)
+
+        if (nextWord) {
+            // If found, select the next word
+            selectWord(nextWord)
+            setIsNextWord(true)
+        } else {
+            setCurrentPage(currentPage + 1)
+            setIsNextWord(true)
+        }
+    }
+
+    const handleStartToLearnClick = () => {
+        setShowNext(false)
+        setIsCompleted(false)
+        if (!selectedWord) {
+            return
+        }
+        const nextWord = words.find((word) => word.idx === selectedWord.idx + 1)
+        if (nextWord) {
+            selectWord(nextWord)
+        }
+        const nextAction = actions.find((action) => action.idx === 0)
+        setAction(nextAction)
+        onActionClick(nextAction)
     }
 
     const handleReviewClick = async () => {
@@ -66,11 +117,9 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             return
         }
         if (parentActions.length === 1) {
-            setNextAction(undefined)
             setIsCompleted(true)
         }
         if (parentActions.length > 1 && activateAction?.idx < parentActions.length - 1) {
-            setNextAction(actions.find((action) => action.idx === activateAction?.idx + 1))
             setIsCompleted(false)
         } else if (parentActions.length > 1 && activateAction?.idx === parentActions.length - 1) {
             setIsCompleted(true)
@@ -78,21 +127,31 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     }, [actions, activateAction?.idx, activateAction?.parentIds, parentActions])
 
     const handleSelectAndExecuteAction = (selectedIdx: number | string | undefined) => {
-        console.log('handleSelectAndExecuteAction', selectedIdx)
         if (!selectedIdx) return
         const action = assistantActions.find((a) => a.idx === selectedIdx)
-        console.log('handleSelectAndExecuteAction', action)
         if (action) onActionClick(action)
     }
 
-    const handlSetValue = (value: Value) => {
-        setValue(value)
-        const selectedIdx = value[0]?.id
+    const handleOpenAction = (selectedIdx: number | string | undefined, assistantActionText: string) => {
+        if (!selectedIdx || !assistantActionText) return
         const action = assistantActions.find((a) => a.idx === selectedIdx)
-        if (action) {
-            setAssistantAction(action)
+        if (action) onActionClick(action)
+    }
+
+    const handleContinueClick = () => {
+        if (!activateAction) {
+            console.debug('continue click but no action activated')
+            return
+        }
+        const nextAction = actions.find((action) => action.idx === activateAction?.idx + 1)
+        console.log('found nextAction is', nextAction)
+        console.log('found actions is ' + JSON.stringify(actions))
+
+        if (nextAction) {
+            console.log('nextAction is', nextAction)
+            onActionClick(nextAction)
         } else {
-            console.debug('action is not found')
+            console.debug('no next action')
         }
     }
 
@@ -122,17 +181,9 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activateAction?.childrenIds])
 
-    useEffect(() => {
-        console.log(value[0])
-        console.log(value[0]?.label !== t('Open Questioning'))
-        console.log(value[0]?.label)
-        console.log(t('Open Questioning'))
-        console.log(assistantActionText)
-    }, [assistantActionText, t, value])
-
     switch (selectedCategory) {
         case 'Review':
-            if (selectedWord !== null) {
+            if (currentFileId && selectedWord !== null) {
                 return (
                     <div
                         style={{
@@ -149,7 +200,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                             onClick={handleForgetClick}
                             style={{ width: '50%', marginRight: '8px' }}
                         >
-                            <u>{t('我不记得了')}</u>
+                            <u>{t('Can not recall')}</u>
                         </Button>
                         <Button
                             size={SIZE.compact}
@@ -158,7 +209,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                             onClick={handleReviewClick}
                             style={{ width: '50%' }}
                         >
-                            <u>{t('完成复习')}</u>
+                            <u>{t('Complete this review')}</u>
                         </Button>
                     </div>
                 )
@@ -167,85 +218,123 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
         default:
             if (isShowActionList) {
-                return (
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '100%' }}>
+                if (showNext) {
+                    return (
+                        <Button
+                            size={SIZE.compact}
+                            shape={SHAPE.default}
+                            kind={KIND.tertiary}
+                            onClick={isNextWord ? handleStartToLearnClick : handleNextWordClick}
+                            style={{ width: '100%' }}
+                        >
+                            <u>{isNextWord ? t('Start to learn new item') : t('Next item')}</u>
+                        </Button>
+                    )
+                } else {
+                    return (
                         <div
                             style={{
                                 display: 'flex',
-                                marginBottom: '8px',
+                                flexDirection: 'column',
                                 justifyContent: 'center',
-                                alignItems: 'center',
+                                width: '100%',
                             }}
                         >
-                            <Button
-                                size={SIZE.compact}
-                                shape={SHAPE.default}
-                                kind={KIND.tertiary}
-                                onClick={() => setIsShowAssistantList(!isShowAssistantList)}
-                                style={{ width: '50%', marginRight: '8px' }}
-                            >
-                                <u>{t('补充解释')}</u>
-                            </Button>
-                            <Button
-                                size={SIZE.compact}
-                                shape={SHAPE.default}
-                                kind={KIND.tertiary}
-                                onClick={isCompleted ? handleAddWordClick : () => onActionClick(nextAction)}
-                                style={{ width: '50%' }}
-                            >
-                                <u>{isCompleted ? t('Finish') : t('继续学习')}</u>
-                            </Button>
-                        </div>
-                        {isShowAssistantList && (
                             <div
                                 style={{
                                     display: 'flex',
-                                    width: '100%',
-                                    flexDirection: 'column',
+                                    marginBottom: '8px',
+                                    justifyContent: 'center',
                                     alignItems: 'center',
                                 }}
                             >
+                                <Button
+                                    size={SIZE.compact}
+                                    shape={SHAPE.default}
+                                    kind={KIND.tertiary}
+                                    onClick={() => setIsShowAssistantList(!isShowAssistantList)}
+                                    style={{ width: '50%', marginRight: '8px' }}
+                                >
+                                    <u>{t('More explanations')}</u>
+                                </Button>
+                                <Button
+                                    size={SIZE.compact}
+                                    shape={SHAPE.default}
+                                    kind={KIND.tertiary}
+                                    onClick={isCompleted ? handleAddWordClick : handleContinueClick}
+                                    style={{ width: '50%' }}
+                                >
+                                    <u>{isCompleted ? t('Add to the review') : t('Continue')}</u>
+                                </Button>
+                            </div>
+                            {!isCompleted && (
+                                <div>
+                                    <Button
+                                        size={SIZE.compact}
+                                        shape={SHAPE.default}
+                                        kind={KIND.tertiary}
+                                        onClick={handleAddWordClick}
+                                        style={{ width: '100%' }}
+                                    >
+                                        <u>{t('Add to the review')}</u>
+                                    </Button>
+                                </div>
+                            )}
+                            {isShowAssistantList && (
                                 <div
                                     style={{
                                         display: 'flex',
-                                        flexDirection: 'row',
-                                        marginBottom: '8px',
-                                        justifyContent: 'center',
+                                        width: '100%',
+                                        flexDirection: 'column',
                                         alignItems: 'center',
                                     }}
                                 >
-                                    <Select
-                                        size={SIZE.compact}
-                                        options={assistantActions.map((action) => ({
-                                            id: action.idx,
-                                            label: action.name,
-                                        }))}
-                                        placeholder={t('Select an action')}
-                                        value={value}
-                                        labelKey='label'
-                                        valueKey='id'
-                                        onChange={({ value }) => handleSelectAndExecuteAction(value[0]?.id)}
-                                    />
-                                    <Button
-                                        kind={KIND.secondary}
-                                        size={SIZE.compact}
-                                        onClick={() => handleSelectAndExecuteAction(value[0]?.id)}
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            marginBottom: '8px',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                        }}
                                     >
-                                        {t('Execute')}
-                                    </Button>
+                                        <Select
+                                            size={SIZE.compact}
+                                            options={assistantActions.map((action) => ({
+                                                id: action.idx,
+                                                label: action.name,
+                                            }))}
+                                            placeholder={t('Select an action')}
+                                            value={value}
+                                            labelKey='label'
+                                            valueKey='id'
+                                            onChange={({ value }) => setValue(value)}
+                                        />
+                                        <Button
+                                            kind={KIND.secondary}
+                                            size={SIZE.compact}
+                                            onClick={() =>
+                                                value[0]?.label === t('Open Questioning')
+                                                    ? handleOpenAction(value[0]?.id, assistantActionText)
+                                                    : handleSelectAndExecuteAction(value[0]?.id)
+                                            }
+                                        >
+                                            {t('Execute')}
+                                        </Button>
+                                    </div>
+                                    <div style={{ minWidth: '200px' }}>
+                                        <Textarea
+                                            onChange={(e) => setAssistantActionText(e.currentTarget.value)}
+                                            value={assistantActionText}
+                                            disabled={value[0]?.label !== t('Open Questioning')}
+                                            resize='vertical'
+                                        />
+                                    </div>
                                 </div>
-                                <div style={{ minWidth: '200px' }}>
-                                    <Textarea
-                                        onChange={(e) => setAssistantActionText(e.currentTarget.value)}
-                                        value={assistantActionText}
-                                        disabled={value[0]?.label !== t('Open Questioning')}
-                                        resize='vertical'
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )
+                            )}
+                        </div>
+                    )
+                }
             }
             return null // 当 isShowActionList 为 false 时不显示任何内容
     }
