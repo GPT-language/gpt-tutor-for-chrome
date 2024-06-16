@@ -135,7 +135,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             const files = await fileService.fetchFilesByCategory(reviewCategory)
             const targetFile = files.find((file) => file.name === fileName)
             if (targetFile?.id) {
-                await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
+                await fileService.updateWordInFile(targetFile.id, newWordIdx, updatedWord)
             } else {
                 await fileService.createFile(fileName, reviewCategory, [updatedWord])
             }

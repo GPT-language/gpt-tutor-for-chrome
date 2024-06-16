@@ -1,4 +1,4 @@
-import { SavedFile, Translations, Word } from '@/common/internal-services/db'
+import { SavedFile, Word } from '@/common/internal-services/db'
 import i18n from '@/common/i18n'
 export interface ChatFileState {
     words: Word[]

@@ -691,7 +691,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             console.debug('word is empty')
         }
 
-    }, [selectedWord?.idx])
+    }, [selectedWord?.idx, words])
 
     useEffect(() => {
         if (!settings) {
@@ -1150,7 +1150,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         conversationId?: string
     ) => {
         let finalFileId
-        if (activateAction?.parentIds) {
+        if (selectedWord) {
             finalFileId = currentFileId
         } else {
             const category = 'History'
