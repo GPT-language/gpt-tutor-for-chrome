@@ -6,6 +6,7 @@ import { Button, KIND, SIZE } from 'baseui-sd/button'
 import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { Search } from 'baseui-sd/icon'
 import { rgb } from 'polished'
+import { useTranslation } from 'react-i18next'
 const WordListUploader = () => {
     const {
         words,
@@ -21,8 +22,10 @@ const WordListUploader = () => {
         setIsShowActionList,
         currentPage,
         setCurrentPage,
+        setActionStr,
     } = useChatStore()
     const itemsPerPage = 10
+    const { t } = useTranslation()
     const [searchTerm, setSearchTerm] = useState<string>('')
     const [numPages, setNumPages] = useState<number>(1)
     const [IsInitialized, setIsInitialized] = useState<boolean>(false)
@@ -60,6 +63,14 @@ const WordListUploader = () => {
         if (newPage >= 1) {
             changePage(newPage)
         }
+    }
+
+    function formatNextReviewTime(nextReview: number) {
+        const current = new Date()
+        const diff = nextReview - current.getTime() // difference in milliseconds
+        const hours = Math.floor(diff / (1000 * 60 * 60))
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+        return `${hours}h ${minutes}min`
     }
 
     useEffect(() => {
@@ -121,22 +132,54 @@ const WordListUploader = () => {
     }, [currentFileId, currentPage, loadWords])
 
     useEffect(() => {
+        const updateReviewStatus = async () => {
+            if (selectedCategory === 'Review' && currentFileId !== 0) {
+                const current = new Date()
+                const fileWords = (await fileService.fetchFileDetailsById(currentFileId))?.words || []
+                const reviewWords = fileWords.filter((word) => word.nextReview && word.nextReview <= new Date())
+                // 计算最新的需要复习的单词，即nextReview大于当前时间且最接近当前时间的单词
+                if (words.length === 0) {
+                    let closest: Word | null = null
+                    let latestNextWordNeedToReview = ''
+
+                    fileWords.forEach((word) => {
+                        if (!word.nextReview) {
+                            return
+                        }
+                        if (word.nextReview > current) {
+                            if (
+                                !closest ||
+                                (closest.nextReview &&
+                                    word.nextReview.getTime() - current.getTime() <
+                                        closest.nextReview.getTime() - current.getTime())
+                            ) {
+                                closest = word
+                            }
+                        }
+                    })
+                    latestNextWordNeedToReview = formatNextReviewTime(closest.nextReview.getTime())
+                    if (latestNextWordNeedToReview) {
+                        setActionStr(t('All reviewed. Next review time:') + latestNextWordNeedToReview)
+                    } else {
+                        setActionStr(t('All reviewed'))
+                    }
+                } else if (words.length > 0) {
+                    setActionStr(t('There are') + reviewWords.length + t('words need to review'))
+                    // 根据当前页码计算起始索引和终止索引
+                    const startIndex = (currentPage - 1) * itemsPerPage
+                    const endIndex = startIndex + itemsPerPage
+                    // 切割数组以只包含当前页的单词
+                    setDisplayWords(reviewWords.slice(startIndex, endIndex))
+                }
+            } else {
+                setActionStr('')
+                setDisplayWords(words)
+            }
+        }
+        updateReviewStatus()
         // 筛除nextReview还没到的单词
         // 后续还要增加reviewCount的筛除
-        if (selectedCategory === 'Review') {
-            const reviewWords = words.filter((word) => word.nextReview && word.nextReview <= new Date())
-            // 根据当前页码计算起始索引和终止索引
-            const startIndex = (currentPage - 1) * itemsPerPage
-            const endIndex = startIndex + itemsPerPage
-            // 切割数组以只包含当前页的单词
-            setDisplayWords(reviewWords.slice(startIndex, endIndex))
-        } else {
-            setDisplayWords(words)
-        }
-
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [words, currentPage, selectedCategory])
-
+    }, [words, currentPage, selectedCategory, currentFileId, setActionStr, t])
     return (
         <div style={{ height: '100%', overflow: 'auto', width: 'auto' }}>
             <div style={{ minHeight: '160px' }}>

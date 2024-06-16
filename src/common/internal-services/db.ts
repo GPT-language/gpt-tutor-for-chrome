@@ -39,7 +39,7 @@ export interface Word {
     isNew?: boolean
     lastReviewed?: Date
     nextReview?: Date
-    reviewCount?: number
+    reviewCount: number
     fileId?: number
 }
 
@@ -56,7 +56,7 @@ export class LocalDB extends Dexie {
 
     constructor() {
         super('gpt-tutor')
-        this.version(9).stores({
+        this.version(10).stores({
             action: '++id, idx, mode, name, group, description, model, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt, parentIds, childrenIds',
             files: '++id, name, words,category',
         })

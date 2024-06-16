@@ -1,4 +1,4 @@
-import { SavedFile, Translations } from '@/common/internal-services/db'
+import { SavedFile, Translations, Word } from '@/common/internal-services/db'
 import i18n from '@/common/i18n'
 export interface ChatFileState {
     words: Word[]
@@ -11,15 +11,7 @@ export interface ChatFileState {
     selectedWords: { [fileId: number]: Word | null }
 }
 
-interface Word {
-    idx: number
-    text: string
-    isNew?: boolean
-    lastReviewed?: Date
-    nextReview?: Date
-    reviewCount?: number
-    translations?: Translations
-}
+
 
 function getFromStorage(key: string, defaultValue: unknown) {
     const item = localStorage.getItem(key)

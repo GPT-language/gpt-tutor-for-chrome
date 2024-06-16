@@ -53,8 +53,18 @@ export class FileService {
     async fetchFilesByCategory(category: string): Promise<SavedFile[]> {
         const files = await this.db.files.where({ category }).toArray()
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return files.map((file) => ({ id: file.id!, name: file.name, category: file.category, words: file.words }))
+        return files.map((file) => ({ id: file.id, name: file.name, category: file.category, words: file.words }))
     }
+
+    async fetchFileByCategoryAndName(category: string, name: string): Promise<SavedFile | null> {
+        const fileId = await this.getFileIdByName(category, name)
+        if (fileId) {
+            return this.fetchFileDetailsById(fileId)
+        } else {
+            return null
+        }
+    }
+
 
     async getFileIdByName(category: string, name: string): Promise<number | null> {
         try {

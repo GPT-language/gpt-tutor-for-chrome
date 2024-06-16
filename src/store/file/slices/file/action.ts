@@ -25,7 +25,9 @@ export interface ChatFileAction {
     setCurrentPage: (page: number) => void
     setFiles: (files: SavedFile[]) => void
     setSelectedCategory: (category: string) => void
-    addWordToLearningFile: (word: Word, fileName: string, reviewCategory: string, isForget?: boolean) => Promise<void>
+    addWordToReviewFile: (word: Word, fileName: string) => Promise<void>
+    updateReviewStatus: (word: Word) => Promise<void>
+    markWordAsForgotten: (word: Word) => Promise<void>
     addWordToHistoryFile: (word: Word) => Promise<void>
     checkIfInitialized: () => Promise<boolean>
     initializeReviewFiles(): Promise<void>
@@ -83,7 +85,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             return
         }
         const intervals = [0, 1, 3, 5, 7] // 复习间隔天数
-        const category = i18n.t('学习')
+        const category = i18n.t('Review')
         const files = []
 
         for (let i = 0; i < intervals.length; i++) {
@@ -107,34 +109,21 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         console.log('Review files initialized successfully.')
     },
 
-    async addWordToLearningFile(word: Word, fileName: string, reviewCategory: string, isForget?: boolean) {
+    async addWordToReviewFile(word, fileName) {
         try {
-            let fileLength
-            let nextReviewDate
-            let reviewCount
-            let newWordIdx
-            const { selectedCategory, currentFileId, selectWord } = get()
+            const { currentFileId, selectedCategory } = get()
+            const reviewCategory = 'Review'
             const currentDate = new Date()
-            if (isForget) {
-                nextReviewDate = currentDate
-                reviewCount = 1
-            } else {
-                reviewCount = word.reviewCount || 0
-                nextReviewDate = fileService.getNextReviewDate(currentDate, reviewCount)
-            }
-
+            let fileLength
             if (selectedCategory !== 'Review') {
                 fileLength = await fileService.getFileLengthByName(reviewCategory, fileName)
             } else {
                 fileLength = await fileService.getFileLengthById(currentFileId)
             }
+            const reviewCount = word.reviewCount || 0
+            const nextReviewDate = fileService.getNextReviewDate(currentDate, reviewCount)
 
-            if (reviewCount === 0) {
-                newWordIdx = fileLength + 1
-            } else {
-                newWordIdx = word.idx
-            }
-
+            const newWordIdx = reviewCount === 0 ? fileLength + 1 : word.idx
             const updatedWord = {
                 ...word,
                 idx: newWordIdx,
@@ -143,23 +132,66 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 reviewCount: reviewCount + 1,
             }
 
-            if (selectedCategory === reviewCategory && currentFileId) {
-                const updatedWords = await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
-                const disPlayedWords = updatedWords.filter((word) => word.nextReview && word.nextReview <= currentDate)
-                set({ words: disPlayedWords })
-                const nextWord = disPlayedWords[0]
-                selectWord(nextWord || null)
+            const files = await fileService.fetchFilesByCategory(reviewCategory)
+            const targetFile = files.find((file) => file.name === fileName)
+            if (targetFile?.id) {
+                await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
             } else {
-                const files = await fileService.fetchFilesByCategory(reviewCategory)
-                const targetFile = files.find((file) => file.name === fileName)
-                if (targetFile?.id) {
-                    await fileService.updateWordInFile(targetFile.id, word.idx, updatedWord)
-                } else {
-                    await fileService.createFile(fileName, reviewCategory, [updatedWord])
-                }
+                await fileService.createFile(fileName, reviewCategory, [updatedWord])
             }
         } catch (error) {
-            console.error('Failed to add word to learning file:', error)
+            const { setActionStr } = get()
+            setActionStr(JSON.stringify(error.message))
+            console.error('Failed to add word to review file:', error)
+        }
+    },
+
+    async updateReviewStatus(word: Word) {
+        try {
+            const { selectWord } = get()
+            const currentDate = new Date()
+            const nextReviewDate = fileService.getNextReviewDate(currentDate, word.reviewCount + 1)
+
+            const updatedWord = {
+                ...word,
+                lastReviewed: currentDate,
+                nextReview: nextReviewDate,
+                reviewCount: word.reviewCount + 1,
+            }
+
+            const { currentFileId } = get()
+            const updatedWords = await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
+            const disPlayedWords = updatedWords.filter((word) => word.nextReview && word.nextReview <= currentDate)
+            set({ words: disPlayedWords })
+            const nextWord = disPlayedWords[0]
+            selectWord(nextWord || null)
+        } catch (error) {
+            const { setActionStr } = get()
+            setActionStr(JSON.stringify(error.message))
+            console.error('Failed to update review status:', error)
+        }
+    },
+
+    async markWordAsForgotten(word: Word) {
+        try {
+            const { selectWord } = get()
+            const updatedWord = {
+                ...word,
+                lastReviewed: new Date(),
+                nextReview: new Date(),
+                reviewCount: 1,
+            }
+
+            const { currentFileId } = get()
+            const updatedWords = await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
+            const disPlayedWords = updatedWords.filter((word) => word.nextReview && word.nextReview <= new Date())
+            set({ words: disPlayedWords })
+            const nextWord = disPlayedWords[0]
+            selectWord(nextWord || null)
+        } catch (error) {
+            const { setActionStr } = get()
+            setActionStr(JSON.stringify(error.message))
+            console.error('Failed to mark word as forgotten:', error)
         }
     },
 
@@ -197,6 +229,8 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 await fileService.createFile(fileName, 'History', [updatedWord])
             }
         } catch (error) {
+            const { setActionStr } = get()
+            setActionStr(JSON.stringify(error.message))
             console.error('Failed to add word to History file:', error)
         }
     },
