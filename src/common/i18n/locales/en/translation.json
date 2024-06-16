@@ -127,6 +127,7 @@
   "Complete this review": "Complete this review",
   "Start to learn new item": "Start to learn new item",
   "Next item": "Next item",
+  "Next page": "Next page",
   "Added to review": "Added to review",
   "Failed to add to review": "Failed to add to review, Please try again later",
   "Prompt Enginering": "Prompt Enginering",
@@ -137,5 +138,6 @@
   "There are a large number of native speakers on Reddit, where you can get quick and accurate answers": "There are a large number of native speakers on Reddit, where you can get quick and accurate answers",
   "Join our learning group to get help": "Join our learning group to get help",
   "Any question to this answer?": "Any question to this answer?",
+  "No words left to review": "No words left to review",
   "Finish": "Finish this subject and add to review"
 }

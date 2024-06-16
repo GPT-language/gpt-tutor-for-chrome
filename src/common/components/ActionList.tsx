@@ -19,13 +19,16 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         selectWord,
         currentFileId,
         selectedCategory,
-        addWordToLearningFile,
+        addWordToReviewFile,
+        updateReviewStatus,
+        markWordAsForgotten,
         actions,
         activateAction,
         setAction,
         isShowActionList,
         assistantActionText,
         setAssistantActionText,
+        setIsShowActionList,
         setActionStr,
         currentPage,
         setCurrentPage,
@@ -35,11 +38,11 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     const [isCompleted, setIsCompleted] = useState(false)
     const [showNext, setShowNext] = useState(false)
     const [isNextWord, setIsNextWord] = useState(false)
+    const [isSelectedNextWord, setIsSelectedNextWord] = useState(false)
     const [assistantActions, setAssistantActions] = useState<Action[]>([])
     const { t } = useTranslation()
     const [isShowAssistantList, setIsShowAssistantList] = useState(false)
     const [value, setValue] = useState<Value>([])
-    const reviewCategory = 'Review'
     const reviewFileName = t('To review') + t(selectedCategory)
 
     const handlePerformAllClick = () => {
@@ -48,19 +51,16 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
     const handleAddWordClick = async () => {
         setNextAction(undefined)
-        setIsCompleted(false)
-        setIsNextWord(false)
         if (!selectedWord) {
             return
         }
         try {
-            await addWordToLearningFile(selectedWord, reviewFileName, reviewCategory)
+            await addWordToReviewFile(selectedWord, reviewFileName)
             setActionStr(t('Added to review'))
         } catch (error) {
             setActionStr(t('Failed to add to review'))
         }
-        const file = await fileService.fetchFileDetailsById(currentFileId)
-        if (selectedWord && file.category !== 'History' && !showNext) {
+        if (!showNext) {
             setShowNext(true)
         }
     }
@@ -76,22 +76,22 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         if (nextWord) {
             // If found, select the next word
             selectWord(nextWord)
-            setIsNextWord(true)
+            setIsSelectedNextWord(true)
         } else {
             setCurrentPage(currentPage + 1)
-            setIsNextWord(true)
+            setIsSelectedNextWord(false)
         }
     }
 
     const handleStartToLearnClick = () => {
         setShowNext(false)
-        setIsCompleted(false)
         if (!selectedWord) {
             return
         }
         const nextWord = words.find((word) => word.idx === selectedWord.idx + 1)
         if (nextWord) {
             selectWord(nextWord)
+            setIsSelectedNextWord(true)
         }
         const nextAction = actions.find((action) => action.idx === 0)
         setAction(nextAction)
@@ -102,35 +102,47 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         if (!selectedWord) {
             return
         }
-        await addWordToLearningFile(selectedWord, reviewFileName, reviewCategory)
+        await updateReviewStatus(selectedWord)
     }
 
     const handleForgetClick = async () => {
         if (!selectedWord) {
             return
         }
-        await addWordToLearningFile(selectedWord, reviewFileName, reviewCategory, true)
+        await markWordAsForgotten(selectedWord)
     }
-
-    useEffect(() => {
-        if (!parentActions || !activateAction?.idx || activateAction.parentIds) {
-            return
-        }
-        if (parentActions.length === 1) {
-            setIsCompleted(true)
-        }
-        if (parentActions.length > 1 && activateAction?.idx < parentActions.length - 1) {
-            setIsCompleted(false)
-        } else if (parentActions.length > 1 && activateAction?.idx === parentActions.length - 1) {
-            setIsCompleted(true)
-        }
-    }, [actions, activateAction?.idx, activateAction?.parentIds, parentActions])
 
     const handleSelectAndExecuteAction = (selectedIdx: number | string | undefined) => {
         if (!selectedIdx) return
         const action = assistantActions.find((a) => a.idx === selectedIdx)
         if (action) onActionClick(action)
     }
+
+    useEffect(() => {
+        if (!activateAction) {
+            console.debug('continue click but no action activated')
+            return
+        }
+        const nextAction = actions.find((action) => action.idx === activateAction?.idx + 1)
+        if (nextAction) {
+            setIsCompleted(false)
+        } else {
+            setIsCompleted(true)
+        }
+    }, [actions, activateAction])
+
+    useEffect(() => {
+        if (!selectedWord) {
+            console.debug('no word selected')
+            return
+        }
+        const nextWord = words.find((word) => word.idx === selectedWord.idx + 1)
+        if (nextWord) {
+            setIsNextWord(true)
+        } else {
+            setIsNextWord(false)
+        }
+    }, [words, selectedWord, setCurrentPage, currentPage])
 
     const handleOpenAction = (selectedIdx: number | string | undefined, assistantActionText: string) => {
         if (!selectedIdx || !assistantActionText) return
@@ -183,7 +195,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
     switch (selectedCategory) {
         case 'Review':
-            if (currentFileId && selectedWord !== null) {
+            if (currentFileId !== 0 && selectedWord !== null) {
                 return (
                     <div
                         style={{
@@ -217,17 +229,23 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             return null // 当selectedWord === null时，不显示内容
 
         default:
-            if (isShowActionList) {
-                if (showNext) {
+            if (isShowActionList && selectedWord !== null) {
+                if (showNext && isCompleted) {
                     return (
                         <Button
                             size={SIZE.compact}
                             shape={SHAPE.default}
                             kind={KIND.tertiary}
-                            onClick={isNextWord ? handleStartToLearnClick : handleNextWordClick}
+                            onClick={isSelectedNextWord ? handleStartToLearnClick : handleNextWordClick}
                             style={{ width: '100%' }}
                         >
-                            <u>{isNextWord ? t('Start to learn new item') : t('Next item')}</u>
+                            <u>
+                                {!isNextWord
+                                    ? t('Next page')
+                                    : isSelectedNextWord
+                                    ? t('Start to learn new item')
+                                    : t('Next item')}
+                            </u>
                         </Button>
                     )
                 } else {
