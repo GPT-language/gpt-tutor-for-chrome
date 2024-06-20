@@ -7,6 +7,7 @@ import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { Search } from 'baseui-sd/icon'
 import { rgb } from 'polished'
 import { useTranslation } from 'react-i18next'
+import { current } from 'immer'
 const WordListUploader = () => {
     const {
         words,
@@ -31,6 +32,8 @@ const WordListUploader = () => {
     const [IsInitialized, setIsInitialized] = useState<boolean>(false)
     const [isHovering, setIsHovering] = useState(false)
     const [displayWords, setDisplayWords] = useState<Word[]>(words)
+    const [currentTime, setCurrentTime] = useState<Date>(new Date())
+    const [latestNextWordNeedToReview, setLatestNextWordNeedToReview] = useState<Date | null>(null)
 
     const handleSearchSubmit = () => {
         searchWord(searchTerm)
@@ -64,13 +67,23 @@ const WordListUploader = () => {
             changePage(newPage)
         }
     }
-
-    function formatNextReviewTime(nextReview: number) {
-        const current = new Date()
-        const diff = nextReview - current.getTime() // difference in milliseconds
-        const hours = Math.floor(diff / (1000 * 60 * 60))
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-        return `${hours}h ${minutes}min`
+    function formatNextReviewTime(ms) {
+        let seconds = Math.floor(ms / 1000)
+        let minutes = Math.floor(seconds / 60)
+        let hours = Math.floor(minutes / 60)
+        const days = Math.floor(hours / 24)
+        seconds = seconds % 60
+        minutes = minutes % 60
+        hours = hours % 24
+        if (minutes < 1) {
+            return `${seconds}s`
+        } else if (hours < 1) {
+            return `${minutes}min ${seconds}s`
+        } else if (days < 1) {
+            return `${hours}h ${minutes}min ${seconds}s`
+        } else {
+            return `${days}d ${hours}h ${minutes}min ${seconds}s`
+        }
     }
 
     useEffect(() => {
@@ -132,15 +145,18 @@ const WordListUploader = () => {
     }, [currentFileId, currentPage, loadWords])
 
     useEffect(() => {
+        const current = new Date()
         const updateReviewStatus = async () => {
-            if (selectedCategory === 'Review' && currentFileId !== 0) {
-                const current = new Date()
+            if (!currentFileId) {
+                setDisplayWords([])
+                return
+            }
+            if (selectedCategory === 'Review') {
                 const fileWords = (await fileService.fetchFileDetailsById(currentFileId))?.words || []
                 const reviewWords = fileWords.filter((word) => word.nextReview && word.nextReview <= new Date())
                 // 计算最新的需要复习的单词，即nextReview大于当前时间且最接近当前时间的单词
                 if (words.length === 0) {
                     let closest: Word | null = null
-                    let latestNextWordNeedToReview = ''
 
                     fileWords.forEach((word) => {
                         if (!word.nextReview) {
@@ -157,14 +173,9 @@ const WordListUploader = () => {
                             }
                         }
                     })
-                    latestNextWordNeedToReview = formatNextReviewTime(closest.nextReview.getTime())
-                    if (latestNextWordNeedToReview) {
-                        setActionStr(t('All reviewed. Next review time:') + latestNextWordNeedToReview)
-                    } else {
-                        setActionStr(t('All reviewed'))
-                    }
+                    setLatestNextWordNeedToReview(closest.nextReview)
                 } else if (words.length > 0) {
-                    setActionStr(t('There are') + '' + reviewWords.length + '' + t('words need to review'))
+                    setActionStr(t('There are ') + reviewWords.length + t(' words need to review'))
                     // 根据当前页码计算起始索引和终止索引
                     const startIndex = (currentPage - 1) * itemsPerPage
                     const endIndex = startIndex + itemsPerPage
@@ -172,7 +183,6 @@ const WordListUploader = () => {
                     setDisplayWords(reviewWords.slice(startIndex, endIndex))
                 }
             } else {
-                setActionStr('')
                 setDisplayWords(words)
             }
         }
@@ -180,6 +190,31 @@ const WordListUploader = () => {
         // 筛除nextReview还没到的单词
         // 后续还要增加reviewCount的筛除
     }, [words, currentPage, selectedCategory, currentFileId, setActionStr, t])
+
+    useEffect(() => {
+        if (selectedCategory !== 'Review' || !currentFileId) {
+            setActionStr('')
+            return
+        }
+        if (latestNextWordNeedToReview && currentFileId) {
+            const reviewTimer = latestNextWordNeedToReview.getTime() - currentTime.getTime()
+            setActionStr(t('All reviewed. Next review time:') + formatNextReviewTime(reviewTimer))
+        } else {
+            setActionStr(t('All reviewed'))
+        }
+    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedCategory, setActionStr, t])
+
+    useEffect(() => {
+        if (selectedCategory !== 'Review') {
+            return
+        }
+        const intervalId = setInterval(() => {
+            setCurrentTime(new Date()) // 更新当前时间状态
+        }, 1000) // 每秒钟更新一次
+
+        return () => clearInterval(intervalId) // 清理定时器
+    }, [selectedCategory])
+
     return (
         <div style={{ height: '100%', overflow: 'auto', width: 'auto' }}>
             <div style={{ minHeight: '160px' }}>
@@ -226,7 +261,7 @@ const WordListUploader = () => {
                         type='text'
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder={t('Search word in this file') ?? 'Search word in this file'}
+                        placeholder={t('Search word') ?? 'Search word'}
                     />
                 ) : (
                     <div

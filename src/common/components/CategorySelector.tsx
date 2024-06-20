@@ -53,6 +53,7 @@ const CategorySelector = () => {
     const handleCategoryChange = async (cat: string) => {
         setShowSelectBox(true)
         setSelectedCategory(cat)
+        deleteSelectedWord()
         setHoverCategory(cat)
         localStorage.setItem('currentCategory', JSON.stringify(cat))
         loadFiles(t(cat))
@@ -86,10 +87,9 @@ const CategorySelector = () => {
     }
 
     // 在渲染前检查 currentFileId 和 files 是否有效
-    const validValue =
-        currentFileId !== undefined && files.some((file) => file.id === currentFileId)
-            ? options.filter((option) => option.id === currentFileId)
-            : []
+    const validValue = files.some((file) => file.id === currentFileId)
+        ? options.filter((option) => option.id === currentFileId)
+        : []
 
     return (
         <div style={{ minHeight: '14px' }}>
