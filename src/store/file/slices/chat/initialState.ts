@@ -19,6 +19,8 @@ export interface ChatState {
     showActionManager: boolean
     showSettings: boolean
     actionStr: string
+    // 复习周期
+    reviewIntervals: number[]
 }
 
 function getFromStorage(key: string, defaultValue: unknown) {
@@ -61,4 +63,5 @@ export const initialChatState: ChatState = {
     showActionManager: false,
     showSettings: false,
     actionStr: '',
+    reviewIntervals: getFromStorage('reviewIntervals', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 }

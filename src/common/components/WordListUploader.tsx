@@ -164,7 +164,7 @@ const WordListUploader = () => {
                         setActionStr(t('All reviewed'))
                     }
                 } else if (words.length > 0) {
-                    setActionStr(t('There are') + reviewWords.length + t('words need to review'))
+                    setActionStr(t('There are') + '' + reviewWords.length + '' + t('words need to review'))
                     // 根据当前页码计算起始索引和终止索引
                     const startIndex = (currentPage - 1) * itemsPerPage
                     const endIndex = startIndex + itemsPerPage
@@ -226,7 +226,7 @@ const WordListUploader = () => {
                         type='text'
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder='在当前文件中搜索'
+                        placeholder={t('Search word in this file') ?? 'Search word in this file'}
                     />
                 ) : (
                     <div

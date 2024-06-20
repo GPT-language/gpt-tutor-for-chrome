@@ -1,4 +1,4 @@
-import { Action, SavedFile, Translations, Word, getLocalDB, ActionOutputRenderingFormat } from './db'
+import { ReviewSettings, SavedFile, Translations, Word, getLocalDB, ActionOutputRenderingFormat } from './db'
 
 export class FileService {
     private db = getLocalDB()
@@ -12,6 +12,7 @@ export class FileService {
         return file
     }
 
+
     // 添加新文件
     async addFile(name: string, words: Word[], category: string): Promise<number> {
         const fileId = await this.db.files.add({ name, words, category })
@@ -19,7 +20,10 @@ export class FileService {
     }
 
     // 更新文件信息
-    async updateFile(fileId: number, updatedData: { fileName?: string; words?: Word[] }): Promise<void> {
+    async updateFile(
+        fileId: number,
+        updatedData: { fileName?: string; words?: Word[]; category?: string; reviewSettings?: ReviewSettings }
+    ): Promise<void> {
         await this.db.files.update(fileId, updatedData)
     }
 
@@ -108,7 +112,11 @@ export class FileService {
         }
     }
 
-    async getFileLengthById(fileId: number): Promise<number> {
+    async getFileLengthById(fileId: number | null): Promise<number> {
+        if (!fileId) {
+            console.debug('File ID is null')
+            return 0
+        }
         const file = await this.getFileOrThrow(fileId)
         return file.words.length
     }
@@ -153,6 +161,18 @@ export class FileService {
     async loadWordsByFileId(fileId: number): Promise<Word[]> {
         const file = await this.fetchFileDetailsById(fileId)
         return file.words
+    }
+
+    // 确定单词是否在该文件中
+    async isWordInFile(fileId: number, wordIdx: number, wordText: string ): Promise<boolean> {
+        // 先根据idx在words中找到对应的词，然后看它们text是否相同
+        const file = await this.fetchFileDetailsById(fileId)
+        const word = file.words.find((w) => w.idx === wordIdx)
+        if (word) {
+            return word.text === wordText
+        } else {
+            return false
+        }
     }
 
     // 添加单词到文件中
@@ -264,6 +284,13 @@ export class FileService {
             throw new Error('Word not found at the provided index')
         }
         return word.translations || {} // 返回找到的 translations 或空对象
+    }
+
+    // 更新复习设置
+    async updateReviewSettings(fileId: number, reviewSettings: ReviewSettings): Promise<void> {
+        const file = await this.fetchFileDetailsById(fileId)
+        file.reviewSettings = reviewSettings
+        await this.updateFile(fileId, { reviewSettings: file.reviewSettings })
     }
 
     // 根据上次复习时间和复习次数计算下次复习时间

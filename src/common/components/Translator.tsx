@@ -67,6 +67,9 @@ import { fileService } from '../internal-services/file'
 import CategorySelector from './CategorySelector'
 import { Accordion, Panel } from 'baseui-sd/accordion'
 import MessageCard from './MessageCard'
+import { ReviewManager } from './ReviewSettings'
+import Timer from './timer'
+
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -434,6 +437,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
     const [translationFlag, forceTranslate] = useReducer((x: number) => x + 1, 0)
+
+    const [showReviewManger, setShowReviewManager] = useState(false)
 
     const editorRef = useRef<HTMLTextAreaElement>(null)
     const isCompositing = useRef(false)
@@ -1519,6 +1524,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 }
                                                 return
                                             }
+                                            if (actionID === '__review__') {
+                                                setShowReviewManager(true)
+                                            }
                                             setAction(actions?.find((a) => a.id === (actionID as number)))
                                         }}
                                         items={[
@@ -1565,6 +1573,23 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     </div>
                                                 ),
                                             },
+                                            {
+                                                id: '__review__',
+                                                label: (
+                                                    <div
+                                                        style={{
+                                                            display: 'flex',
+                                                            flexDirection: 'row',
+                                                            alignItems: 'center',
+                                                            gap: 6,
+                                                            fontWeight: 500,
+                                                        }}
+                                                    >
+                                                        <GiPlatform />
+                                                        {t('Review Manager')}
+                                                    </div>
+                                                ),
+                                            }
                                         ]}
                                     />
                                 }
@@ -2064,6 +2089,28 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 </ModalHeader>
                 <ModalBody>
                     <MessageCard />
+                </ModalBody>
+            </Modal>
+            <Modal
+                isOpen={showReviewManger}
+                onClose={() => {
+                    setShowReviewManager(false)
+                }}
+                closeable
+                size='full'
+                autoFocus
+                animate
+                role='dialog'
+            >
+                <ModalHeader>
+                    <div
+                        style={{
+                            padding: 5,
+                        }}
+                    />
+                </ModalHeader>
+                <ModalBody>
+                    <ReviewManager />
                 </ModalBody>
             </Modal>
             <Toaster />

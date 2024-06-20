@@ -61,11 +61,6 @@ const CategorySelector = () => {
         setCurrentFileId(0)
     }
 
-    useEffect(() => {
-        console.log('cat is' + selectedCategory)
-        console.log('t(cat) is ' + t(selectedCategory))
-    }, [selectedCategory, t])
-
     const handleAddCategory = () => {
         if (newCategory?.trim()) {
             addCategory(newCategory)

@@ -32,6 +32,12 @@ export interface Translations {
     [actionName: string]: Translation
 }
 
+export interface ReviewSettings {
+    dailyWords: number
+    interval: number[]
+    startTime: Date
+}
+
 export interface Word {
     idx: number
     text: string
@@ -48,6 +54,7 @@ export interface SavedFile {
     id?: number
     name: string
     words: Word[]
+    reviewSettings?: ReviewSettings
 }
 
 export class LocalDB extends Dexie {
@@ -56,9 +63,9 @@ export class LocalDB extends Dexie {
 
     constructor() {
         super('gpt-tutor')
-        this.version(10).stores({
+        this.version(11).stores({
             action: '++id, idx, mode, name, group, description, model, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt, parentIds, childrenIds',
-            files: '++id, name, words,category',
+            files: '++id, name, words,category,reviewSettings',
         })
         this.action = this.table('action')
         this.files = this.table('files')
