@@ -28,7 +28,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         isShowActionList,
         assistantActionText,
         setAssistantActionText,
-        setIsShowActionList,
         setActionStr,
         currentPage,
         setCurrentPage,
@@ -156,11 +155,8 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             return
         }
         const nextAction = actions.find((action) => action.idx === activateAction?.idx + 1)
-        console.log('found nextAction is', nextAction)
-        console.log('found actions is ' + JSON.stringify(actions))
 
         if (nextAction) {
-            console.log('nextAction is', nextAction)
             onActionClick(nextAction)
         } else {
             console.debug('no next action')
@@ -178,16 +174,13 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         const fetchActions = async () => {
             if (activateAction?.parentIds || !activateAction?.childrenIds) return
             const childrenActionsId = activateAction?.childrenIds
-            console.log('childrenActionsId', childrenActionsId)
 
             const childrenActions = await actionInternalService.getByChildrenIds(childrenActionsId)
-            console.log('childrenActions', childrenActions)
 
             if (childrenActions) {
                 setAssistantActions(childrenActions)
             }
 
-            console.log('assistantActions', assistantActions)
         }
         fetchActions()
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -229,7 +222,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             return null // 当selectedWord === null时，不显示内容
 
         default:
-            if (isShowActionList && selectedWord !== null) {
+            if (isShowActionList && selectedWord !== null && words) {
                 if (showNext && isCompleted) {
                     return (
                         <Button

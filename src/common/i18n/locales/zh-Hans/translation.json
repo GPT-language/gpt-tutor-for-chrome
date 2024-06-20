@@ -150,8 +150,8 @@
   "Start to learn new item": "开始学习新的内容",
   "Next item": "下一个内容",
   "Next page": "下一页",
-  "There are": "有",
-  "words need to review": "个单词需要复习",
+  "There are ": "有",
+  " words need to review": "个单词需要复习",
   "All reviewed. Next review time:": "所有单词已复习，下次复习时间：",
   "All reviewed": "所有单词已复习",
   "Added to review": "已添加到复习",
@@ -165,5 +165,7 @@
   "Set Daily Words": "设置每日学习单词",
   "Study Plan Overview": "学习计划概览",
   "Select a study strategy": "选择学习策略",
+  "Review Manager": "复习管理器",
+  "Search Word": "搜索单词",
   "Grammar": "语法"
 }

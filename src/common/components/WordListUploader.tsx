@@ -7,7 +7,6 @@ import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { Search } from 'baseui-sd/icon'
 import { rgb } from 'polished'
 import { useTranslation } from 'react-i18next'
-import { current } from 'immer'
 const WordListUploader = () => {
     const {
         words,
@@ -175,6 +174,7 @@ const WordListUploader = () => {
                     })
                     setLatestNextWordNeedToReview(closest.nextReview)
                 } else if (words.length > 0) {
+                    setLatestNextWordNeedToReview(null)
                     setActionStr(t('There are ') + reviewWords.length + t(' words need to review'))
                     // 根据当前页码计算起始索引和终止索引
                     const startIndex = (currentPage - 1) * itemsPerPage
@@ -196,13 +196,16 @@ const WordListUploader = () => {
             setActionStr('')
             return
         }
+        if (words.length !== 0) {
+            return
+        }
         if (latestNextWordNeedToReview && currentFileId) {
             const reviewTimer = latestNextWordNeedToReview.getTime() - currentTime.getTime()
             setActionStr(t('All reviewed. Next review time:') + formatNextReviewTime(reviewTimer))
         } else {
             setActionStr(t('All reviewed'))
         }
-    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedCategory, setActionStr, t])
+    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedCategory, setActionStr, t, words.length])
 
     useEffect(() => {
         if (selectedCategory !== 'Review') {
@@ -261,7 +264,7 @@ const WordListUploader = () => {
                         type='text'
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder={t('Search word') ?? 'Search word'}
+                        placeholder={t('Search Word') ?? 'Search Word'}
                     />
                 ) : (
                     <div

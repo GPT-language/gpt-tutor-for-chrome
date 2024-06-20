@@ -53,13 +53,9 @@ const CategorySelector = () => {
     const handleCategoryChange = async (cat: string) => {
         setShowSelectBox(true)
         setSelectedCategory(cat)
-        deleteSelectedWord()
         setHoverCategory(cat)
         localStorage.setItem('currentCategory', JSON.stringify(cat))
-        loadFiles(t(cat))
-        deleteWords()
-        deleteSelectedWord()
-        setCurrentFileId(0)
+        loadFiles(cat)
     }
 
     const handleAddCategory = () => {

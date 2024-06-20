@@ -2122,9 +2122,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     accent={LANG_CONFIGS[youglishLang]?.accent || 'us'}
                 />
             </div>
-            <div>
-                <Timer timeLeft={5000} totalDuration={10000}></Timer>
-            </div>
         </div>
     )
 }

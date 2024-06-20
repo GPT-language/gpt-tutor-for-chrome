@@ -1,3 +1,4 @@
+import { current } from 'immer'
 import { ReviewSettings, SavedFile, Translations, Word, getLocalDB, ActionOutputRenderingFormat } from './db'
 
 export class FileService {
@@ -133,9 +134,9 @@ export class FileService {
 
 
     // 创建文件
-    async createFile(name: string, category: string, words?: Word[]): Promise<number> {
+    async createFile(name: string, category: string, words?: Word[], reviewSettings?: ReviewSettings): Promise<number> {
         if (words) {
-            const fileId = await this.db.files.add({ name, words, category })
+            const fileId = await this.db.files.add({ name, words, category, reviewSettings })
             return fileId
         } else {
             const fileId = await this.db.files.add({ name, category, words: [] })
@@ -294,13 +295,12 @@ export class FileService {
     }
 
     // 根据上次复习时间和复习次数计算下次复习时间
-    getNextReviewDate(lastReviewed: Date, reviewCount: number): Date {
-        // 间隔天数，可以根据需要进行调整
-        const intervals = [0, 1, 2, 4, 7, 15]
+    getNextReviewDate(lastReviewed: Date, reviewCount: number, intervals: number[]): Date {
         // 如果超出初始间隔，设定为每月复习一次
-        const nextInterval = intervals[reviewCount] ?? 30 // 使用 ?? 操作符确保当 intervals[reviewCount] 为 undefined 时使用 30 天
+        console.log('getNextReviewDate', lastReviewed, reviewCount, intervals)
+        const nextInterval = intervals[reviewCount] ?? 1440 // 使用 ?? 操作符确保当 intervals[reviewCount] 为 undefined 时使用 30 天
         // 计算下次复习时间
-        return new Date(lastReviewed.getTime() + nextInterval * 24 * 60 * 60 * 1000)
+        return new Date(lastReviewed.getTime() + nextInterval * 60 * 1000)
     }
 
     // 获取需要复习的单词

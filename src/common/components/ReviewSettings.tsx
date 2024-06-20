@@ -105,7 +105,7 @@ function calculateTimeValue(minutes: number) {
     }
 }
 
-const strategyOptions: StrategyOption[] = [
+export const strategyOptions: StrategyOption[] = [
     {
         id: 'compact',
         label: '紧凑型记忆策略',

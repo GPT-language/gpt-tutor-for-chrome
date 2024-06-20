@@ -3,9 +3,10 @@ import { produce } from 'immer'
 import { parse } from 'papaparse'
 import { fileService } from '@/common/internal-services/file'
 import { ChatStore } from '../../store'
-import { SavedFile, Word } from '@/common/internal-services/db'
+import { ReviewSettings, SavedFile, Word } from '@/common/internal-services/db'
 import { getInitialFileState } from '../file/initialState'
 import i18n from '@/common/i18n'
+import { strategyOptions } from '@/common/components/ReviewSettings'
 
 export interface ChatFileAction {
     getInitialFile: () => Promise<boolean>
@@ -115,13 +116,23 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             const reviewCategory = 'Review'
             const currentDate = new Date()
             let fileLength
+            let reviewSettings: ReviewSettings | undefined
             if (selectedCategory !== 'Review') {
                 fileLength = await fileService.getFileLengthByName(reviewCategory, fileName)
             } else {
                 fileLength = await fileService.getFileLengthById(currentFileId)
             }
+            if (currentFileId) {
+                const currentFile = await fileService.fetchFileDetailsById(currentFileId)
+                reviewSettings = currentFile.reviewSettings
+            }
+
             const reviewCount = word.reviewCount || 0
-            const nextReviewDate = fileService.getNextReviewDate(currentDate, reviewCount)
+            const nextReviewDate = fileService.getNextReviewDate(
+                currentDate,
+                reviewCount,
+                reviewSettings ? reviewSettings?.interval : strategyOptions[2].array
+            )
 
             const newWordIdx = reviewCount === 0 ? fileLength + 1 : word.idx
             const updatedWord = {
@@ -137,7 +148,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             if (targetFile?.id) {
                 await fileService.updateWordInFile(targetFile.id, newWordIdx, updatedWord)
             } else {
-                await fileService.createFile(fileName, reviewCategory, [updatedWord])
+                await fileService.createFile(fileName, reviewCategory, [updatedWord], reviewSettings)
             }
         } catch (error) {
             const { setActionStr } = get()
@@ -148,18 +159,24 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
     async updateReviewStatus(word: Word) {
         try {
-            const { selectWord } = get()
+            const { selectWord, currentFileId } = get()
             const currentDate = new Date()
-            const nextReviewDate = fileService.getNextReviewDate(currentDate, word.reviewCount + 1)
-
+            if (!currentFileId) {
+                return
+            }
+            const currentFile = await fileService.fetchFileDetailsById(currentFileId)
+            const reviewSettings = currentFile.reviewSettings
+            const nextReviewDate = fileService.getNextReviewDate(
+                currentDate,
+                word.reviewCount + 1,
+                reviewSettings ? reviewSettings?.interval : strategyOptions[2].array
+            )
             const updatedWord = {
                 ...word,
                 lastReviewed: currentDate,
                 nextReview: nextReviewDate,
                 reviewCount: word.reviewCount + 1,
             }
-
-            const { currentFileId } = get()
             const updatedWords = await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
             const disPlayedWords = updatedWords.filter((word) => word.nextReview && word.nextReview <= currentDate)
             set({ words: disPlayedWords })
@@ -307,7 +324,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         localStorage.setItem('currentFileId', fileId.toString())
     },
     deleteFile: async (fileId) => {
-        const { selectedCategory, loadFiles, setCurrentFileId } = get()
+        const { selectedCategory, loadFiles, currentFileId, setCurrentFileId } = get()
         await fileService.deleteFile(fileId)
         set(
             produce((draft) => {
@@ -323,11 +340,11 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         } else {
             setCurrentFileId(0)
         }
-        localStorage.setItem('currentFileId', get().currentFileId.toString())
+        localStorage.setItem('currentFileId', currentFileId.toString())
     },
 
     setSelectedCategory(category: string) {
-        set({ selectedCategory: category })
+        set({ selectedCategory: category, currentFileId: null, selectedWord: null })
     },
     addCategory: (category) => {
         const { categories } = get()

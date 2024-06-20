@@ -125,8 +125,8 @@
   "Start to learn new item": "開始學習新内容",
   "Next item": "下一項",
   "Next page": "下一頁",
-  "There are": "有",
-  "words need to review": "個单詞需要複習",
+  "There are ": "有",
+  " words need to review": "個单詞需要複習",
   "All reviewed. Next review time:": "所有单词已複習，下次複習時間：",
   "All reviewed": "所有单词已複習",
   "Added to review": "添加到複習",
@@ -143,5 +143,7 @@
   "Set Daily New Words": "設置每日新詞",
   "Study Plan Overview": "課程計劃總覽",
   "Select a study strategy":"選擇學習策略",
+  "Review Manager": "複習管理器",
+  "Search Word": "搜尋詞語",
   "Finish": "完成這個主題並添加到複習"
 }
