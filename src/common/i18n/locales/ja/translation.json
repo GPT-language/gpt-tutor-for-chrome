@@ -145,5 +145,10 @@
 "Select a study strategy": "学習戦略を選択する",
 "Review Manager": "復習マネージャー",
 "Search Word": "単語を検索する",
+"Tight Revivew Intervals": "緩い復習間隔",
+"Standard Revivew Intervals": "標準的な復習間隔",
+  "Loose Revivew Intervals": "遅い復習間隔",
+  "Daily Revivew Intervals": "毎日復習間隔",
+  "Custom Revivew Intervals": "カスタム復習間隔",
 "Finish this subject and add to review": "この項目を終了し、復習に追加する"
 }

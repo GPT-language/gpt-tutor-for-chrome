@@ -147,5 +147,10 @@
   "There are ": "There are ",
   "Search Word": "Search Word",
   " words need to review" : " words need to review",
+  "Tight Revivew Intervals": "Tight Revivew Intervals",
+  "Standard Revivew Intervals": "Standard Revivew Intervals",
+  "Loose Revivew Intervals": "Loose Revivew Intervals",
+  "Daily Revivew Intervals": "Daily Revivew Intervals",
+  "Custom Revivew Intervals": "Custom Revivew Intervals",
   "Finish": "Finish this subject and add to review"
 }

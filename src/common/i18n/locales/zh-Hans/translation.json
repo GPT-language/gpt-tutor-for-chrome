@@ -167,5 +167,10 @@
   "Select a study strategy": "选择学习策略",
   "Review Manager": "复习管理器",
   "Search Word": "搜索单词",
+  "Tight Revivew Intervals": "紧凑的复习间隔",
+  "Standard Revivew Intervals": "标准的复习间隔",
+  "Loose Revivew Intervals":  "松散的复习间隔",
+  "Daily Revivew Intervals": "每日复习间隔",
+  "Custom Revivew Intervals": "自定义复习间隔",
   "Grammar": "语法"
 }

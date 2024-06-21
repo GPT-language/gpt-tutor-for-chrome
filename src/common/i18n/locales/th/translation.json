@@ -143,5 +143,10 @@
   "Select a study strategy": "เลือกวิธีการเรียนรู้",
   "Review Manager": "ผู้จัดการการตรวจสอบ",
   "Search Word": "ค้นหาคํา",
+  "Tight Revivew Intervals": "ช่วงตรวจสอบเบา",
+  "Standard Revivew Intervals": "ช่วงตรวจสอบมาตรฐาน",
+  "Loose Revivew Intervals": "ช่วงตรวจสอบเล็ก",
+  "Daily Revivew Intervals": "ช่วงตรวจสอบทุกวัน",
+  "Custom Revivew Intervals": "ช่วงตรวจสอบกําหนดเอง",
   "disable collecting statistics": "ปิดใช้งานการสถิติการเก็บรวบรวม"
 }
