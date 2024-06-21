@@ -489,14 +489,14 @@ export class ChatGPT extends AbstractEngine {
         const responseMode: ResponseMode = (await utils.isNeedWebsocket(this.accessToken)) ? 'websocket' : 'sse'
         console.debug('chatgpt response mode:', responseMode)
 
-        if (responseMode) {
+        if (responseMode === 'sse') {
             const resp = await this.postMessage(req)
             if (!resp) return
             await utils.parseSSEResponse(resp, this.createMessageHanlder(req))
             return
         }
 
-        if (responseMode === 'test' && !this.context.pubSubClient) {
+        if (responseMode === 'websocket' && !this.context.pubSubClient) {
             const { wss_url } = await registerWebsocket(this.accessToken)
             const client = new WebPubSubClient(wss_url)
             await client.start()
@@ -511,6 +511,9 @@ export class ChatGPT extends AbstractEngine {
             unsubscribe()
             throw err
         })
+        if (resp) {
+            await utils.parseSSEResponse(resp, this.createMessageHanlder(req))
+        }
 
         if (resp && !resp.ok) {
             unsubscribe()
