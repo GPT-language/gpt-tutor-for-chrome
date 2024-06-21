@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SIZE, Select } from 'baseui-sd/select'
 import { Button, KIND } from 'baseui-sd/button'
 import Slider from 'rc-slider'
@@ -8,7 +8,6 @@ import { fileService } from '../internal-services/file'
 import { useTranslation } from 'react-i18next'
 import { ReviewSettings, SavedFile } from '../internal-services/db'
 import { useChatStore } from '@/store/file'
-import { is } from 'date-fns/locale'
 type StrategyOption = {
     id: string | number
     label: string
@@ -63,22 +62,42 @@ const simplifyMark = (mark) => {
     return mark
 }
 
-const getAdjustedMarks = (marks: Record<number, string>, sliderPositions: number[]) => {
+const getAdjustedMarks = (marks: Record<number, { label: string; style: object }>, sliderPositions: number[]) => {
     const keys = Object.keys(marks)
         .map(Number)
-        .sort((a, b) => a - b)
-    const adjustedMarks = {}
+        .sort((a, b) => a - b) // 确保按顺序处理标记
+    const adjustedMarks: Record<number, { label: string; style: object }> = {}
+    let lastPositionUp = false // 用于跟踪上一个标记的显示位置
 
     keys.forEach((key, index) => {
-        const markLabelOne = marks[key]
-        const markLabelTwo = marks[keys[index - 1]]
-        if (index > 0 && Math.abs(sliderPositions[index] - sliderPositions[index - 1]) <= 2) {
-            // 如果当前滑块位置与前一个滑块位置距离小于2
-            adjustedMarks[keys[index - 1]] = simplifyMark(markLabelTwo)
-            adjustedMarks[key] = simplifyMark(markLabelOne)
-        } else {
-            adjustedMarks[key] = marks[key]
+        const markLabel = marks[key]
+        const position = sliderPositions[index]
+        let style = markLabel.style
+
+        if (index > 0) {
+            const prevPosition = sliderPositions[index - 1]
+            if (position < 60 && Math.abs(position - prevPosition) < 10) {
+                lastPositionUp = !lastPositionUp
+                style = { marginTop: lastPositionUp ? '-40px' : '0px', marginLeft: lastPositionUp ? '0px' : '5px' }
+            }
+            if (position >= 60 && position < 84 && Math.abs(position - prevPosition) <= 4) {
+                lastPositionUp = !lastPositionUp
+                style = { marginTop: lastPositionUp ? '-40px' : '0px', marginLeft: lastPositionUp ? '0px' : '5px' }
+            }
+            if (position >= 84 && position < 114 && Math.abs(position - prevPosition) <= 4) {
+                lastPositionUp = !lastPositionUp
+                style = { marginTop: lastPositionUp ? '-40px' : '0px', marginLeft: lastPositionUp ? '0px' : '7px' }
+            }
+            if (position >= 114 && position < 126 && Math.abs(position - prevPosition) < 8) {
+                lastPositionUp = !lastPositionUp
+                style = {
+                    marginTop: lastPositionUp ? '-40px' : '0px',
+                    marginLeft: lastPositionUp ? '0px' : '10px',
+                }
+            }
         }
+
+        adjustedMarks[key] = { ...markLabel, style }
     })
 
     return adjustedMarks
@@ -109,22 +128,27 @@ export const strategyOptions: StrategyOption[] = [
     {
         id: 'compact',
         label: '紧凑型记忆策略',
-        array: [0, 5, 15, 30, 60, 240, 1440, 5760, 11520, 21600],
+        array: [0, 15, 30, 60, 300, 1440, 4320, 7200, 11520, 21600],
     },
     {
         id: 'standard',
         label: '标准记忆策略',
-        array: [0, 5, 30, 60, 240, 2880, 7200, 21600, 43200, 64800],
+        array: [0, 5, 30, 60, 240, 1440, 5760, 12960, 21600, 36000],
     },
     {
         id: 'loose',
         label: '松散型记忆策略',
-        array: [0, 2880, 5760, 21600, 64800, 129600, 259200, 388800, 525600],
+        array: [0, 1440, 4320, 14400, 21600, 43200, 129600],
+    },
+    {
+        id: 'daily',
+        label: '每日复习',
+        array: [0, 1440, 1440, 1440, 1440, 1440, 1440, 1440, 1440, 1440],
     },
     {
         id: 'custom',
         label: '自定义',
-        array: [0, 5, 30, 60, 240, 2880, 7200, 21600, 43200, 64800],
+        array: [0, 5, 30, 60, 240, 1440, 5760, 12960, 21600, 36000],
     },
 ]
 
@@ -134,6 +158,34 @@ interface fileOptions {
 }
 
 export const ReviewManager = () => {
+    const { t } = useTranslation()
+    const strategyOptions: StrategyOption[] = [
+        {
+            id: 'compact',
+            label: t('Tight Revivew Intervals'),
+            array: [0, 15, 30, 60, 300, 1440, 4320, 7200, 11520, 21600],
+        },
+        {
+            id: 'standard',
+            label: t('Standard Revivew Intervals'),
+            array: [0, 5, 30, 60, 240, 1440, 5760, 12960, 21600, 36000],
+        },
+        {
+            id: 'loose',
+            label: t('Loose Revivew Intervals'),
+            array: [0, 1440, 4320, 14400, 21600, 43200, 129600],
+        },
+        {
+            id: 'daily',
+            label: t('Daily Revivew Intervals'),
+            array: [0, 1440, 1440, 1440, 1440, 1440, 1440, 1440, 1440, 1440],
+        },
+        {
+            id: 'custom',
+            label: t('Custom Revivew Intervals'),
+            array: [0, 5, 30, 60, 240, 1440, 5760, 12960, 21600, 36000],
+        },
+    ]
     const { setActionStr, selectedWord } = useChatStore()
     const [selectedStrategy, setSelectedStrategy] = useState(strategyOptions[0])
     const [sliderValues, setSliderValues] = useState(() => selectedStrategy.array.map(calculateSliderPosition))
@@ -141,10 +193,7 @@ export const ReviewManager = () => {
     const [dailyWords, setDailyWords] = useState(10)
     const [savedIntervals, setSavedIntervals] = useState<number[] | []>(selectedStrategy.array)
     const [studyData, setStudyData] = useState<StudyDay[]>([])
-    const [currentIndex, setCurrentIndex] = useState(0)
-    const { t } = useTranslation()
     const [selectFile, setSelectFile] = useState<SavedFile | null>(null)
-    const [timeRange, setTimeRange] = useState('Today')
     const [totalWords, setTotalWords] = useState(100)
     const [fileOptions, setFileOptions] = useState<fileOptions[]>([])
 
@@ -235,7 +284,7 @@ export const ReviewManager = () => {
             interval: selectedStrategy.array,
             startTime: new Date(),
         }
-        if (!selectFile?.id) {
+        if (!selectFile?.id || !selectFile.reviewSettings) {
             return
         }
         const strategy: StrategyOption = {
@@ -256,10 +305,10 @@ export const ReviewManager = () => {
     const handleSliderChange = (sliderPositions: number[]) => {
         const times = sliderPositions.map(mapSliderValueToTime)
 
-        strategyOptions[3].array = times // 存储原始分钟数数组作为自定义数组
-        setSelectedStrategy(strategyOptions[3])
+        strategyOptions[4].array = times // 存储原始分钟数数组作为自定义数组
+        setSelectedStrategy(strategyOptions[4])
         setSliderValues(sliderPositions)
-        setSavedIntervals(strategyOptions[3].array)
+        setSavedIntervals(strategyOptions[4].array)
     }
 
     const handleDailyWordsChange = (value: number) => {
@@ -269,9 +318,10 @@ export const ReviewManager = () => {
 
     const marks = selectedStrategy.array.reduce((acc, cur, index) => {
         const position = calculateSliderPosition(cur)
-        acc[position] = calculateTimeValue(cur)
+        acc[position] = { label: calculateTimeValue(cur), style: {} } // 初始样式为空对象
         return acc
     }, {})
+
     const displayMarks = getAdjustedMarks(marks, selectedStrategy.array.map(calculateSliderPosition))
 
     const wordsMarks = {
@@ -325,7 +375,7 @@ export const ReviewManager = () => {
                     value={sliderValues}
                     onChange={(values) => handleSliderChange(values as number[])}
                     marks={displayMarks}
-                    style={{ width: '100%', marginBottom: '10px' }}
+                    style={{ width: '100%', marginBottom: '10px', marginTop: '20px' }}
                 />
             </div>
             <div style={{ marginTop: '40px', marginBottom: '20px' }}>
