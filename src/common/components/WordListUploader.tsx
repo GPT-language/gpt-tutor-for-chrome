@@ -45,6 +45,9 @@ const WordListUploader = () => {
     }
 
     const changePage = async (newPageNumber: number) => {
+        if (!currentFileId) {
+            return
+        }
         const success = await loadWords(currentFileId, newPageNumber)
         if (success) {
             setCurrentPage(newPageNumber)
@@ -99,6 +102,9 @@ const WordListUploader = () => {
 
     useEffect(() => {
         const fetchNumPages = async () => {
+            if (!currentFileId) {
+                return
+            }
             const totalWordCount = await fileService.getTotalWordCount(currentFileId)
             const totalPages = Math.ceil(totalWordCount / itemsPerPage)
             setNumPages(totalPages)
@@ -110,7 +116,7 @@ const WordListUploader = () => {
     }, [currentFileId, itemsPerPage])
 
     useEffect(() => {
-        if (!IsInitialized) {
+        if (!IsInitialized || !currentFileId) {
             return
         }
         if (!selectedWords[currentFileId]) {
@@ -140,6 +146,9 @@ const WordListUploader = () => {
     }, [selectedCategory, loadFiles])
 
     useEffect(() => {
+        if (!currentFileId) {
+            return
+        }
         loadWords(currentFileId, currentPage)
     }, [currentFileId, currentPage, loadWords])
 
