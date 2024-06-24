@@ -10,7 +10,6 @@ import { AiOutlineTranslation, AiOutlineLock, AiOutlinePlusSquare, AiOutlineQues
 import { GoSignOut } from 'react-icons/go'
 import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
-import { StatefulTooltip } from 'baseui-sd/tooltip'
 import { getLangConfig, sourceLanguages, targetLanguages, LangCode } from './lang/lang'
 import { translate } from '../translate'
 import { Select, Value, Option } from 'baseui-sd/select'
@@ -68,7 +67,7 @@ import CategorySelector from './CategorySelector'
 import { Accordion, Panel } from 'baseui-sd/accordion'
 import MessageCard from './MessageCard'
 import { ReviewManager } from './ReviewSettings'
-import Timer from './timer'
+
 
 const cache = new LRUCache({
     max: 500,

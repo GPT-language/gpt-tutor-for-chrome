@@ -37,8 +37,6 @@
     "@types/react-copy-to-clipboard": "^5.0.4",
     "@types/react-syntax-highlighter": "^15.5.7",
     "@types/react-window": "^1.8.5",
-    "antd": "^5.16.2",
-    "antd-style": "^3.6.2",
     "autoprefixer": "^10.4.18",
     "baseui-sd": "^12.2.4",
     "best-effort-json-parser": "^1.0.1",
