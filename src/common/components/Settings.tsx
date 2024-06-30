@@ -40,7 +40,7 @@ import { TranslateMode, APIModel } from '../translate'
 // eslint-disable-next-line no-duplicate-imports
 import React from 'react'
 import NumberInput from './NumberInput'
-import { useChatStore } from '@/store/file'
+import { useChatStore } from '@/store/file/store'
 
 const langOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
     return [
@@ -595,7 +595,7 @@ const linkStyle = {
 }
 
 interface APIModelOption {
-    label: string
+    label: ReactNode
     id: string
 }
 
@@ -1038,6 +1038,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
 
     const isDesktopApp = utils.isDesktopApp()
     const isMacOS = navigator.userAgent.includes('Mac OS X')
+    const [showBuyMeACoffee, setShowBuyMeACoffee] = useState(false)
+    const [showSocialMedia, setShowSocialMedia] = useState(false)
 
     return (
         <div
@@ -1069,27 +1071,37 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 <img width='22' src={icon} alt='logo' />
                 <h2>
                     GPT Tutor
-                    {AppConfig?.version ? (
-                        <a
-                            href='https://github.com/yetone/openai-translator/releases'
-                            target='_blank'
-                            rel='noreferrer'
-                            style={{
-                                fontSize: '0.65em',
-                                marginLeft: '5px',
-                                color: 'unset',
-                                textDecoration: 'none',
-                            }}
-                        >
-                            {AppConfig.version}
-                        </a>
-                    ) : null}
+                    {AppConfig?.version ? ` ${AppConfig.version}` : null}
                 </h2>
                 <div
                     style={{
                         flexGrow: 1,
                     }}
                 />
+                <div>
+                    <Button
+                        kind='secondary'
+                        size='mini'
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setShowSocialMedia(true)
+                        }}
+                    >
+                        {'🖥️  ' + t('Follow me on social media')}
+                    </Button>
+                </div>
+                <div>
+                    <Button
+                        kind='secondary'
+                        size='mini'
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setShowBuyMeACoffee(true)
+                        }}
+                    >
+                        {'❤️  ' + t('Buy me a coffee')}
+                    </Button>
+                </div>
             </nav>
             <Form
                 form={form}
@@ -1729,6 +1741,100 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 </div>
                 <Toaster />
             </Form>
+            <Modal
+                isOpen={showSocialMedia}
+                onClose={() => setShowSocialMedia(false)}
+                closeable
+                size='auto'
+                autoFocus
+                animate
+            >
+                <ModalHeader
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                    }}
+                >
+                    {'🖥️ ' + t('Follow me on social media')}
+                </ModalHeader>
+                <ModalBody>
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 10,
+                        }}
+                    >
+                        <div>{t('Follow me on social media to get the latest updates and support')}</div>
+                        <div>
+                            <a href='https://space.bilibili.com/363340721' target='_blank' rel='noopener noreferrer'>
+                                Bilibili
+                            </a>
+                        </div>
+                        <div>
+                            <a
+                                href='https://www.youtube.com/channel/UC7ecjWbmTb316c1Jk4pQprg'
+                                target='_blank'
+                                rel='noopener noreferrer'
+                            >
+                                Youtube
+                            </a>
+                        </div>
+                        <div>
+                            <a href='https://x.com/Heraclitius' target='_blank' rel='noopener noreferrer'>
+                                X
+                            </a>
+                        </div>
+                        <div>
+                            <a href='https://weibo.com/u/2432250323' target='_blank' rel='noopener noreferrer'>
+                                微博
+                            </a>
+                        </div>
+                    </div>
+                </ModalBody>
+            </Modal>
+            <Modal
+                isOpen={showBuyMeACoffee}
+                onClose={() => setShowBuyMeACoffee(false)}
+                closeable
+                size='auto'
+                autoFocus
+                animate
+            >
+                <ModalHeader
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                    }}
+                >
+                    {'❤️  ' + t('Buy me a coffee')}
+                </ModalHeader>
+                <ModalBody>
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 10,
+                        }}
+                    >
+                        <div>{t('If you find this tool helpful, you can buy me a cup of coffee.')}</div>
+                        <div>
+                            <a href='https://afdian.net/a/zy1999' target='_blank' rel='noopener noreferrer'>
+                                爱发电
+                            </a>
+                        </div>
+                        <div>
+                            <a href='https://www.patreon.com/yaoyaoyao' target='_blank' rel='noopener noreferrer'>
+                                Patreon
+                            </a>
+                        </div>
+                    </div>
+                </ModalBody>
+            </Modal>
         </div>
     )
 }

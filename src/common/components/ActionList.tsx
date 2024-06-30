@@ -1,12 +1,11 @@
 import { memo, useState, useEffect } from 'react'
 import { Action } from '../internal-services/db'
-import { useChatStore } from '@/store/file'
+import { useChatStore } from '@/store/file/store'
 import { Button, KIND, SHAPE, SIZE } from 'baseui-sd/button'
 import { useTranslation } from 'react-i18next'
 import { actionInternalService } from '../internal-services/action'
 import { Select, Value } from 'baseui-sd/select'
 import { Textarea } from 'baseui-sd/textarea'
-import { fileService } from '../internal-services/file'
 interface ActionListProps {
     onActionClick: (action: Action | undefined) => void // 从父组件传入的处理函数
     performAll: (actions: Action[]) => void
@@ -180,7 +179,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             if (childrenActions) {
                 setAssistantActions(childrenActions)
             }
-
         }
         fetchActions()
         // eslint-disable-next-line react-hooks/exhaustive-deps

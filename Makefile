@@ -1,4 +1,4 @@
-VERSION ?= 0.1.9.7
+VERSION ?= 1.0.0
 
 clean:
 	rm -rf dist

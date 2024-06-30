@@ -13,7 +13,6 @@ export class FileService {
         return file
     }
 
-
     // 添加新文件
     async addFile(name: string, words: Word[], category: string): Promise<number> {
         const fileId = await this.db.files.add({ name, words, category })
@@ -69,7 +68,6 @@ export class FileService {
             return null
         }
     }
-
 
     async getFileIdByName(category: string, name: string): Promise<number | null> {
         try {
@@ -132,7 +130,6 @@ export class FileService {
         }
     }
 
-
     // 创建文件
     async createFile(name: string, category: string, words?: Word[], reviewSettings?: ReviewSettings): Promise<number> {
         if (words) {
@@ -165,7 +162,7 @@ export class FileService {
     }
 
     // 确定单词是否在该文件中
-    async isWordInFile(fileId: number, wordIdx: number, wordText: string ): Promise<boolean> {
+    async isWordInFile(fileId: number, wordIdx: number, wordText: string): Promise<boolean> {
         // 先根据idx在words中找到对应的词，然后看它们text是否相同
         const file = await this.fetchFileDetailsById(fileId)
         const word = file.words.find((w) => w.idx === wordIdx)

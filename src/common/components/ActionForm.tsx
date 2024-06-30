@@ -13,7 +13,7 @@ import { useTheme } from '../hooks/useTheme'
 import { IconPicker } from './IconPicker'
 import { RenderingFormatSelector } from './RenderingFormatSelector'
 import ActionSelect from './ActionSelect'
-import { useChatStore } from '@/store/file'
+import { useChatStore } from '@/store/file/store'
 import ModelSelect from './ModelSelect'
 
 const useStyles = createUseStyles({

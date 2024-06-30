@@ -39,7 +39,6 @@ export default function ModelSelect({ value, onChange }: IModelSelectProps) {
         console.log('value is ' + value)
     }, [groupedModels, value])
 
-
     return (
         <Select
             options={groupedModels}

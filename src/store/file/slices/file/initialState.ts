@@ -11,8 +11,6 @@ export interface ChatFileState {
     selectedWords: { [fileId: number]: Word | null }
 }
 
-
-
 function getFromStorage(key: string, defaultValue: unknown) {
     const item = localStorage.getItem(key)
     try {

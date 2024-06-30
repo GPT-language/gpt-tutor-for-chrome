@@ -8,6 +8,7 @@ import { Textarea } from 'baseui-sd/textarea'
 import { createUseStyles } from 'react-jss'
 import { AiOutlineTranslation, AiOutlineLock, AiOutlinePlusSquare, AiOutlineQuestionCircle } from 'react-icons/ai'
 import { GoSignOut } from 'react-icons/go'
+import { useClerk } from '@clerk/chrome-extension'
 import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
 import { getLangConfig, sourceLanguages, targetLanguages, LangCode } from './lang/lang'
@@ -22,7 +23,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { ErrorFallback } from '../components/ErrorFallback'
 import { defaultAPIURL, isDesktopApp, isTauri } from '../utils'
 import { InnerSettings } from './Settings'
-import { documentPadding, zIndex } from '../../browser-extension/content_script/consts'
+import { documentPadding } from '../../browser-extension/content_script/consts'
 import Dropzone from 'react-dropzone'
 import { addNewNote, isConnected } from '../anki/anki-connect'
 import actionsData from '../services/prompts.json'
@@ -37,7 +38,7 @@ import { Tooltip } from './Tooltip'
 import { useSettings } from '../hooks/useSettings'
 import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
-import { Action, Translations, Word, ActionOutputRenderingFormat } from '../internal-services/db'
+import { Action, Translations, ActionOutputRenderingFormat } from '../internal-services/db'
 import { CopyButton } from './CopyButton'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { actionService } from '../services/action'
@@ -56,7 +57,7 @@ import _ from 'underscore'
 import { GlobalSuspense } from './GlobalSuspense'
 import YouGlishComponent from '../youglish/youglish'
 import { LANG_CONFIGS } from '../components/lang/data'
-import { useChatStore } from '@/store/file'
+import { useChatStore } from '@/store/file/store'
 import { Provider, getEngine } from '../engines'
 import { IEngine } from '../engines/interfaces'
 import TextParser from './TextParser'
@@ -67,7 +68,7 @@ import CategorySelector from './CategorySelector'
 import { Accordion, Panel } from 'baseui-sd/accordion'
 import MessageCard from './MessageCard'
 import { ReviewManager } from './ReviewSettings'
-
+import { StatefulTooltip } from 'baseui-sd/tooltip'
 
 const cache = new LRUCache({
     max: 500,
@@ -519,6 +520,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const scrollYRef = useRef<number>(0)
 
     const hasActivateAction = activateAction !== undefined
+    const clerk = useClerk()
 
     useLayoutEffect(() => {
         const handleResize = () => {
@@ -694,7 +696,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         } else {
             console.debug('word is empty')
         }
-
     }, [selectedWord?.idx, words])
 
     useEffect(() => {
@@ -1588,7 +1589,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                         {t('Review Manager')}
                                                     </div>
                                                 ),
-                                            }
+                                            },
                                         ]}
                                     />
                                 }
@@ -1748,6 +1749,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 </div>
                             </div>
                             <div className={styles.actionButtonsContainer}>
+                                <StatefulTooltip content={t('Sign out')} showArrow placement='top'>
+                                    <div className={styles.actionButton} onClick={() => clerk.signOut()}>
+                                        <GoSignOut size={20} />
+                                    </div>
+                                </StatefulTooltip>
                                 <div style={{ marginLeft: 'auto' }}></div>
                                 {!!editableText.length && (
                                     <>

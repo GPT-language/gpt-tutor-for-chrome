@@ -19,6 +19,7 @@
   "Always show icons": "總是顯示圖示",
   "Default Target Language": "預設目標語言",
   "Theme": "主題",
+  "Sign out": "登出",
   "i18n": "語言",
   "Hotkey": "快捷鍵",
   "OCR Hotkey": "OCR 快捷鍵",
@@ -150,5 +151,9 @@
   "Loose Revivew Intervals": "較緊的複習間隔",
   "Daily Revivew Intervals": "每日複習間隔",
   "Custom Revivew Intervals": "自訂複習間隔",
+  "Buy me a coffee": "購買一杯咖啡",
+  "If you find this tool helpful, you can buy me a cup of coffee.": "如果您觉得這個工具对您有帮助，您可以请我喝一杯咖啡。",
+  "Follow me on social media": "在社交媒體上關注我",
+  "Follow me on social media to get the latest updates and support": "在社交媒體上關注我以獲取最新更新和支持",
   "Finish": "完成這個主題並添加到複習"
 }

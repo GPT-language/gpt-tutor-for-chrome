@@ -63,5 +63,5 @@ export const initialChatState: ChatState = {
     showActionManager: false,
     showSettings: false,
     actionStr: '',
-    reviewIntervals: getFromStorage('reviewIntervals', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    reviewIntervals: getFromStorage('reviewIntervals', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
 }

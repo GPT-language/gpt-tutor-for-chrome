@@ -12,7 +12,7 @@ import { createParser } from 'eventsource-parser'
 import { PubSubPayload } from '../types'
 import { Base64 } from 'js-base64'
 import Browser from 'webextension-polyfill'
-import { useChatStore } from '@/store/file'
+import { useChatStore } from '@/store/file/store'
 
 export const keyChatgptArkoseReqUrl = 'chatgptArkoseReqUrl'
 export const keyChatgptArkoseReqForm = 'chatgptArkoseReqForm'

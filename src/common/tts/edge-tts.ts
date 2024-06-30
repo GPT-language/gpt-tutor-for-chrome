@@ -1,4 +1,4 @@
-import { useChatStore } from '@/store/file'
+import { useChatStore } from '@/store/file/store'
 import { v4 as uuidv4 } from 'uuid'
 import * as utils from '../utils'
 

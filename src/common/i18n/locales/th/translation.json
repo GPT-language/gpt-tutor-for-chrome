@@ -18,6 +18,7 @@
   "Select Input Elements Text": "สามารช์เลือกข้อมูลในเว็บไผต์ข้อมูลการใส่ข้อมูล",
   "Default Target Language": "ภาษาเป้าหมายเริ่มต้น",
   "Theme": "ธีม",
+  "Sign out": "ออกจากระบบ",
   "i18n": "ภาษา",
   "Hotkey": "ปุ่มลัด",
   "OCR Hotkey": "ปุ่มลัด OCR",
@@ -148,5 +149,9 @@
   "Loose Revivew Intervals": "ช่วงตรวจสอบเล็ก",
   "Daily Revivew Intervals": "ช่วงตรวจสอบทุกวัน",
   "Custom Revivew Intervals": "ช่วงตรวจสอบกําหนดเอง",
+  "Buy me a coffee": "ซื้อเครื่องดื่ม",
+  "If you find this tool helpful, you can buy me a cup of coffee.": "หากคุณพบว่าเครื่องมือนี้เป็นช่วยเหลือให้ซื้อเครื่องดื่ม",
+  "Follow me on social media": "ติดตามผู้ใช้งานบนโซเชียลมีเดีย",
+  "Follow me on social media to get the latest updates and support": "ติดตามผู้ใช้งานบนโซเชียลมีเดีย เพื่อรับประกาศล่าสุดและการสนับสนุน",
   "disable collecting statistics": "ปิดใช้งานการสถิติการเก็บรวบรวม"
 }

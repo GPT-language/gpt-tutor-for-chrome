@@ -7,7 +7,7 @@ import { StudyChart, StudyDay, generateStudyPlan } from './StudyChart'
 import { fileService } from '../internal-services/file'
 import { useTranslation } from 'react-i18next'
 import { ReviewSettings, SavedFile } from '../internal-services/db'
-import { useChatStore } from '@/store/file'
+import { useChatStore } from '@/store/file/store'
 type StrategyOption = {
     id: string | number
     label: string

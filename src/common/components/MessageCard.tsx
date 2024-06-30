@@ -35,8 +35,8 @@ export default function MessageCardsContainer() {
                 <MessageCard
                     heading={t('Join Our Learning Group')}
                     buttonLabel={t('Join Our Learning Group')}
-                    onClick={() => window.open('https://discord.com')}
-                    paragraph={t('Join our learning group on Discord to get help')}
+                    onClick={() => window.open('https://chatgpt-tutor.vercel.app/docs/socialmedia')}
+                    paragraph={t('Join our learning group to get help')}
                 />
             </div>
         </div>
