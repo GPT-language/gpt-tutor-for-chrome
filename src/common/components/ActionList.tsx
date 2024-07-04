@@ -31,7 +31,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         currentPage,
         setCurrentPage,
     } = useChatStore()
-    const parentActions = actions.filter((action) => !action.parentIds)
     const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
     const [isCompleted, setIsCompleted] = useState(false)
     const [showNext, setShowNext] = useState(false)
@@ -116,6 +115,11 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         if (action) onActionClick(action)
     }
 
+    const handleAssistantActionChange = (value: Value) => {
+        setValue(value)
+        setAssistantActionText('')
+    }
+
     useEffect(() => {
         if (!activateAction) {
             console.debug('continue click but no action activated')
@@ -142,11 +146,10 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         }
     }, [words, selectedWord, setCurrentPage, currentPage])
 
-    const handleOpenAction = (selectedIdx: number | string | undefined, assistantActionText: string) => {
+    const handleOpenAction = (selectedIdx: number | string | undefined) => {
         if (!selectedIdx || !assistantActionText) return
         const action = assistantActions.find((a) => a.idx === selectedIdx)
         if (action) onActionClick(action)
-        setAssistantActionText('')
     }
 
     const handleContinueClick = () => {
@@ -318,14 +321,14 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                                             value={value}
                                             labelKey='label'
                                             valueKey='id'
-                                            onChange={({ value }) => setValue(value)}
+                                            onChange={({ value }) => handleAssistantActionChange(value)}
                                         />
                                         <Button
                                             kind={KIND.secondary}
                                             size={SIZE.compact}
                                             onClick={() =>
                                                 assistantActionText
-                                                    ? handleOpenAction(value[0]?.id, assistantActionText)
+                                                    ? handleOpenAction(value[0]?.id)
                                                     : handleSelectAndExecuteAction(value[0]?.id)
                                             }
                                         >

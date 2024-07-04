@@ -1242,7 +1242,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         const controller = new AbortController()
         const { signal } = controller
         let finalText
-        if (activateAction?.parentIds && activateAction.name === t('Open Questioning')) {
+        if (activateAction?.parentIds) {
             finalText = assistantActionText
         } else if (!selectedWord?.text) {
             finalText = editableText
