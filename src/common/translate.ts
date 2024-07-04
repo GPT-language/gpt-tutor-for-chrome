@@ -25,6 +25,7 @@ export type APIModel =
 
 interface BaseTranslateQuery {
     activateAction: Action
+    parentAction?: Action
     text: string
     detectFrom: LangCode
     detectTo: LangCode
@@ -375,6 +376,7 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
 
     await engine?.sendMessage({
         activateAction: query.activateAction,
+        parentAction: query.parentAction,
         signal: query.signal,
         rolePrompt,
         commandPrompt,

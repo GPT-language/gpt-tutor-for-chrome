@@ -433,6 +433,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         assistantActionText,
         actionStr,
         setActionStr,
+        messageId,
+        conversationId,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -645,7 +647,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
     const [translations, setTranslations] = useState<Translations>({})
     const [activeKey, setActiveKey] = useState<Key | null>(null)
-    const [currentAction, setCurrentAction] = useState<Action | undefined>(undefined)
+    const [parentAction, setParentAction] = useState<Action | undefined>(undefined)
     const handleAccordionChange = (expanded: Array<React.Key>) => {
         setActiveKey(expanded.length > 0 ? expanded[0] : null)
     }
@@ -666,7 +668,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
         // 保存当前状态
         if (action.parentIds) {
-            setCurrentAction(activateAction)
+            setParentAction(activateAction)
         }
 
         // 如果不需要暂时更改状态，只执行当前操作
@@ -943,9 +945,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             if (!text || !activateAction?.id) {
                 return
             }
-            console.log('translateText', text)
-            console.log('editableText', editableText)
-            console.log('selectedWord.text', selectedWord?.text)
 
             if (text !== selectedWord?.text) {
                 if (!activateAction.parentIds) {
@@ -1013,6 +1012,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 await translate(
                     {
                         activateAction,
+                        parentAction: parentAction,
                         detectFrom: sourceLang,
                         detectTo: targetLang,
                         action,
@@ -1185,7 +1185,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         } finally {
             if (activateAction?.parentIds) {
                 // 使用辅助动作后返回到父动作
-                setAction(currentAction)
+                setAction(parentAction)
             }
         }
     }

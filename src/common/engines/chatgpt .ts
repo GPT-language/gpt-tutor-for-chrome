@@ -206,13 +206,24 @@ export class ChatGPT extends AbstractEngine {
         this.store = useChatStore
     }
 
-    saveConversationContext(name: string, model: string, conversationContext: { conversationId: string }) {
+    saveConversationContext(name: string, model: string, conversationId: string) {
         // 使用 chrome.storage.local.set() 保存上下文
         // 保存的键为 name 和 model 的组合，然后保存对话 ID
         const conversationKey = `${name}.${model}.conversationId`
         chrome.storage.local.set({
             [conversationKey]: {
-                value: conversationContext.conversationId,
+                value: conversationId,
+            },
+        })
+    }
+
+    saveMessageContext(name: string, model: string, messageId: string) {
+        // 使用 chrome.storage.local.set() 保存上下文
+        // 保存的键为 name 和 model 的组合，然后保存对话 ID
+        const messageKey = `${name}.${model}.messageId`
+        chrome.storage.local.set({
+            [messageKey]: {
+                value: messageId,
             },
         })
     }
@@ -328,6 +339,7 @@ export class ChatGPT extends AbstractEngine {
 
     async postMessage(req: IMessageRequest, websocketRequestId?: string): Promise<Response | undefined> {
         try {
+            console.log('get req' + JSON.stringify(req))
             const accessToken = await utils.getAccessToken()
             if (!accessToken) {
                 throw new Error('There is no logged-in ChatGPT account in this browser.')
@@ -339,6 +351,8 @@ export class ChatGPT extends AbstractEngine {
             ])
 
             let model = 'text-davinci-003'
+            let lastConversationId
+            let lastMessageId
 
             if (req.activateAction.model) {
                 const [provider, modelName] = req.activateAction.model.split('&')
@@ -350,9 +364,16 @@ export class ChatGPT extends AbstractEngine {
             }
             this.model = model
 
-            const messageId = uuidv4()
+            // 辅助action使用与父action相同的conversationId
+            if (req.parentAction) {
+                lastConversationId = await this.getConversationId(req.parentAction.name, model)
+                lastMessageId = await this.getMessageId(req.parentAction.name, model)
+            } else {
+                lastConversationId = await this.getConversationId(req.activateAction.name, model)
+                lastMessageId = uuidv4()
+            }
 
-            const lastConversationId = await this.getConversationId(req.activateAction.name, this.model)
+            const messageId = uuidv4()
 
             const userAgent =
                 process.env.USER_AGENT ||
@@ -433,7 +454,7 @@ export class ChatGPT extends AbstractEngine {
                     },
                 ],
                 model: this.model,
-                parent_message_id: uuidv4(),
+                parent_message_id: lastMessageId,
                 conversation_mode: { kind: 'primary_assistant', plugin_ids: null },
                 force_nulligen: false,
                 force_paragen: false,
@@ -534,9 +555,7 @@ export class ChatGPT extends AbstractEngine {
             if (finished) return
             try {
                 resp = JSON.parse(message)
-                this.saveConversationContext(req.activateAction.name, this.model, {
-                    conversationId: resp.conversation_id,
-                })
+                this.saveConversationContext(req.activateAction.name, this.model, resp.conversation_id)
 
                 useChatStore.getInitialState().setConversationId(resp.conversation_id)
                 this.context = {
@@ -569,6 +588,7 @@ export class ChatGPT extends AbstractEngine {
                 return
             }
             useChatStore.getInitialState().setMessageId(id)
+            this.saveMessageContext(req.activateAction.name, this.model, id)
             if (author.role === 'assistant') {
                 const targetTxt = content.parts.join('')
                 const textDelta = targetTxt.slice(this.length)

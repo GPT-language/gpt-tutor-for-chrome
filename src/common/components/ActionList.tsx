@@ -146,6 +146,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         if (!selectedIdx || !assistantActionText) return
         const action = assistantActions.find((a) => a.idx === selectedIdx)
         if (action) onActionClick(action)
+        setAssistantActionText('')
     }
 
     const handleContinueClick = () => {
@@ -323,7 +324,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                                             kind={KIND.secondary}
                                             size={SIZE.compact}
                                             onClick={() =>
-                                                value[0]?.label === t('Open Questioning')
+                                                assistantActionText
                                                     ? handleOpenAction(value[0]?.id, assistantActionText)
                                                     : handleSelectAndExecuteAction(value[0]?.id)
                                             }
@@ -335,7 +336,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                                         <Textarea
                                             onChange={(e) => setAssistantActionText(e.currentTarget.value)}
                                             value={assistantActionText}
-                                            disabled={value[0]?.label !== t('Open Questioning')}
                                             resize='vertical'
                                         />
                                     </div>
