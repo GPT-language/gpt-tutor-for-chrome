@@ -87,13 +87,6 @@ export function IconPicker({ value, onChange }: IIconPickerProps) {
                             onChange={(e) => {
                                 setSearchInputText(e.currentTarget.value)
                             }}
-                            onKeyPress={(e) => {
-                                e.stopPropagation()
-                                if (e.key === 'Enter') {
-                                    setSearchText(searchInputText)
-                                    e.preventDefault()
-                                }
-                            }}
                             placeholder='Search Icon'
                             size='mini'
                         />

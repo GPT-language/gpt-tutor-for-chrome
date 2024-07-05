@@ -562,11 +562,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [displayedActions, setDisplayedActions] = useState<Action[]>([])
     const [hiddenActions, setHiddenActions] = useState<Action[]>([])
     const [displayedActionsMaxCount, setDisplayedActionsMaxCount] = useState(4)
-    // 使用 reduce 方法创建分组
-    const actionGroups = actions?.reduce<Record<string, Action[]>>((groups, action) => {
-        const group = action.group || 'English Learning'
-        groups[group] = groups[group] || []
-        groups[group].push(action)
+    const actionGroups = actions?.reduce((groups: { [key: string]: Action[] }, action) => {
+        // 每个 action 可能属于多个 group
+        action.groups.forEach((group) => {
+            if (!groups[group]) {
+                groups[group] = []
+            }
+            groups[group].push(action)
+        })
         return groups
     }, {})
 
@@ -587,8 +590,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
 
         const filteredActions = actions.filter((action) => {
-            const group = action.group ?? 'English Learning'
-            return group === selectedGroup
+            return action.groups.includes(selectedGroup)
         })
 
         setActions(filteredActions)

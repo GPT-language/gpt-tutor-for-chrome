@@ -16,10 +16,11 @@ export default function ActionSelect({ value, onChange, initialActions }: IActio
             return []
         }
         return actions.reduce<Record<string, { id: number; name: string }[]>>((acc, action) => {
-            const group = action.group || '__ungrouped'
-            acc[group] = acc[group] || []
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            acc[group].push({ id: action.id!, name: action.name })
+            action.groups.forEach((group) => {
+                acc[group] = acc[group] || []
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                acc[group].push({ id: action.id!, name: action.name })
+            })
             return acc
         }, {})
     }

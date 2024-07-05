@@ -41,6 +41,10 @@ class BackgroundActionService implements IActionInternalService {
     getArkoseToken(): Promise<string | undefined> {
         return callMethod('actionService', 'getArkoseToken', [])
     }
+
+    getAllGroups(): Promise<string[]> {
+        return callMethod('actionService', 'getAllGroups', [])
+    }
 }
 
 export const backgroundActionService = new BackgroundActionService()

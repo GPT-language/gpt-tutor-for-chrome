@@ -15,6 +15,7 @@ import { RenderingFormatSelector } from './RenderingFormatSelector'
 import ActionSelect from './ActionSelect'
 import { useChatStore } from '@/store/file/store'
 import ModelSelect from './ModelSelect'
+import GroupSelect from './GroupSelect'
 
 const useStyles = createUseStyles({
     placeholder: (props: IThemedStyleProps) => ({
@@ -51,6 +52,7 @@ export function ActionForm(props: IActionFormProps) {
     const { t } = useTranslation()
     const { activateAction } = useChatStore()
     const [loading, setLoading] = useState(false)
+    const [actionGroups, setActionGroups] = useState<string[]>([])
 
     const onSubmit = useCallback(
         async (values: ICreateActionOption) => {
@@ -90,6 +92,18 @@ export function ActionForm(props: IActionFormProps) {
             actionService.addParentIdToChildren(activateAction.id, childrenActionsId)
         }
     }, [activateAction?.childrenIds, activateAction?.id])
+
+    useEffect(() => {
+        const fetchGroups = async () => {
+            try {
+                setActionGroups(await actionService.getAllGroups())
+            } catch (error) {
+                console.error('Failed to fetch groups:', error)
+            }
+        }
+
+        fetchGroups()
+    }, [actions])
 
     const rolePlaceholdersCaption = (
         <ul className={styles.placeholderCaptionContainer}>
@@ -154,8 +168,8 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='icon' label={t('Icon')}>
                 <IconPicker />
             </FormItem>
-            <FormItem required name='group' label={t('Group')}>
-                <Input size='compact' />
+            <FormItem required name='groups' label={t('Groups')}>
+                <GroupSelect intialTags={props.action?.groups || []}></GroupSelect>
             </FormItem>
             <FormItem name='description' label={t('Description')}>
                 <Input size='compact' />

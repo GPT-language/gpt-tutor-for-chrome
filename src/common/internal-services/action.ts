@@ -6,7 +6,7 @@ export interface ICreateActionOption {
     parentIds?: number[]
     childrenIds?: number[]
     model?: string
-    group?: string
+    groups: string[]
     description?: string
     mode?: TranslateMode
     icon?: string
@@ -21,7 +21,7 @@ export interface IUpdateActionOption {
     parentIds?: number[]
     description?: string
     model?: string
-    group?: string
+    groups?: string[]
     mode?: TranslateMode
     icon?: string
     rolePrompt?: string
@@ -41,6 +41,7 @@ export interface IActionInternalService {
     count(): Promise<number>
     exportActions(filename: string, filteredActions: Action[]): Promise<void>
     importActions(file: File): Promise<void>
+    getAllGroups(): Promise<string[]>
 }
 
 class ActionInternalService implements IActionInternalService {
@@ -62,7 +63,7 @@ class ActionInternalService implements IActionInternalService {
                 rolePrompt: opt.rolePrompt,
                 commandPrompt: opt.commandPrompt,
                 outputRenderingFormat: opt.outputRenderingFormat,
-                group: opt.group,
+                groups: opt.groups,
                 createdAt: now,
                 updatedAt: now,
             }
@@ -232,6 +233,14 @@ class ActionInternalService implements IActionInternalService {
             console.error('Error importing actions:', error)
             // Optionally, show an error message to the user
         }
+    }
+
+    // 返回所有gruops
+    async getAllGroups(): Promise<string[]> {
+        const actions = await this.list()
+        const groups = actions.flatMap((action) => action.groups) // 使用 flatMap 来扁平化每个动作的 groups 数组
+        const totalGroups = Array.from(new Set(groups)) // 使用 Set 来去重
+        return totalGroups
     }
 }
 

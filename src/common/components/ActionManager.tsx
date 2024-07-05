@@ -27,7 +27,9 @@ const useStyles = createUseStyles({
         justifyContent: 'center',
         padding: isDesktopApp() ? '40px 20px 20px 20px' : 0,
         boxSizing: 'border-box',
-        width: isDesktopApp() ? '100%' : '300px',
+        width: isDesktopApp() ? '100%' : 'auto', // 当是桌面应用时占满容器，否则自适应内容
+        minWidth: '300px', // 最小宽度设置为300px
+        maxWidth: '600px', // 最大宽度设置为600px
     }),
     header: (props: IThemedStyleProps) => ({
         width: '100%',
@@ -100,12 +102,21 @@ const useStyles = createUseStyles({
         overflow: 'hidden',
     }),
     actionOperation: {
-        flexShrink: 0,
-        display: 'none',
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginLeft: 'auto',
-        gap: 10,
+        'flexShrink': 0,
+        'display': 'none',
+        'flexDirection': 'row',
+        'alignItems': 'center',
+        'marginLeft': 'auto',
+        'gap': 10,
+        '@media (min-width: 540px)': {
+            // 当屏幕宽度大于400px时应用以下样式
+            'display': 'flex', // 始终为 flex
+            'opacity': 0, // 默认透明度为0，使其不可见
+            'transition': 'opacity 0.3s ease', // 过渡效果
+            '&:hover': {
+                opacity: 1, // 鼠标悬停时透明度为1
+            },
+        },
     },
     name: {
         fontSize: '16px',
@@ -160,11 +171,13 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
         return null
     }
     const actionGroups = actions.reduce((groups: { [key: string]: Action[] }, action) => {
-        const group = action.group || 'default'
-        if (!groups[group]) {
-            groups[group] = []
-        }
-        groups[group].push(action)
+        // 每个 action 可能属于多个 group
+        action.groups.forEach((group) => {
+            if (!groups[group]) {
+                groups[group] = []
+            }
+            groups[group].push(action)
+        })
         return groups
     }, {})
 
@@ -210,7 +223,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
     const ExportActions = async (group: string) => {
         try {
             const filteredActions = actions.filter((action) => {
-                return action.group === group
+                return action.groups.includes(group)
             })
             await exportToJson<Action>(group + `-${new Date().valueOf()}`, filteredActions)
         } catch (e) {
@@ -238,6 +251,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                 <div className={styles.operationList}>
                     <Button
                         size='mini'
+                        kind='secondary'
                         onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
@@ -249,6 +263,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                     </Button>
                     <Button
                         size='mini'
+                        kind='secondary'
                         onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
@@ -280,6 +295,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                             </h3>
                             <Button
                                 size='mini'
+                                kind='secondary'
                                 onClick={() => {
                                     ExportActions(group)
                                 }}
@@ -341,6 +357,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                 <>
                                                     <Button
                                                         size='mini'
+                                                        kind='secondary'
                                                         disabled={idx === 0}
                                                         onClick={async (e) => {
                                                             e.preventDefault()
@@ -363,6 +380,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                     </Button>
                                                     <Button
                                                         size='mini'
+                                                        kind='secondary'
                                                         disabled={idx === actions.length - 1}
                                                         onClick={async (e) => {
                                                             e.preventDefault()
@@ -387,6 +405,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                             )}
                                             <Button
                                                 size='mini'
+                                                kind='secondary'
                                                 startEnhancer={<FiEdit size={12} />}
                                                 disabled={!!action.mode}
                                                 onClick={(e) => {
@@ -400,6 +419,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                             </Button>
                                             <Button
                                                 size='mini'
+                                                kind='secondary'
                                                 startEnhancer={<RiDeleteBinLine size={12} />}
                                                 disabled={!!action.mode}
                                                 onClick={(e) => {
