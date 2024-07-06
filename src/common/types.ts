@@ -54,6 +54,20 @@ export interface ISettings {
     provider: Provider
     autoTranslate: boolean
     chatContext: boolean
+    azureAPIKeys: string
+    azureAPIURL: string
+    azureAPIURLPath: string
+    azureAPIModel: string
+    miniMaxGroupID: string
+    miniMaxAPIKey: string
+    miniMaxAPIModel: string
+    geminiAPIURL: string
+    geminiAPIKey: string
+    geminiAPIModel: string
+    moonshotAPIKey: string
+    moonshotAPIModel: string
+    deepSeekAPIKey: string
+    deepSeekAPIModel: string
     defaultTranslateMode: Exclude<TranslateMode, 'big-bang'> | 'nop'
     defaultTargetLanguage: string
     defaultSourceLanguage: string

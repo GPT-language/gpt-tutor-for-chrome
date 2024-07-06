@@ -21,6 +21,8 @@ import { Claude } from './claude'
 import { Kimi } from './kimi'
 import { ChatGLMIcon } from '../components/icons/ChatGLMIcon'
 import { ChatGLM } from './chatglm'
+import { DeepSeekIcon } from '@/common/components/icons/DeepSeekIcon'
+import { DeepSeek } from './deepseek'
 
 export type Provider =
     | 'OpenAI'
@@ -34,6 +36,7 @@ export type Provider =
     | 'Claude'
     | 'Kimi'
     | 'ChatGLM'
+    | 'DeepSeek'
 
 export const engineIcons: Record<Provider, IconType> = {
     OpenAI: RiOperaFill,
@@ -47,6 +50,7 @@ export const engineIcons: Record<Provider, IconType> = {
     Claude: ClaudeIcon,
     Kimi: KimiIcon,
     ChatGLM: ChatGLMIcon,
+    DeepSeek: DeepSeekIcon,
 }
 
 export const providerToEngine: Record<Provider, { new (): IEngine }> = {
@@ -61,6 +65,7 @@ export const providerToEngine: Record<Provider, { new (): IEngine }> = {
     Claude: Claude,
     Kimi: Kimi,
     ChatGLM: ChatGLM,
+    DeepSeek: DeepSeek,
 }
 
 export function getEngine(provider: Provider): IEngine {

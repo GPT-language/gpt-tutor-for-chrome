@@ -168,6 +168,8 @@ const settingKeys: Record<keyof ISettings, number> = {
     kimiAccessToken: 1,
     chatglmAccessToken: 1,
     chatglmRefreshToken: 1,
+    deepSeekAPIKey: 1,
+    deepSeekAPIModel: 1,
     fontSize: 1,
     uiFontSize: 1,
     iconSize: 1,
