@@ -433,8 +433,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         assistantActionText,
         actionStr,
         setActionStr,
-        messageId,
-        conversationId,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 

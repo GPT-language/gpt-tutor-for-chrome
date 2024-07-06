@@ -175,18 +175,22 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
     useEffect(() => {
         const fetchActions = async () => {
-            if (activateAction?.parentIds || !activateAction?.childrenIds) return
+            if (!activateAction?.childrenIds) {
+                console.log('no children ids')
+                return
+            }
             const childrenActionsId = activateAction?.childrenIds
 
             const childrenActions = await actionInternalService.getByChildrenIds(childrenActionsId)
 
             if (childrenActions) {
                 setAssistantActions(childrenActions)
+            } else {
+                console.log('not found children actions')
             }
         }
         fetchActions()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activateAction?.childrenIds])
+    }, [activateAction])
 
     switch (selectedCategory) {
         case 'Review':
