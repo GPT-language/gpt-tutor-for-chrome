@@ -273,18 +273,9 @@ export async function speak(options: EdgeTTSOptions) {
         console.log('speakWithChatGPT', options.conversationId + options.messageId)
         return speakWithChatGPT(options)
     } else {
-        // 从 chat store 获取 messageId 和 conversationId
-        const { messageId, conversationId } = useChatStore.getState()
-
-        // 检查从 store 获取的 messageId 和 conversationId 是否有效
-        if (messageId && conversationId && accessToken) {
-            // 使用更新后的选项调用 speakWithChatGPT
-            return speakWithChatGPT({ ...options, messageId, conversationId })
-        } else {
-            console.log('调用 edgeSpeak', options)
-            // 如果 messageId 或 conversationId 无效，则调用 edgeSpeak
-            return edgeSpeak(options)
-        }
+        console.log('调用 edgeSpeak', options)
+        // 如果 messageId 或 conversationId 无效，则调用 edgeSpeak
+        return edgeSpeak(options)
     }
 }
 
