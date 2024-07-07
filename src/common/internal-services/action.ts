@@ -35,7 +35,8 @@ export interface IActionInternalService {
     bulkPut(actions: Action[]): Promise<void>
     get(id: number): Promise<Action | undefined>
     getByMode(mode: string): Promise<Action | undefined>
-    addParentIdToChildren(parentId: number, childrenIds: number[]): Promise<void>
+    addParentIdToChildrenActions(parentId: number, childrenIds: number[]): Promise<void>
+    deleteParentIdFromChildrenActions(parentId: number, childrenIds: number[]): Promise<void>
     delete(id: number): Promise<void>
     list(): Promise<Action[]>
     count(): Promise<number>
@@ -112,7 +113,7 @@ class ActionInternalService implements IActionInternalService {
             .toArray()
     }
 
-    async addParentIdToChildren(currentActionId: number, childrenIds: number[]): Promise<void> {
+    async addParentIdToChildrenActions(currentActionId: number, childrenIds: number[]): Promise<void> {
         const db = this.db // Get the database reference
         try {
             // Start a read-write transaction on the 'action' table
@@ -132,7 +133,29 @@ class ActionInternalService implements IActionInternalService {
             })
         } catch (error) {
             console.error('Failed to update parentIds:', error)
-            throw new Error(`Failed to update parentIds due to error: ${error.message}`)
+        }
+    }
+
+    async deleteParentIdFromChildrenActions(currentActionId: number, childrenIds: number[]): Promise<void> {
+        const db = this.db // Get the database reference
+        try {
+            // Start a read-write transaction on the 'action' table
+            await db.transaction('rw', db.action, async () => {
+                const actions = await db.action.where('id').anyOf(childrenIds).toArray()
+                console.log('children actions is', actions)
+
+                for (const action of actions) {
+                    // Ensure parentIds is an array
+                    const updatedParentIds = new Set(action.parentIds || [])
+                    updatedParentIds.delete(currentActionId)
+
+                    // Update the action's parentIds
+                    action.parentIds = Array.from(updatedParentIds)
+                    await db.action.put(action) // Save changes
+                }
+            })
+        } catch (error) {
+            console.error('Failed to update parentIds:', error)
         }
     }
 

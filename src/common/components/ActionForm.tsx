@@ -13,7 +13,6 @@ import { useTheme } from '../hooks/useTheme'
 import { IconPicker } from './IconPicker'
 import { RenderingFormatSelector } from './RenderingFormatSelector'
 import ActionSelect from './ActionSelect'
-import { useChatStore } from '@/store/file/store'
 import ModelSelect from './ModelSelect'
 import GroupSelect from './GroupSelect'
 
@@ -50,7 +49,6 @@ export function ActionForm(props: IActionFormProps) {
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType })
     const { t } = useTranslation()
-    const { activateAction } = useChatStore()
     const [loading, setLoading] = useState(false)
     const [actionGroups, setActionGroups] = useState<string[]>([])
 
@@ -84,14 +82,6 @@ export function ActionForm(props: IActionFormProps) {
 
         fetchActions()
     }, [])
-
-    useEffect(() => {
-        const childrenActionsId = activateAction?.childrenIds
-
-        if (childrenActionsId && activateAction?.id) {
-            actionService.addParentIdToChildren(activateAction.id, childrenActionsId)
-        }
-    }, [activateAction?.childrenIds, activateAction?.id])
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -163,7 +153,7 @@ export function ActionForm(props: IActionFormProps) {
                 <Input size='compact' />
             </FormItem>
             <FormItem name='childrenIds' label={t('Assistant Actions')}>
-                <ActionSelect initialActions={actions}></ActionSelect>
+                <ActionSelect initialActions={actions} updatingAction={props.action}></ActionSelect>
             </FormItem>
             <FormItem required name='icon' label={t('Icon')}>
                 <IconPicker />

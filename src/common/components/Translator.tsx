@@ -429,7 +429,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowActionManager,
         showSettings,
         setShowSettings,
-        assistantActionText,
         actionStr,
         setActionStr,
     } = useChatStore()
@@ -648,21 +647,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [activeKey, setActiveKey] = useState<Key | null>(null)
     const [parentAction, setParentAction] = useState<Action | undefined>(undefined)
 
-    useEffect(() => {
-        if (activateAction?.parentIds) {
-            setFinalText(assistantActionText)
-        } else {
-            if (!selectedWord?.text) {
-                setFinalText(editableText)
-            } else if (selectedWord?.text) {
-                setFinalText(selectedWord.text)
-            } else {
-                setFinalText(props.text || '')
-            }
-            console.log('finalText in Update', finalText)
-        }
-    }, [activateAction?.parentIds, assistantActionText, editableText, finalText, props.text, selectedWord?.text])
-
     const handleAccordionChange = (expanded: Array<React.Key>) => {
         setActiveKey(expanded.length > 0 ? expanded[0] : null)
     }
@@ -676,9 +660,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         getInitialFile()
     }, [getInitialFile])
 
-    const handleActionClick = async (action: Action | undefined) => {
+    const handleActionClick = async (action: Action | undefined, assistantActionText?: string) => {
         if (!action) {
             return
+        }
+        if (assistantActionText) {
+            setFinalText(assistantActionText)
+        } else {
+            setFinalText(editableText)
         }
 
         // 保存当前状态
@@ -973,7 +962,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 }
             }
             console.log('translateText before', text)
-            console.log('assistantText is :', assistantActionText)
 
             text = finalTextRef.current
             console.log('translateText', text)
@@ -1260,13 +1248,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [showTextParser])
 
     useEffect(() => {
+        if (!finalText) {
+            setFinalText(editableText)
+        }
+    }, [editableText, finalText])
+
+    useEffect(() => {
         const controller = new AbortController()
         const { signal } = controller
-        translateText(finalText, signal)
+        console.log('finalText', finalText)
+        console.log('finalTextRef.current', finalTextRef.current)
+        translateText(finalTextRef.current, signal)
         return () => {
             controller.abort()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [translateText])
 
     useEffect(() => {
@@ -1321,7 +1316,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         setIsSpeakingEditableText(true)
         const { stopSpeak } = await speak({
-            text: editableText,
+            text: editableText || finalText,
             lang: sourceLang,
             onFinish: () => setIsSpeakingEditableText(false),
         })
@@ -1345,7 +1340,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }
 
     const handleTranslatedSpeakAction = async (messageId?: string, conversationId?: string, text?: string) => {
-        console.log('handleTranslatedSpeakAction', messageId, conversationId)
         if (isSpeakingTranslatedText) {
             translatedStopSpeakRef.current()
             setIsSpeakingTranslatedText(false)

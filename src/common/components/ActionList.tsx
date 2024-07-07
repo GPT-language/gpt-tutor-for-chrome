@@ -7,7 +7,7 @@ import { actionInternalService } from '../internal-services/action'
 import { Select, Value } from 'baseui-sd/select'
 import { Textarea } from 'baseui-sd/textarea'
 interface ActionListProps {
-    onActionClick: (action: Action | undefined) => void // 从父组件传入的处理函数
+    onActionClick: (action: Action | undefined, assistantActionText?: string) => void // 从父组件传入的处理函数
     performAll: (actions: Action[]) => void
 }
 
@@ -25,8 +25,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         activateAction,
         setAction,
         isShowActionList,
-        assistantActionText,
-        setAssistantActionText,
         setActionStr,
         currentPage,
         setCurrentPage,
@@ -41,6 +39,8 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     const [isShowAssistantList, setIsShowAssistantList] = useState(false)
     const [value, setValue] = useState<Value>([])
     const reviewFileName = t('To review') + t(selectedCategory)
+    const [inputValue, setInputValue] = useState('')
+    const [assistantActionText, setAssistantActionText] = useState('')
 
     const handlePerformAllClick = () => {
         performAll(actions)
@@ -117,7 +117,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
     const handleAssistantActionChange = (value: Value) => {
         setValue(value)
-        setAssistantActionText('')
     }
 
     useEffect(() => {
@@ -146,10 +145,10 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         }
     }, [words, selectedWord, setCurrentPage, currentPage])
 
-    const handleOpenAction = (selectedIdx: number | string | undefined) => {
+    const handleOpenAction = (selectedIdx: number | string | undefined, assistantActionText?: string) => {
         if (!selectedIdx || !assistantActionText) return
         const action = assistantActions.find((a) => a.idx === selectedIdx)
-        if (action) onActionClick(action)
+        if (action) onActionClick(action, assistantActionText)
     }
 
     const handleContinueClick = () => {
@@ -332,7 +331,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                                             size={SIZE.compact}
                                             onClick={() =>
                                                 assistantActionText
-                                                    ? handleOpenAction(value[0]?.id)
+                                                    ? handleOpenAction(value[0]?.id, assistantActionText)
                                                     : handleSelectAndExecuteAction(value[0]?.id)
                                             }
                                         >

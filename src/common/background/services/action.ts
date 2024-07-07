@@ -15,8 +15,11 @@ class BackgroundActionService implements IActionInternalService {
     get(id: number): Promise<Action | undefined> {
         return callMethod('actionService', 'get', [id])
     }
-    addParentIdToChildren(id: number, childrenIds: number[]): Promise<void> {
-        return callMethod('actionService', 'addParentIdToChildren', [id, childrenIds])
+    addParentIdToChildrenActions(id: number, childrenIds: number[]): Promise<void> {
+        return callMethod('actionService', 'addParentIdToChildrenActions', [id, childrenIds])
+    }
+    deleteParentIdFromChildrenActions(id: number, childrenIds: number[]): Promise<void> {
+        return callMethod('actionService', 'deleteParentIdFromChildrenActions', [id, childrenIds])
     }
     getByMode(mode: string): Promise<Action | undefined> {
         return callMethod('actionService', 'getByMode', [mode])
