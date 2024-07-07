@@ -8,7 +8,6 @@ import { Textarea } from 'baseui-sd/textarea'
 import { createUseStyles } from 'react-jss'
 import { AiOutlineTranslation, AiOutlineLock, AiOutlinePlusSquare, AiOutlineQuestionCircle } from 'react-icons/ai'
 import { GoSignOut } from 'react-icons/go'
-import { useClerk } from '@clerk/chrome-extension'
 import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
 import { getLangConfig, sourceLanguages, targetLanguages, LangCode } from './lang/lang'
@@ -445,6 +444,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const highlightRef = useRef<HighlightInTextarea | null>(null)
     const { t, i18n } = useTranslation()
     const { settings } = useSettings()
+    const [finalText, setFinalText] = useState(props.text)
 
     useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -520,7 +520,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const scrollYRef = useRef<number>(0)
 
     const hasActivateAction = activateAction !== undefined
-    const clerk = useClerk()
 
     useLayoutEffect(() => {
         const handleResize = () => {
@@ -648,6 +647,22 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [translations, setTranslations] = useState<Translations>({})
     const [activeKey, setActiveKey] = useState<Key | null>(null)
     const [parentAction, setParentAction] = useState<Action | undefined>(undefined)
+
+    useEffect(() => {
+        if (activateAction?.parentIds) {
+            setFinalText(assistantActionText)
+        } else {
+            if (!selectedWord?.text) {
+                setFinalText(editableText)
+            } else if (selectedWord?.text) {
+                setFinalText(selectedWord.text)
+            } else {
+                setFinalText(props.text || '')
+            }
+            console.log('finalText in Update', finalText)
+        }
+    }, [activateAction?.parentIds, assistantActionText, editableText, finalText, props.text, selectedWord?.text])
+
     const handleAccordionChange = (expanded: Array<React.Key>) => {
         setActiveKey(expanded.length > 0 ? expanded[0] : null)
     }
@@ -940,6 +955,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         activateActionRef.current = activateAction
     }, [activateAction])
 
+    const finalTextRef = useRef(finalText)
+
+    useEffect(() => {
+        finalTextRef.current = finalText
+    }, [finalText])
+
     const translateText = useCallback(
         async (text: string, signal: AbortSignal, actionName?: string) => {
             if (!text || !activateAction?.id) {
@@ -951,6 +972,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     selectWordNotInCurrentFile(text)
                 }
             }
+            console.log('translateText before', text)
+            console.log('assistantText is :', assistantActionText)
+
+            text = finalTextRef.current
+            console.log('translateText', text)
+            console.log('finalText', finalText)
 
             const latestActivateAction = activateAction
 
@@ -1096,12 +1123,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 } = useChatStore.getState()
 
                                 if (activateAction?.name) {
-                                    let finalText
-                                    if (!selectedWord?.text) {
-                                        finalText = editableText
-                                    } else {
-                                        finalText = selectedWord.text
-                                    }
                                     updateTranslationText(translatedText, activateAction?.name, finalText)
                                     setIsShowActionList(true)
 
@@ -1241,14 +1262,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     useEffect(() => {
         const controller = new AbortController()
         const { signal } = controller
-        let finalText
-        if (activateAction?.parentIds) {
-            finalText = assistantActionText
-        } else if (!selectedWord?.text) {
-            finalText = editableText
-        } else {
-            finalText = selectedWord.text
-        }
         translateText(finalText, signal)
         return () => {
             controller.abort()
@@ -1749,11 +1762,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 </div>
                             </div>
                             <div className={styles.actionButtonsContainer}>
-                                <StatefulTooltip content={t('Sign out')} showArrow placement='top'>
-                                    <div className={styles.actionButton} onClick={() => clerk.signOut()}>
-                                        <GoSignOut size={20} />
-                                    </div>
-                                </StatefulTooltip>
                                 <div style={{ marginLeft: 'auto' }}></div>
                                 {!!editableText.length && (
                                     <>
