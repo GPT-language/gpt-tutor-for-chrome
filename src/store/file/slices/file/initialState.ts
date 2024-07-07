@@ -65,9 +65,16 @@ function getObjectFromChromeStorage<T>(key: string, defaultValue: T): Promise<T>
 
 export const getInitialFileState = async (): Promise<ChatFileState> => {
     const currentFileId = getNumberFromStorage('currentFileId', 0)
-    const categories = await getFromStorage('categories', ['Vocabulary', 'Expression', 'Grammar', 'Review', 'History'])
+    const categories = await getFromStorage('categories', [
+        'Vocabulary',
+        'Expression',
+        'Grammar',
+        'Writing',
+        'Review',
+        'History',
+    ])
     const selectedCategory = await getFromStorage('currentCategory', i18n.t('Vocabulary'))
-    const selectedWord = await getFromChromeStorage('selectedWord', { idx: 1, text: '' })
+    const selectedWord = await getFromChromeStorage('selectedWord', { idx: 1, text: '', reviewCount: 0 })
     const selectedWords = await getObjectFromChromeStorage('selectedWords', {})
 
     return {
@@ -89,6 +96,6 @@ export const initialFileState: ChatFileState = {
     files: [],
     categories: getFromStorage('categories', ['词汇', '表达', '语法', '复习', '历史记录']),
     selectedCategory: getFromStorage('currentCategory', '默认'),
-    selectedWord: { idx: 1, text: '' },
+    selectedWord: { idx: 1, text: '', reviewCount: 0 },
     selectedWords: {}, // 每个文件的选中单词
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useReducer, useState } from 'react'
 import _ from 'underscore'
 import icon from '../assets/images/icon-large.png'
 import beams from '../assets/images/beams.jpg'
@@ -30,13 +30,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { actionService } from '../services/action'
 import { GlobalSuspense } from './GlobalSuspense'
 import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
-import wechat from '../assets/images/wechat.png'
-import alipay from '../assets/images/alipay.png'
 import { Provider, engineIcons, getEngine } from '../engines'
 import { IModel } from '../engines/interfaces'
 import { IoRefreshSharp } from 'react-icons/io5'
 import { CUSTOM_MODEL_ID } from '../constants'
 import { TranslateMode, APIModel } from '../translate'
+import { TbDirectionSign } from 'react-icons/tb'
 // eslint-disable-next-line no-duplicate-imports
 import React from 'react'
 import NumberInput from './NumberInput'
@@ -122,6 +121,13 @@ function LanguageSelector({ value, onChange, onBlur }: ILanguageSelectorProps) {
             onChange={({ value }) => {
                 const selected = value[0]
                 onChange?.(selected?.id as string)
+            }}
+            overrides={{
+                Root: {
+                    style: {
+                        minWidth: '130px',
+                    },
+                },
             }}
         />
     )
@@ -987,6 +993,21 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         restorePreviousPosition: false,
         selectInputElementsText: utils.defaultSelectInputElementsText,
         runAtStartup: false,
+        azureAPIKeys: '', 
+        azureAPIURL: '', 
+        azureAPIURLPath: '', 
+        azureAPIModel: '',
+        miniMaxAPIKey: '',
+        miniMaxAPIModel: '',
+        moonshotAPIKey: '',
+        moonshotAPIModel: '',
+        geminiAPIKey: '',
+        geminiAPIModel: '',
+        miniMaxGroupID: '',
+        moonshotGroupID: '',
+        geminiAPIURL: '',
+        deepSeekAPIKey: '',
+        deepSeekAPIModel: '',
     })
     const [prevValues, setPrevValues] = useState<ISettings>(values)
 
@@ -1735,15 +1756,20 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 >
                     <MyCheckbox onBlur={onBlur} />
                 </FormItem>
-                <FormItem name='defaultYouglishLanguage' label={t('Youglish Language')}>
+                <FormItem name='defaultYouglishLanguage' label={t('The Language of Youglish')}>
                     <YouglishLanguageSelector onBlur={onBlur} />
                 </FormItem>
-                <FormItem name='defaultSourceLanguage' label={t('The Language You Want To Study')}>
-                    <LanguageSelector onBlur={onBlur} />
-                </FormItem>
-                <FormItem name='defaultTargetLanguage' label={t('The Language You are Using')}>
-                    <LanguageSelector onBlur={onBlur} />
-                </FormItem>
+                <div style={{ display: 'flex', flexDirection: 'row', gap: 10 }}>
+                    <FormItem name='defaultTargetLanguage' label={t('The Language You are Using')}>
+                        <LanguageSelector onBlur={onBlur} />
+                    </FormItem>
+                    <div style={{ marginTop: '10px' }}>
+                        <TbDirectionSign size={18} />
+                    </div>
+                    <FormItem name='defaultSourceLanguage' label={t('The Language You Want To Study')}>
+                        <LanguageSelector onBlur={onBlur} />
+                    </FormItem>
+                </div>
                 <FormItem name='i18n' label={t('i18n')}>
                     <Ii18nSelector onBlur={onBlur} />
                 </FormItem>

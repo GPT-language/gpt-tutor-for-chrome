@@ -15,14 +15,10 @@ const CategorySelector = () => {
         selectedCategory,
         addFile,
         selectFile,
-        selectWord,
         deleteFile,
         addCategory,
         deleteCategory,
-        deleteSelectedWord,
-        setCurrentFileId,
         loadFiles,
-        deleteWords,
         setSelectedCategory,
     } = useChatStore()
     const [showNewCategoryInput, setShowNewCategoryInput] = useState(false)
