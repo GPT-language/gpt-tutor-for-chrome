@@ -667,7 +667,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         if (assistantActionText) {
             setFinalText(assistantActionText)
         } else {
-            setFinalText(editableText)
+            if (!selectedWord) {
+                setFinalText(editableText)
+            } else {
+                setFinalText(selectedWord.text)
+            }
         }
 
         // 保存当前状态
@@ -944,6 +948,16 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         activateActionRef.current = activateAction
     }, [activateAction])
 
+    useEffect(() => {
+        if (!activateAction?.parentIds) {
+            if (!selectedWord) {
+                setFinalText(editableText)
+            } else {
+                setFinalText(selectedWord.text)
+            }
+        }
+    }, [activateAction?.parentIds, editableText, selectedWord])
+
     const finalTextRef = useRef(finalText)
 
     useEffect(() => {
@@ -966,6 +980,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             text = finalTextRef.current
             console.log('translateText', text)
             console.log('finalText', finalText)
+            console.log('editText', editableText)
+            console.log('selectedWord text', selectedWord?.text)
 
             const latestActivateAction = activateAction
 
