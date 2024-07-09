@@ -161,9 +161,6 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='groups' label={t('Groups')}>
                 <GroupSelect intialTags={props.action?.groups || []}></GroupSelect>
             </FormItem>
-            <FormItem name='description' label={t('Description')}>
-                <Input size='compact' />
-            </FormItem>
             <FormItem name='rolePrompt' label={t('Role Prompt')} caption={rolePromptCaption}>
                 <Textarea size='compact' />
             </FormItem>
