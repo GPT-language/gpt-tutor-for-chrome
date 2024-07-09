@@ -1122,7 +1122,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             setShowBuyMeACoffee(true)
                         }}
                     >
-                        {'❤️  ' + t('Buy me a coffee')}
+                        {'❤️  ' + t('Buy my kitty a treat')}
                     </Button>
                 </div>
             </nav>
@@ -1873,7 +1873,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                         alignItems: 'center',
                     }}
                 >
-                    {'❤️  ' + t('Buy me a coffee')}
+                    {'❤️  ' + t('Buy my kitty a treat')}
                 </ModalHeader>
                 <ModalBody>
                     <div
@@ -1884,7 +1884,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             gap: 10,
                         }}
                     >
-                        <div>{t('If you find this tool helpful, you can buy me a cup of coffee.')}</div>
+                        <div>{t('If you find this tool helpful, you can buy my kitty a treat.')}</div>
                         <div>
                             <a href='https://afdian.net/a/zy1999' target='_blank' rel='noopener noreferrer'>
                                 爱发电
@@ -1895,6 +1895,17 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                                 Patreon
                             </a>
                         </div>
+                        <a
+                            href={
+                                settings?.i18n === 'zh-Hans'
+                                    ? 'https://weibo.com/u/2432250323'
+                                    : 'https://x.com/Heraclitius'
+                            }
+                            target='_blank'
+                            rel='noopener noreferrer'
+                        >
+                            {settings?.i18n === 'zh-Hans' ? '瞅瞅我的可爱小猫！' : t('See my cute kitty!')}
+                        </a>
                     </div>
                 </ModalBody>
             </Modal>

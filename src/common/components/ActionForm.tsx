@@ -98,7 +98,7 @@ export function ActionForm(props: IActionFormProps) {
     const rolePlaceholdersCaption = (
         <ul className={styles.placeholderCaptionContainer}>
             <li>
-                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('The Language You Want to Learn')}
+                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('The Language You Want To Learn')}
             </li>
             <li>
                 <span className={styles.placeholder}>{'${targetLang}'}</span> {t('The Language You are Using')}
@@ -109,10 +109,10 @@ export function ActionForm(props: IActionFormProps) {
     const commandPlaceholdersCaption = (
         <ul className={styles.placeholderCaptionContainer}>
             <li>
-                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('represents the source language')}
+                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('The Language You Want To Learn')}
             </li>
             <li>
-                <span className={styles.placeholder}>{'${targetLang}'}</span> {t('represents the target language')}
+                <span className={styles.placeholder}>{'${targetLang}'}</span> {t('The Language You are Using')}
             </li>
             <li>
                 <span className={styles.placeholder}>{'${text}'}</span>{' '}
@@ -155,7 +155,7 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='icon' label={t('Icon')}>
                 <IconPicker />
             </FormItem>
-            <FormItem required name='groups' label={t('Groups')}>
+            <FormItem required name='groups' label={t('Action Groups')}>
                 <GroupSelect intialTags={props.action?.groups || []}></GroupSelect>
             </FormItem>
             <FormItem name='rolePrompt' label={t('Role Prompt')} caption={rolePromptCaption}>
