@@ -619,6 +619,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     useEffect(() => {
         const handleRuntimeMessage = (message: { type: string; text: string }) => {
             if (message.type === 'Text') {
+                if (selectedWord) {
+                    deleteSelectedWord()
+                }
                 const text = message.text
                 setEditableText(text)
             }
@@ -630,7 +633,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return () => {
             chrome.runtime.onMessage.removeListener(handleRuntimeMessage)
         }
-    }, [props.text, props.uuid])
+    }, [deleteSelectedWord, props.text, props.uuid, selectedWord])
 
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
