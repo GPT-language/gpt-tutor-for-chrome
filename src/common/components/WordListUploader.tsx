@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useChatStore } from '@/store/file/store'
 import { Word } from '../internal-services/db'
 import { fileService } from '../internal-services/file'
@@ -69,7 +69,7 @@ const WordListUploader = () => {
             changePage(newPage)
         }
     }
-    function formatNextReviewTime(ms) {
+    function formatNextReviewTime(ms: number) {
         let seconds = Math.floor(ms / 1000)
         let minutes = Math.floor(seconds / 60)
         let hours = Math.floor(minutes / 60)
@@ -241,7 +241,13 @@ const WordListUploader = () => {
                             }}
                             onClick={() => handleWordClick(entry)}
                         >
-                            {entry.text}
+                            {entry.text.includes(' ')
+                                ? entry.text.split(' ').length > 15
+                                    ? entry.text.split(' ').slice(0, 10).join(' ') + '...'
+                                    : entry.text
+                                : entry.text.length > 12
+                                ? entry.text.substring(0, 10) + '...'
+                                : entry.text}
                         </li>
                     ))}
                 </ol>
@@ -291,7 +297,7 @@ const WordListUploader = () => {
                         kind={KIND.tertiary}
                         size='mini'
                         onClick={handleSearchSubmit}
-                        onKeyDown={(e) => {
+                        onKeyDown={(e: React.KeyboardEvent) => {
                             if (e.key === 'Enter') {
                                 handleSearchSubmit()
                             }
