@@ -152,9 +152,6 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='name' label={t('Name')}>
                 <Input size='compact' />
             </FormItem>
-            <FormItem name='childrenIds' label={t('Assistant Actions')}>
-                <ActionSelect initialActions={actions} updatingAction={props.action}></ActionSelect>
-            </FormItem>
             <FormItem required name='icon' label={t('Icon')}>
                 <IconPicker />
             </FormItem>
@@ -166,6 +163,9 @@ export function ActionForm(props: IActionFormProps) {
             </FormItem>
             <FormItem required name='commandPrompt' label={t('Command Prompt')} caption={commandPromptCaption}>
                 <Textarea size='compact' />
+            </FormItem>
+            <FormItem name='childrenIds' label={t('Assistant Actions')}>
+                <ActionSelect initialActions={actions} updatingAction={props.action}></ActionSelect>
             </FormItem>
             <FormItem name='model' label={t('Model')}>
                 <ModelSelect></ModelSelect>
