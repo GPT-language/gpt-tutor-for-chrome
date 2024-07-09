@@ -8,6 +8,7 @@ import { Textarea } from 'baseui-sd/textarea'
 import { createUseStyles } from 'react-jss'
 import { AiOutlineTranslation, AiOutlineLock, AiOutlinePlusSquare, AiOutlineQuestionCircle } from 'react-icons/ai'
 import { GoSignOut } from 'react-icons/go'
+import { useClerk } from '@clerk/chrome-extension'
 import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
 import { getLangConfig, sourceLanguages, targetLanguages, LangCode } from './lang/lang'
@@ -519,6 +520,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const scrollYRef = useRef<number>(0)
 
     const hasActivateAction = activateAction !== undefined
+    const clerk = useClerk()
 
     useLayoutEffect(() => {
         const handleResize = () => {
@@ -1775,6 +1777,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 </div>
                             </div>
                             <div className={styles.actionButtonsContainer}>
+                                <StatefulTooltip content={t('Sign out')} showArrow placement='top'>
+                                    <div className={styles.actionButton} onClick={() => clerk.signOut()}>
+                                        <GoSignOut size={20} />
+                                    </div>
+                                </StatefulTooltip>
                                 <div style={{ marginLeft: 'auto' }}></div>
                                 {!!editableText.length && (
                                     <>
