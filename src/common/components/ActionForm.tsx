@@ -98,10 +98,10 @@ export function ActionForm(props: IActionFormProps) {
     const rolePlaceholdersCaption = (
         <ul className={styles.placeholderCaptionContainer}>
             <li>
-                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('represents the source language')}
+                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('The Language You Want to Learn')}
             </li>
             <li>
-                <span className={styles.placeholder}>{'${targetLang}'}</span> {t('represents the target language')}
+                <span className={styles.placeholder}>{'${targetLang}'}</span> {t('The Language You are Using')}
             </li>
         </ul>
     )

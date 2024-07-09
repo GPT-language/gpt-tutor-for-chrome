@@ -1766,7 +1766,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     <div style={{ marginTop: '10px' }}>
                         <TbDirectionSign size={18} />
                     </div>
-                    <FormItem name='defaultSourceLanguage' label={t('The Language You Want To Study')}>
+                    <FormItem name='defaultSourceLanguage' label={t('The Language You Want To Learn')}>
                         <LanguageSelector onBlur={onBlur} />
                     </FormItem>
                 </div>
