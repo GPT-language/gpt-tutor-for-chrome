@@ -9,6 +9,10 @@ import JAtranslation from './i18n/locales/ja/translation.json'
 import THtranslation from './i18n/locales/th/translation.json'
 import zhHanstranslation from './i18n/locales/zh-Hans/translation.json'
 import zhHanttranslation from './i18n/locales/zh-Hant/translation.json'
+import RUtranslation from './i18n/locales/ru/translation.json'
+import KOtranslation from './i18n/locales/ko/translation.json'
+import DEtranslation from './i18n/locales/de/translation.json'
+import FRtranslation from './i18n/locales/fr/translation.json'
 
 const resources = {
     'zh-Hans': {
@@ -25,6 +29,18 @@ const resources = {
     },
     'th': {
         translation: THtranslation,
+    },
+    'ru': {
+        translation: RUtranslation,
+    },
+    'ko': {
+        translation: KOtranslation,
+    },
+    'de': {
+        translation: DEtranslation,
+    },
+    'fr': {
+        translation: FRtranslation,
     },
 }
 

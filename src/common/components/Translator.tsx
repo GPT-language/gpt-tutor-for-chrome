@@ -26,7 +26,9 @@ import { InnerSettings } from './Settings'
 import { documentPadding } from '../../browser-extension/content_script/consts'
 import Dropzone from 'react-dropzone'
 import { addNewNote, isConnected } from '../anki/anki-connect'
-import actionsData from '../services/prompts.json'
+import ChineseActionsData from '../services/Chinese.json'
+import EnglishActionData from '../services/English.json'
+import TraditionalChineseActionData from '../services/TraditionalChinese.json'
 import SpeakerMotion from '../components/SpeakerMotion'
 import IpLocationNotification from '../components/IpLocationNotification'
 import { HighlightInTextarea } from '../highlight-in-textarea'
@@ -559,8 +561,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [selectedGroup, setSelectedGroup] = useState(localStorage.getItem('selectedGroup') || 'English Learning')
     const [displayedActions, setDisplayedActions] = useState<Action[]>([])
     const [hiddenActions, setHiddenActions] = useState<Action[]>([])
-    const [displayedActionsMaxCount, setDisplayedActionsMaxCount] = useState(4)
+    const [displayedActionsMaxCount, setDisplayedActionsMaxCount] = useState(6)
     const actionGroups = actions?.reduce((groups: { [key: string]: Action[] }, action) => {
+        if (!action.groups) {
+            console.log('no groups', action)
+            return groups
+        }
         // 每个 action 可能属于多个 group
         action.groups.forEach((group) => {
             if (!groups[group]) {
@@ -571,16 +577,57 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return groups
     }, {})
 
-    const promptsData = actionsData.map((item) => ({
-        ...item,
-        outputRenderingFormat: item.outputRenderingFormat as 'text' | 'markdown' | 'latex' | undefined,
-        mode: item.mode as 'built-in',
-    }))
+    
+
+    useEffect(() => {
+        if (!settings?.i18n) {
+            return;
+        }
+        const languageCode = settings.i18n;
+        console.log('languageCode is ', languageCode);
+        let promptsData: Action[] | ({ outputRenderingFormat: "text" | "markdown" | "latex" | undefined; mode: "built-in"; ufeffufeffid: string; idx: number; name: string; icon: string; rolePrompt: string; commandPrompt: string; groups: string[]; createdAt: string; updatedAt: string; id: number; field10?: undefined; field12?: undefined } | { outputRenderingFormat: "text" | "markdown" | "latex" | undefined; mode: "built-in"; ufeffufeffid: string; idx: number; name: string; icon: string; rolePrompt: string; commandPrompt: string; groups: string[]; createdAt: string; updatedAt: string; field10: string; id: number; field12: string })[] = [];
+    
+        switch (languageCode) {
+            case 'zh-Hans':
+                promptsData = ChineseActionsData.map((item) => ({
+                    ...item,
+                    outputRenderingFormat: item.outputRenderingFormat as 'text' | 'markdown' | 'latex' | undefined,
+                    mode: item.mode as 'built-in',
+                }));
+                console.log('zh-Hans promptsData is ', promptsData);
+                break;
+    
+            case 'zh-Hant':
+                promptsData = TraditionalChineseActionData.map((item) => ({
+                    ...item,
+                    outputRenderingFormat: item.outputRenderingFormat as 'text' | 'markdown' | 'latex' | undefined,
+                    mode: item.mode as 'built-in',
+                }));
+                console.log('zh-Hant promptsData is ', promptsData);
+                break;
+    
+            case 'en':
+                promptsData = EnglishActionData.map((item) => ({
+                    ...item,
+                    outputRenderingFormat: item.outputRenderingFormat as 'text' | 'markdown' | 'latex' | undefined,
+                    mode: item.mode as 'built-in',
+                }));
+                console.log('en promptsData is ', promptsData)
+                break;
+    
+            default:
+                // 可以处理未知的语言代码
+                console.log('Unsupported language code')
+        }
+        console.log('final promptsData is ', promptsData)
+        actionService.bulkPut(promptsData)
+        refreshActions()
+    }, [settings?.i18n])
+    
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         if (!actions) {
-            actionService.bulkPut(promptsData)
             setDisplayedActions([])
             setHiddenActions([])
             refreshActions()
@@ -610,7 +657,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setDisplayedActions(displayedActions)
         setHiddenActions(hiddenActions)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [actions, selectedGroup, activateAction, displayedActionsMaxCount])
+    }, [actions, selectedGroup, activateAction, displayedActionsMaxCount, refreshActionsFlag])
 
     const isTranslate = currentTranslateMode === 'translate'
 
@@ -1419,15 +1466,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 size='mini'
                                 options={[
                                     ...Object.keys(actionGroups || {}).map((key) => ({ id: key, label: key })),
-                                    {
-                                        id: 'unlock_features',
-                                        label: (
-                                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                <AiOutlineLock style={{ marginRight: '5px' }} />
-                                                解锁更多功能
-                                            </div>
-                                        ),
-                                    }, // 新增的选项
                                 ]}
                                 value={[{ id: selectedGroup }]}
                                 overrides={{
