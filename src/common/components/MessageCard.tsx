@@ -1,11 +1,25 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { MessageCard } from 'baseui-sd/message-card'
 import { useChatStore } from '@/store/file/store'
 import { useTranslation } from 'react-i18next'
+import * as utils from '../utils'
+import { ISettings } from '../types'
 
 export default function MessageCardsContainer() {
     const { isShowMessageCard, setShowActionManager, setShowSettings } = useChatStore()
     const { t } = useTranslation()
+    const [targetLang, setTargetLang] = useState<string>('zh-Hans')
+
+    useEffect(() => {
+        const getLanguage = async () => {
+            const settings: ISettings = await utils.getSettings()
+            if (settings && settings.i18n) {
+                console.log(settings.i18n)
+                setTargetLang(settings.i18n)
+            }
+        }
+        getLanguage()
+    }, [])
 
     if (!isShowMessageCard) return null
 
@@ -35,7 +49,11 @@ export default function MessageCardsContainer() {
                 <MessageCard
                     heading={t('Join Our Learning Group')}
                     buttonLabel={t('Join Our Learning Group')}
-                    onClick={() => window.open('https://chatgpt-tutor.vercel.app/docs/socialmedia')}
+                    onClick={() =>
+                        targetLang === 'zh-Hans'
+                            ? window.open('https://afdian.net/a/zy1999')
+                            : window.open('https://www.patreon.com/yaoyaoyao')
+                    }
                     paragraph={t('Join our learning group to get help')}
                 />
             </div>
