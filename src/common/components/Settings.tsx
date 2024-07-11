@@ -679,6 +679,10 @@ function APIModelSelector({ currentProvider, provider, apiKey, value, onChange, 
                     (e.message.includes('not login') || e.message.includes('Forbidden'))
                 ) {
                     setIsChatGPTNotLogin(true)
+                    const accessToken = await chrome.storage.local.get('accessToken')
+                    if (accessToken && e.message.includes('Forbidden')) {
+                        chrome.storage.local.remove('accessToken')
+                    }
                 }
                 setErrMsg(e.message)
             } finally {
