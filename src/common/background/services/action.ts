@@ -27,6 +27,9 @@ class BackgroundActionService implements IActionInternalService {
     delete(id: number): Promise<void> {
         return callMethod('actionService', 'delete', [id])
     }
+    clearOldData(maxId: number): Promise<void> {
+        return callMethod('actionService', 'clearOldData', [maxId])
+    }
     list(): Promise<Action[]> {
         return callMethod('actionService', 'list', [])
     }

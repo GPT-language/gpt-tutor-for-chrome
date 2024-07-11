@@ -579,7 +579,7 @@ export class ChatGPT extends AbstractEngine {
             if (!resp.message) {
                 if (resp.error) {
                     req.onError(
-                        `ChatGPT Web error: ${resp.error}. Please click <a href="https://chatgpt.com/" target="_blank">here</a> and select the most recent conversation in the list, then try to regenerate.`
+                        `ChatGPT Web error: ${resp.error}. Please go to chatgpt.com and select the most recent conversation in the list, then try to regenerate.`
                     )
                 }
                 return

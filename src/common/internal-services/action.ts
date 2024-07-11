@@ -38,6 +38,7 @@ export interface IActionInternalService {
     addParentIdToChildrenActions(parentId: number, childrenIds: number[]): Promise<void>
     deleteParentIdFromChildrenActions(parentId: number, childrenIds: number[]): Promise<void>
     delete(id: number): Promise<void>
+    clearOldData(maxId: number): Promise<void>
     list(): Promise<Action[]>
     count(): Promise<number>
     exportActions(filename: string, filteredActions: Action[]): Promise<void>
@@ -157,6 +158,12 @@ class ActionInternalService implements IActionInternalService {
         } catch (error) {
             console.error('Failed to update parentIds:', error)
         }
+    }
+
+    async clearOldData(maxId: number): Promise<void> {
+        await this.db.transaction('rw', this.db.action, async () => {
+            await this.db.action.where('id').belowOrEqual(maxId).delete()
+        })
     }
 
     async getByGroup(group: string): Promise<Action | undefined> {

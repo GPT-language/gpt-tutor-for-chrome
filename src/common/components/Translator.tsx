@@ -29,6 +29,9 @@ import { addNewNote, isConnected } from '../anki/anki-connect'
 import ChineseActionsData from '../services/Chinese.json'
 import EnglishActionData from '../services/English.json'
 import TraditionalChineseActionData from '../services/TraditionalChinese.json'
+import JapaneseActionData from '../services/Japanese.json'
+import RussianActionData from '../services/Russian.json'
+import KoreanActionData from '../services/Korean.json'
 import SpeakerMotion from '../components/SpeakerMotion'
 import IpLocationNotification from '../components/IpLocationNotification'
 import { HighlightInTextarea } from '../highlight-in-textarea'
@@ -585,39 +588,41 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         const languageCode = settings.i18n;
         console.log('languageCode is ', languageCode);
-        let promptsData: Action[] | ({ outputRenderingFormat: "text" | "markdown" | "latex" | undefined; mode: "built-in"; ufeffufeffid: string; idx: number; name: string; icon: string; rolePrompt: string; commandPrompt: string; groups: string[]; createdAt: string; updatedAt: string; id: number; field10?: undefined; field12?: undefined } | { outputRenderingFormat: "text" | "markdown" | "latex" | undefined; mode: "built-in"; ufeffufeffid: string; idx: number; name: string; icon: string; rolePrompt: string; commandPrompt: string; groups: string[]; createdAt: string; updatedAt: string; field10: string; id: number; field12: string })[] = [];
+        let promptsData: Action[] | [] = []
     
         switch (languageCode) {
             case 'zh-Hans':
-                promptsData = ChineseActionsData.map((item) => ({
-                    ...item,
-                    outputRenderingFormat: item.outputRenderingFormat as 'text' | 'markdown' | 'latex' | undefined,
-                    mode: item.mode as 'built-in',
-                }));
-                console.log('zh-Hans promptsData is ', promptsData);
+                promptsData = ChineseActionsData as Action[]
                 break;
     
             case 'zh-Hant':
-                promptsData = TraditionalChineseActionData.map((item) => ({
-                    ...item,
-                    outputRenderingFormat: item.outputRenderingFormat as 'text' | 'markdown' | 'latex' | undefined,
-                    mode: item.mode as 'built-in',
-                }));
-                console.log('zh-Hant promptsData is ', promptsData);
+                promptsData = TraditionalChineseActionData as Action[]
                 break;
     
             case 'en':
-                promptsData = EnglishActionData.map((item) => ({
-                    ...item,
-                    outputRenderingFormat: item.outputRenderingFormat as 'text' | 'markdown' | 'latex' | undefined,
-                    mode: item.mode as 'built-in',
-                }));
-                console.log('en promptsData is ', promptsData)
+                promptsData = EnglishActionData as Action[]
+                break;
+
+            case 'ja':
+                promptsData = JapaneseActionData as Action[]
+                break;
+            case 'ko':
+                promptsData = KoreanActionData as Action[]
+                break;
+
+            case 'ru':
+                promptsData = RussianActionData as Action[]
+                break;
+
+            case 'th':
+                promptsData = EnglishActionData as Action[]
                 break;
     
             default:
                 // 可以处理未知的语言代码
                 console.log('Unsupported language code')
+                promptsData = EnglishActionData as Action[]
+                break;
         }
         console.log('final promptsData is ', promptsData)
         actionService.bulkPut(promptsData)

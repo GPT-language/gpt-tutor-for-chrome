@@ -5,7 +5,7 @@ import '../../common/i18n.js'
 import './index.css'
 import { PREFIX } from '../../common/constants'
 import { useTheme } from '../../common/hooks/useTheme'
-import { ClerkProvider, SignedIn, SignedOut, SignIn, SignUp, useClerk, useUser } from '@clerk/chrome-extension'
+import { ClerkProvider, SignedIn, SignedOut, SignIn, SignUp } from '@clerk/chrome-extension'
 import { useNavigate, Routes, Route, MemoryRouter } from 'react-router-dom'
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
