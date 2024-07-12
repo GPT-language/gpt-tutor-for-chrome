@@ -1,4 +1,3 @@
-import { current } from 'immer'
 import { ReviewSettings, SavedFile, Translations, Word, getLocalDB, ActionOutputRenderingFormat } from './db'
 
 export class FileService {

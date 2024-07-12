@@ -234,7 +234,9 @@ const CategorySelector = () => {
                             title={t('Delete this file') ?? 'Delete this file'}
                             onClick={(e) => {
                                 e.stopPropagation()
-                                deleteFile(currentFileId)
+                                if (currentFileId) {
+                                    deleteFile(currentFileId)
+                                }
                                 loadFiles(t(selectedCategory))
                             }}
                             style={{

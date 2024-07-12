@@ -6,7 +6,6 @@ import { Action } from './internal-services/db'
 import Browser from 'webextension-polyfill'
 import { Provider } from './engines'
 import { IModel } from './engines/interfaces'
-import { listModels } from './engines/chatgpt '
 
 export const defaultAPIURL = 'https://api.openai.com'
 export const defaultAPIURLPath = '/v1/chat/completions'

@@ -24,7 +24,7 @@ export async function getArkoseToken() {
         throw new Error(
             'Failed to get arkose token.' +
                 '\n\n' +
-                "Please keep https://chat.openai.com open and try again. If it still doesn't work, type some characters in the input box of chatgpt web page and try again."
+                "Please keep https://chatgpt.com open and try again. If it still doesn't work, type some characters in the input box of chatgpt web page and try again."
         )
     }
     const fetcher = getUniversalFetch()
@@ -103,13 +103,12 @@ function toBase64(str: string): string {
 
 // https://github.com/tctien342/chatgpt-proxy/blob/9147a4345b34eece20681f257fd475a8a2c81171/src/openai.ts#L103
 // https://github.com/zatxm/aiproxy
-async function GenerateProofToken(seed: string, diff: string | number | unknown[], userAgent: string): Promise<string> {
+async function GenerateAnswer(seed: string, diff: string | number | unknown[], userAgent: string): Promise<string> {
     const cores = [1, 2, 4]
     const screens = [3008, 4010, 6000]
     const reacts = ['_reactListeningcfilawjnerp', '_reactListening9ne2dfo1i47', '_reactListening410nzwhan2a']
     const acts = ['alert', 'ontransitionend', 'onprogress']
     const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
-
     const core = cores[randomInt(0, cores.length - 1)]
     const screen = screens[randomInt(0, screens.length - 1)] + core
     const react = reacts[randomInt(0, reacts.length - 1)]
@@ -133,20 +132,51 @@ async function GenerateProofToken(seed: string, diff: string | number | unknown[
         act,
     ]
 
-    for (let i = 0; i < 200000; i++) {
+    for (let i = 0; i < 500000; i++) {
         config[3] = i
+        config[9] = (i + 2) / 2
         const jsonData = JSON.stringify(config)
         const base = toBase64(jsonData)
         const hashValue = sha3_512.create().update(seed + base)
 
         if (hashValue.hex().substring(0, diff.length) <= diff) {
-            const result = 'gAAAAAB' + base
+            const result = base
             return result
         }
     }
 
     const fallbackBase = toBase64(`"${seed}"`)
-    return 'gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D' + fallbackBase
+    return 'wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D' + fallbackBase
+}
+
+async function GenerateProofToken(seed: string, diff: string | number | unknown[], userAgent: string): Promise<string>
+{
+    return 'gAAAAAB' + GenerateAnswer(seed, diff, userAgent)
+}
+
+export async function getTurnstileToken(userAgent: string): Promise<string> {
+    return 'gAAAAAC' + GenerateAnswer(Math.random().toString(), '0', userAgent)
+}
+
+function processTurnstileToken(dx: string, p: string): string {
+    // 使用 js-base64 库对输入字符串 dx 进行 Base64 解码
+    const decoded = Base64.decode(dx);
+    let result = [];
+    const dxChars = Array.from(decoded);
+    const pChars = Array.from(p);
+    const pLength = pChars.length;
+
+    if (pLength !== 0) {
+        dxChars.forEach((char, index) => {
+            // 进行 XOR 操作，并将结果转回字符
+            result.push(String.fromCharCode(char.charCodeAt(0) ^ pChars[index % pLength].charCodeAt(0)));
+        });
+    } else {
+        result = dxChars;
+    }
+
+    // 将结果数组转换为字符串，如果输出需要是 Base64 编码的字符串，使用 Base64.encode
+    return Base64.encode(result.join(''));
 }
 
 export async function registerWebsocket(accessToken: string): Promise<{ wss_url: string; expires_at: string }> {
@@ -349,7 +379,6 @@ export class ChatGPT extends AbstractEngine {
                 getArkoseToken(),
                 getChatRequirements(accessToken), // 确保传递 apiKey
             ])
-
             let model = 'text-davinci-003'
             let lastConversationId
             let lastMessageId
@@ -386,6 +415,7 @@ export class ChatGPT extends AbstractEngine {
 
             let cookie
             let oaiDeviceId
+            let turnstileToken
 
             if (Browser.cookies && Browser.cookies.getAll) {
                 try {
@@ -413,6 +443,15 @@ export class ChatGPT extends AbstractEngine {
                     console.error('Failed to get oai-did cookie:', error)
                 }
             }
+            let p: string
+            if (requirements.turnstile.required && oaiDeviceId) {
+                p = await getTurnstileToken(userAgent)
+                console.log('get p', p)
+                turnstileToken = processTurnstileToken(requirements.turnstile.dx, p)
+                console.log('turnstileToken is ', turnstileToken)
+            } else {
+                console.log('no turnstileToken')
+            }
 
             let headers
             type ResponseMode = 'sse' | 'websocket'
@@ -427,6 +466,7 @@ export class ChatGPT extends AbstractEngine {
                     'Openai-Sentinel-Arkose-Token': arkoseToken,
                     'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
                     'openai-sentinel-proof-token': proofToken,
+                    'Openai-Sentinel-Turnstile-Token': turnstileToken,
                     'Oai-Device-Id': oaiDeviceId!,
                     'Oai-Language': 'en-US',
                 }
@@ -439,6 +479,7 @@ export class ChatGPT extends AbstractEngine {
                     'Openai-Sentinel-Arkose-Token': arkoseToken,
                     'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
                     'openai-sentinel-proof-token': proofToken,
+                    'Openai-Sentinel-Turnstile-Token': turnstileToken,
                     'Oai-Device-Id': oaiDeviceId!,
                     'Oai-Language': 'en-US',
                 }
