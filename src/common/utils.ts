@@ -128,6 +128,7 @@ const settingKeys: Record<keyof ISettings, number> = {
     autoTranslate: 1,
     defaultTranslateMode: 1,
     defaultTargetLanguage: 1,
+    defaultSourceLanguage: 1,
     alwaysShowIcons: 1,
     hotkey: 1,
     displayWindowHotkey: 1,
