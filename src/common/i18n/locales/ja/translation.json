@@ -156,7 +156,7 @@
   "Writing": "書く",
   "The Language You Want to Learn": "学ぶいたい言語",
   "The Language You are Using": "使用している言語",
-  "If you find this tool helpful, you can buy me a cup of coffee.": "このツールは役に立ちましたか？コーヒーを買うことができます。",
+  "If you find this tool helpful, you can buy my kitty a treat.": "このツールが役に立ったら、ねこにお菓子を買うことができます。",
   "Follow me on social media": "ソーシャルメディアをフォローする",
   "Follow me on social media to get the latest updates and support": "ソーシャルメディアをフォローして最新のアップデートとサポートを取得する",
   "Buy my kitty a treat": "ねこにお菓子を買う",
@@ -167,5 +167,7 @@
   "Export": "エクスポート",
   "On/Off Youglish": "Youglishのオン/オフ",
   "Determine which groups this action belongs to": "このアクションに割り当てられるグループを決定する",
+  "You can set multiple group names": "複数のグループ名を設定することができます",
+  "Enter a group, then press Enter": "グループを入力して[Enter]を押してください",
 "Finish this subject and add to review": "この項目を終了し、復習に追加する"
 }

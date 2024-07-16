@@ -155,7 +155,8 @@
   "Buy me a coffee": "Buy me a coffee",
   "The Language of Youglish": "The Language of Youglish",
   "Writing": "Writing",
-  "If you find this tool helpful, you can buy me a cup of coffee.": "If you find this tool helpful, you can buy me a cup of coffee.",
+  "Buy my kitty a treat": "Buy my kitty a treat",
+  "If you find this tool helpful, you can buy my kitty a treat.": "If you find this tool helpful, you can buy my kitty a treat.",
   "Follow me on social media": "Follow me on social media",
   "Follow me on social media to get the latest updates and support": "Follow me on social media to get the latest updates and support",
   "Download lexicon file": "Download lexicon file",
@@ -163,5 +164,7 @@
   "The Language You Want to Learn": "The Language You Want to Learn",
   "The Language You are Using": "The Language You are Using",
   "Determine which groups this action belongs to": "Determine which groups this action belongs to",
+  "You can set multiple group names": "You can set multiple group names",
+  "Enter a group, then press Enter": "Enter a group, then press Enter",
   "Finish": "Finish this subject and add to review"
 }

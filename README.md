@@ -2,7 +2,7 @@
     <br> English | <a href="README-CN.md">中文</a>
 </p>
 <p align="center">
-    <em>GPT-Tutor is a practical tool that uses AI to comprehensively guide language learning. It assists you starting from individual words and phrases, progressing to sentences and grammar, and finally helps you practice reading and writing. There are many more features waiting for you to discover, making GPT-Tutor perhaps the most comprehensive and practical learning tool you've encountered. Moreover, it's not limited to just English; GPT-Tutor also supports learning multiple languages simultaneously, including Japanese, French, German, Russian, and more.</em>
+    GPT-Tutor is a practical tool that uses AI to provide comprehensive language learning assistance. It starts from the very basics, such as letters and pronunciation, and progresses through vocabulary, phrase usage, sentences, and grammar. Moreover, it helps users practice reading and writing skills. GPT-Tutor isn't limited to English; it also supports learning Japanese, French, German, Russian, and many other languages.
 </p>
 
 # Demonstration

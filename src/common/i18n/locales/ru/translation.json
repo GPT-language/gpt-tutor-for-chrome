@@ -11,6 +11,8 @@
   "Clear input": "Очистить ввод",
   "Copy to clipboard": "Копировать в буфер обмена",
   "Speak": "Говорить",
+  "Import": "Импорт",
+  "Export": "Экспорт",
   "Add new conversation":"Добавить новый разговор",
   "Upload an image for OCR translation": "Загрузить изображение для перевода с OCR",
   "Default Service Provider": "Поставщик услуг по умолчанию",
@@ -153,9 +155,11 @@
   "Daily Revivew Intervals": "Ежедневные интервалы обзора",
   "Custom Revivew Intervals": "Индивидуальные интервалы обзора",
   "Buy me a coffee": "Купи мне кофе",
+  "Buy my kitty a treat": "Купи мой котик плюшевку",
   "The Language of Youglish": "Язык Youglish",
   "Writing": "Письмо",
-  "If you find this tool helpful, you can buy me a cup of coffee.": "Если вы находите этот инструмент полезным, вы можете купить мне чашку кофе.",
+  "See my cute kitty!": "Види мой кошечку!",
+  "If you find this tool helpful, you can buy my kitty a treat.": "Если вы нашли этот инструмент полезный, вы можете купить мой котик плюшевку.",
   "Follow me on social media": "Следите за мной в социальных сетях",
   "Follow me on social media to get the latest updates and support": "Следите за мной в социальных сетях, чтобы получать последние обновления и поддержку",
   "Action's Groups": "Группы действий",
@@ -163,6 +167,8 @@
   "Determine which groups this action belongs to": "Определить группы, к которым этот действий принадлежит",
   "The Language You Want to Learn": "Желаемый язык",
   "The Language You are Using": "Ваш язык",
+  "You can set multiple group names": "Вы можете установить несколько имен групп",
+  "Enter a group, then press Enter": "Введите группу, затем нажмите Enter",
   "Finish": "Завершить эту тему и добавить к обзору"
 }
 

@@ -8,6 +8,8 @@
   "Follow the System": "اتبع النظام",
   "Dark": "داكن",
   "Light": "فاتح",
+  "Import": "إستيراد",
+  "Export": "تصدير",
   "Clear input": "مسح الإدخال",
   "Copy to clipboard": "نسخ إلى الحافظة",
   "Speak": "تكلم",
@@ -157,12 +159,16 @@
   "The Language You Want to Learn": "لغة تريد تعلمها",
   "The Language You are Using": "لغة الاستخدام",
   "Writing": "الكتابة",
-  "If you find this tool helpful, you can buy me a cup of coffee.": "إذا وجدت هذه الأداة مفيدة، يمكنك شراء كوب من القهوة لي.",
+  "If you find this tool helpful, you can buy my kitty a treat.": "اذا وجدت هذا التطبيق مفيد لي, يمكنك أن تشتري بقردك الصغير بقهوة.",
   "Follow me on social media": "تابعني على وسائل التواصل الاجتماعي",
   "Follow me on social media to get the latest updates and support": "تابعني على وسائل التواصل الاجتماعي للحصول على أحدث التحديثات والدعم",
   "Download lexicon file": "تنزيل ملف القاموس",
   "Action's Groups": "مجموعات الإجراء",
+  "See my cute kitty!": "انظر بقردك الصغيرة!",
+  "Buy my kitty a treat": "افزرجع بقردك الصغير",
   "Determine which groups this action belongs to": "حدد المجموعات التي ينتمي إليها هذا الإجراء",
+  "You can set multiple group names": "يمكنك أضافة عناصر مجموعة متعددة",
+  "Enter a group, then press Enter": "اكتب مجموعة واضحة ثم اضغط Enter",
   "Finish": "أنهِ هذا الموضوع وأضف للمراجعة"
 }
 

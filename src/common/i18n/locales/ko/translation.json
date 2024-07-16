@@ -11,6 +11,8 @@
   "Clear input": "입력 지우기",
   "Copy to clipboard": "클립보드에 복사",
   "Speak": "말하기",
+  "Import": "입력",
+  "Export": "출력",
   "Add new conversation":"새 대화 추가",
   "Upload an image for OCR translation": "OCR 번역을 위한 이미지 업로드",
   "Default Service Provider": "기본 서비스 제공자",
@@ -153,9 +155,11 @@
   "Daily Revivew Intervals": "일일 검토 간격",
   "Custom Revivew Intervals": "맞춤 검토 간격",
   "Buy me a coffee": "커피 사주세요",
+  "Buy my kitty a treat": "내 고양이에게 한 끼 식사를 사주세요",
   "The Language of Youglish": "Youglish의 언어",
   "Writing": "글쓰기",
-  "If you find this tool helpful, you can buy me a cup of coffee.": "이 도구가 도움이 된다면, 커피를 사주세요.",
+  "See my cute kitty!": "모든 고양이의 끼!",
+  "If you find this tool helpful, you can buy my kitty a treat.": "이 자동화되는 온어가 살펴보다. 끼 식사을 사용할 수 있습니다.",
   "Follow me on social media": "소셜 미디어에서 팔로우하세요",
   "Follow me on social media to get the latest updates and support": "최신 업데이트와 지원을 받기 위해 소셜 미디어에서 팔로우하세요",
   "Finish": "이 주제를 마치고 검토에 추가",
@@ -163,6 +167,8 @@
   "The Language You Want to Learn": "학습하는 언어",
   "The Language You are Using": "이 이 사용됩니다",
   "Download lexicon file": "어르어 파일 다운로드",
+  "You can set multiple group names": "여기한 그룹 이름을 지정할 수 있습니다",
+  "Enter a group, then press Enter": "그룹 이름 입력, Enter를 입력해 보세요",
   "Determine which groups this action belongs to": "이 새 필요한 그룹을 선택하기"
 }
 

@@ -98,7 +98,7 @@ export function ActionForm(props: IActionFormProps) {
     const actionGroupsPlaceholderCaption = (
         <ul className={styles.placeholderCaptionContainer}>
             <li>
-                <span className={styles.placeholder}>{'Action Groups '}</span>{' '}
+                <span className={styles.placeholder}>{t("Action's Groups")}</span>{' '}
                 {t('Determine which groups this action belongs to')}
             </li>
         </ul>
@@ -107,7 +107,7 @@ export function ActionForm(props: IActionFormProps) {
     const rolePlaceholdersCaption = (
         <ul className={styles.placeholderCaptionContainer}>
             <li>
-                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('The Language You Want To Learn')}
+                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('The Language You Want to Learn')}
             </li>
             <li>
                 <span className={styles.placeholder}>{'${targetLang}'}</span> {t('The Language You are Using')}
@@ -118,7 +118,7 @@ export function ActionForm(props: IActionFormProps) {
     const commandPlaceholdersCaption = (
         <ul className={styles.placeholderCaptionContainer}>
             <li>
-                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('The Language You Want To Learn')}
+                <span className={styles.placeholder}>{'${sourceLang}'}</span> {t('The Language You Want to Learn')}
             </li>
             <li>
                 <span className={styles.placeholder}>{'${targetLang}'}</span> {t('The Language You are Using')}
@@ -143,7 +143,8 @@ export function ActionForm(props: IActionFormProps) {
 
     const actionGroupsCaption = (
         <div className={styles.promptCaptionContainer}>
-            <div>{commandPlaceholdersCaption}</div>
+            <div>{actionGroupsPlaceholderCaption}</div>
+            <div>{t('You can set multiple group names')}</div>
         </div>
     )
 
@@ -170,7 +171,7 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='icon' label={t('Icon')}>
                 <IconPicker />
             </FormItem>
-            <FormItem required name='groups' label={t('Action Groups')} caption={actionGroupsCaption}>
+            <FormItem required name='groups' label={t("Action's Groups")} caption={actionGroupsCaption}>
                 <GroupSelect intialTags={props.action?.groups || []}></GroupSelect>
             </FormItem>
             <FormItem name='rolePrompt' label={t('Role Prompt')} caption={rolePromptCaption}>
@@ -182,7 +183,7 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem name='childrenIds' label={t('Assistant Actions')}>
                 <ActionSelect initialActions={actions} updatingAction={props.action}></ActionSelect>
             </FormItem>
-            <FormItem name='model' label={t('Model')}>
+            <FormItem name='model' label={t('API Model')}>
                 <ModelSelect></ModelSelect>
             </FormItem>
             <FormItem name='outputRenderingFormat' label={t('Output rendering format')}>

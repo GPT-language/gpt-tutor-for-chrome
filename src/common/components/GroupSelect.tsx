@@ -3,6 +3,7 @@ import { useStyletron } from 'baseui-sd'
 import { Input, StyledInput } from 'baseui-sd/input'
 import { Tag } from 'baseui-sd/tag'
 import { initial } from 'underscore'
+import { useTranslation } from 'react-i18next'
 
 const InputReplacement = React.forwardRef(({ tags, removeTag, ...restProps }: any, ref) => {
     const [css] = useStyletron()
@@ -36,6 +37,7 @@ export default function GroupSelect({ tagsValue, onChange, intialTags }: IGroupS
     // 将actions根据group属性分组
     const [value, setValue] = React.useState<string>('')
     const [tags, setTags] = React.useState(intialTags || [])
+    const { t } = useTranslation()
     const addTag = (tag: string) => {
         if (tags.includes(tag)) {
             // Prevent adding duplicates
@@ -74,7 +76,7 @@ export default function GroupSelect({ tagsValue, onChange, intialTags }: IGroupS
     }
     return (
         <Input
-            placeholder={tags.length ? '' : 'Enter A Tag'}
+            placeholder={tags.length ? '' : t('Enter a group, then press Enter') || 'Enter a group,then press Enter'}
             value={value}
             onChange={(e) => handleTagsChange(e.target.value)}
             overrides={{

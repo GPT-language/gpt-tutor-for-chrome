@@ -11,6 +11,8 @@
   "Clear input": "Effacer l'entrée",
   "Copy to clipboard": "Copier dans le presse-papiers",
   "Speak": "Parler",
+  "Import": "Importer",
+  "Export": "Exporter",
   "Add new conversation": "Ajouter une nouvelle conversation",
   "Upload an image for OCR translation": "Télécharger une image pour la traduction OCR",
   "Default Service Provider": "Fournisseur de services par défaut",
@@ -155,14 +157,17 @@
   "Buy me a coffee": "Offrez-moi un café",
   "The Language of Youglish": "La langue de Youglish",
   "Writing": "Écriture",
-  "If you find this tool helpful, you can buy me a cup of coffee.": "Si vous trouvez cet outil utile, vous pouvez m'offrir une tasse de café.",
+  "If you find this tool helpful, you can buy my kitty a treat.": "Si vous trouvez ce logiciel utile, vous pouvez offrir mon chat un treat.",
   "Follow me on social media": "Suivez-moi sur les réseaux sociaux",
   "Follow me on social media to get the latest updates and support": "Suivez-moi sur les réseaux sociaux pour obtenir les dernières mises à jour et le support",
   "Download lexicon file": "Télécharger le fichier de lexique",
   "Action's Groups": "Groupes d'actions",
+  "See my cute kitty!": "Voir mon chat cute!",
   "Determine which groups this action belongs to": "Déterminer à quels groupes cette action appartient",
   "The Language You Want to Learn": "La langue que vous souhaitez apprendre",
   "The Language You are Using": "La langue que vous utilisez",
+  "You can set multiple group names": "Vous pouvez sélectionner plusieurs noms de groupes",
+  "Enter a group, then press Enter": "Saisissez un groupe, puis appuyez sur Entrée",
   "Finish": "Terminer ce sujet et ajouter à la révision"
 }
 
