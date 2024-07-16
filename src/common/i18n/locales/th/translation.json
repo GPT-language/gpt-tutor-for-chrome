@@ -152,7 +152,7 @@
   "Buy me a coffee": "ซื้อเครื่องดื่ม",
   "The Language of Youglish": "ภาษาของ Youglish",
   "Writing": "การเขียน",
-  "Action Groups": "กลุ่มการดำเนินการ",
+  "Action's Groups": "กลุ่มการดำเนินการ",
   "Model": "โมเดล",
   "Import": "นำเข้า",
   "Export": "สำหรับ",
@@ -164,5 +164,7 @@
   "Buy my kitty a treat": "ซื้อภาพภาพของฉัน",
   "See my cute kitty!": "ดูภาพภาพของฉัน!",
   "Follow me on social media to get the latest updates and support": "ติดตามผู้ใช้งานบนโซเชียลมีเดีย เพื่อรับประกาศล่าสุดและการสนับสนุน",
+  "Download lexicon file": "ดาวน์โหลดไฟล์ lexicon",
+  "Determine which groups this action belongs to": "ตั้งค่ากลุ่มที่เกี่ยวข้องกับการดำเนินการนี้",
   "disable collecting statistics": "ปิดใช้งานการสถิติการเก็บรวบรวม"
 }

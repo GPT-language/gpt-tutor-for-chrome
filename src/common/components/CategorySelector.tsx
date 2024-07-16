@@ -66,15 +66,20 @@ const CategorySelector = () => {
         await fileService.deleteFilesByCategory(cat)
     }
 
-    const options = files.map((file) => ({
-        id: file.id,
-        label: file.name,
-    }))
+    const options = [
+        ...files.map((file) => ({
+            id: file.id,
+            label: file.name,
+        })),
+        { id: 0, label: t('Download lexicon file') }
+    ]
 
-    const onChange = ({ value }) => {
-        if (value.length) {
-            const newFileId = value[0].id // 获取选中项的 id
-            selectFile(newFileId)
+    const onChange = (params: { value: { id: number; label: string }[] }) => {
+        const { value } = params
+        if (value.length > 0 && value[0].id === 0) {
+            window.open('https://github.com/GPT-language/gpt-tutor-resources/blob/main/README.md')
+        } else {
+            selectFile(value[0].id)
         }
     }
 

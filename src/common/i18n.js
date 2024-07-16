@@ -13,6 +13,8 @@ import RUtranslation from './i18n/locales/ru/translation.json'
 import KOtranslation from './i18n/locales/ko/translation.json'
 import DEtranslation from './i18n/locales/de/translation.json'
 import FRtranslation from './i18n/locales/fr/translation.json'
+import HItranslation from './i18n/locales/hi/translation.json'
+import ARtranslation from './i18n/locales/ar/translation.json'
 
 const resources = {
     'zh-Hans': {
@@ -41,6 +43,12 @@ const resources = {
     },
     'fr': {
         translation: FRtranslation,
+    },
+    'hi': {
+        translation: HItranslation,
+    },
+    'ar': {
+        translation: ARtranslation,
     },
 }
 

@@ -127,7 +127,7 @@
   "Next item": "下一項",
   "Next page": "下一頁",
   "There are ": "有",
-  "Action Groups": "動作群組",
+  "Action's Groups": "動作群組",
   "Model": "模型",
   "Import": "導入",
   "Export": "導出",
@@ -158,7 +158,7 @@
   "Custom Revivew Intervals": "自訂複習間隔",
   "Buy me a coffee": "購買一杯咖啡",
   "Writing": "寫作",
-  "The Language You Want To Learn": "想要學習的語言",
+  "The Language You Want to Learn": "想要學習的語言",
   "The Language You are Using": "您正在使用的語言",
   "The Language of Youglish": "Youglish使用的語言",
   "If you find this tool helpful, you can buy me a cup of coffee.": "如果您觉得這個工具对您有帮助，您可以请我喝一杯咖啡。",
@@ -166,5 +166,7 @@
   "Buy my kitty a treat": "給我的小猫買一些吃的",
   "See my cute kitty!": "看看我的可愛小猫！",
   "Follow me on social media to get the latest updates and support": "在社交媒體上關注我以獲取最新更新和支持",
+  "Download lexicon file": "下載字彙文件",
+  "Determine which groups this action belongs to": "決定這個動作屬於哪些群組",
   "Finish": "完成這個主題並添加到複習"
 }

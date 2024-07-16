@@ -32,6 +32,11 @@ import TraditionalChineseActionData from '../services/TraditionalChinese.json'
 import JapaneseActionData from '../services/Japanese.json'
 import RussianActionData from '../services/Russian.json'
 import KoreanActionData from '../services/Korean.json'
+import ThaiActionData from '../services/Thai.json'
+import HindiActionData from '../services/Hindi.json'
+import ArabicActionData from '../services/Arabic.json'
+import FrenchActionData from '../services/French.json'
+import GermanActionData from '../services/German.json'
 import SpeakerMotion from '../components/SpeakerMotion'
 import IpLocationNotification from '../components/IpLocationNotification'
 import { HighlightInTextarea } from '../highlight-in-textarea'
@@ -580,55 +585,65 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return groups
     }, {})
 
-    
-
     useEffect(() => {
         if (!settings?.i18n) {
-            return;
+            return
         }
-        const languageCode = settings.i18n;
-        console.log('languageCode is ', languageCode);
+        const languageCode = settings.i18n
+        console.log('languageCode is ', languageCode)
         let promptsData: Action[] | [] = []
-    
+
         switch (languageCode) {
             case 'zh-Hans':
                 promptsData = ChineseActionsData as Action[]
-                break;
-    
+                break
+
             case 'zh-Hant':
                 promptsData = TraditionalChineseActionData as Action[]
-                break;
-    
+                break
+
             case 'en':
                 promptsData = EnglishActionData as Action[]
-                break;
+                break
 
             case 'ja':
                 promptsData = JapaneseActionData as Action[]
-                break;
+                break
             case 'ko':
                 promptsData = KoreanActionData as Action[]
-                break;
+                break
 
             case 'ru':
                 promptsData = RussianActionData as Action[]
-                break;
+                break
 
             case 'th':
-                promptsData = EnglishActionData as Action[]
-                break;
-    
+                promptsData = ThaiActionData as Action[]
+                break
+
+            case 'ar':
+                promptsData = ArabicActionData as Action[]
+                break
+            case 'hi':
+                promptsData = HindiActionData as Action[]
+                break
+            case 'fr':
+                promptsData = FrenchActionData as Action[]
+                break
+            case 'de':
+                promptsData = GermanActionData as Action[]
+                break
+
             default:
                 // 可以处理未知的语言代码
                 console.log('Unsupported language code')
                 promptsData = EnglishActionData as Action[]
-                break;
+                break
         }
         console.log('final promptsData is ', promptsData)
         actionService.bulkPut(promptsData)
         refreshActions()
     }, [settings?.i18n])
-    
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1469,9 +1484,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                         <Tooltip content={t('选择使用场景')} placement='bottom'>
                             <Select
                                 size='mini'
-                                options={[
-                                    ...Object.keys(actionGroups || {}).map((key) => ({ id: key, label: key })),
-                                ]}
+                                options={[...Object.keys(actionGroups || {}).map((key) => ({ id: key, label: key }))]}
                                 value={[{ id: selectedGroup }]}
                                 overrides={{
                                     Root: {

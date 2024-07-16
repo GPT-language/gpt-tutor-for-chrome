@@ -95,6 +95,15 @@ export function ActionForm(props: IActionFormProps) {
         fetchGroups()
     }, [actions])
 
+    const actionGroupsPlaceholderCaption = (
+        <ul className={styles.placeholderCaptionContainer}>
+            <li>
+                <span className={styles.placeholder}>{'Action Groups '}</span>{' '}
+                {t('Determine which groups this action belongs to')}
+            </li>
+        </ul>
+    )
+
     const rolePlaceholdersCaption = (
         <ul className={styles.placeholderCaptionContainer}>
             <li>
@@ -132,6 +141,12 @@ export function ActionForm(props: IActionFormProps) {
         </div>
     )
 
+    const actionGroupsCaption = (
+        <div className={styles.promptCaptionContainer}>
+            <div>{commandPlaceholdersCaption}</div>
+        </div>
+    )
+
     const commandPromptCaption = (
         <div className={styles.promptCaptionContainer}>
             <div>
@@ -155,7 +170,7 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='icon' label={t('Icon')}>
                 <IconPicker />
             </FormItem>
-            <FormItem required name='groups' label={t('Action Groups')}>
+            <FormItem required name='groups' label={t('Action Groups')} caption={actionGroupsCaption}>
                 <GroupSelect intialTags={props.action?.groups || []}></GroupSelect>
             </FormItem>
             <FormItem name='rolePrompt' label={t('Role Prompt')} caption={rolePromptCaption}>

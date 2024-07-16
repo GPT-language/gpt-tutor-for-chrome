@@ -110,7 +110,7 @@
   "Import": "导入",
   "Export": "导出",
   "The Language of Youglish":"Youglish使用的语言",
-  "The Language You Want To Learn":"您想学习的语言",
+  "The Language You Want to Learn":"您想学习的语言",
   "The Language You are Using":"您正在使用的语言",
   "Learn": "学习",
   "Youglish": "Youglish",
@@ -178,5 +178,8 @@
   "Follow me on social media": "在社交媒体上关注我",
   "Buy my kitty a treat": "给我的小猫买些吃的",
   "Follow me on social media to get the latest updates and support": "在社交媒体上关注我获取最新更新和支持",
+  "Download lexicon file": "下载词库文件",
+  "Action's Groups": "动作群组",
+  "Determine which groups this action belongs to": "设置该动作属于哪些群组",
   "Grammar": "语法"
 }

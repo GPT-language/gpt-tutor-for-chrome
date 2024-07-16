@@ -556,6 +556,8 @@ function Ii18nSelector({ value, onChange, onBlur }: Ii18nSelectorProps) {
         { label: '繁體中文', id: 'zh-Hant' },
         { label: '日本語', id: 'ja' },
         { label: 'ไทย', id: 'th' },
+        { label: 'عربي', id: 'ar'},
+        { label: 'हिन्दी', id: 'hi'},
         { label: '한국어', id: 'ko' },
         { label: 'Русский', id: 'ru' },
         { label: 'Deutsch', id: 'de' },
@@ -573,7 +575,7 @@ function Ii18nSelector({ value, onChange, onBlur }: Ii18nSelectorProps) {
                     ? [
                           {
                               id: value,
-                              label: options.find((option) => option.id === value)?.label || 'en',
+                              label: options.find((option) => option.id === value)?.label,
                           },
                       ]
                     : undefined
@@ -1774,7 +1776,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     <div style={{ marginTop: '10px' }}>
                         <TbDirectionSign size={18} />
                     </div>
-                    <FormItem name='defaultSourceLanguage' label={t('The Language You Want To Learn')}>
+                    <FormItem name='defaultSourceLanguage' label={t('The Language You Want to Learn')}>
                         <LanguageSelector onBlur={onBlur} />
                     </FormItem>
                 </div>
