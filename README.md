@@ -2,7 +2,7 @@
     <br> English | <a href="README-CN.md">中文</a>
 </p>
 <p align="center">
-    <em>GPT Tutor is a branch of OpenAI Translator, and I've made some modifications to it. I've added new features, such as categorizing prompts through grouping, one-click addition of responses to Anki, and removed unnecessary content. Additionally, I've fixed the functionality for using ChatGPT Web. GPT-Tutor is now more than just a translation tool; it has become a practical tool for assisting language learning.</em>
+    <em>GPT-Tutor is a practical tool that uses AI to comprehensively guide language learning. It assists you starting from individual words and phrases, progressing to sentences and grammar, and finally helps you practice reading and writing. There are many more features waiting for you to discover, making GPT-Tutor perhaps the most comprehensive and practical learning tool you've encountered. Moreover, it's not limited to just English; GPT-Tutor also supports learning multiple languages simultaneously, including Japanese, French, German, Russian, and more.</em>
 </p>
 
 # Demonstration
