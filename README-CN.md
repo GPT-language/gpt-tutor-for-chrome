@@ -8,12 +8,12 @@
 
 # 如何安装
 
-## Chrome应用商店
+## 1.Chrome应用商店
 
 你可以直接点击链接通过[Chrome应用商店](https://chromewebstore.google.com/detail/gpt-tutor/icbphcgipdflenaemgkhmigfiaelpbnn?hl=en)下载，但是有时候可能因为审核，应用商店上的gpt-tutor并不是最新的版本。
 
 
-## 通过开发者模式直接加载最新版本的安装包
+## 2.通过开发者模式直接加载最新版本的安装包
 
 1.点击Release中的**最新版本**
 
@@ -38,6 +38,10 @@
 6.将解压后的文件夹导入，注意需要先打开解压后的文件夹，然后再导入里面的同名文件夹
 
 ![alt text](./public/image-6.png)
+
+7.最后点击管理扩展程序，然后将gpt-tutor固定在浏览器上
+
+![alt text](./public/image-7.png)
 
 # License
 

@@ -7,12 +7,12 @@
 
 # How to install
 
-## Chrome Web Store
+## 1.Chrome Web Store
 
 You can directly download it via the [Chrome Web Store](https://chromewebstore.google.com/detail/gpt-tutor/icbphcgipdflenaemgkhmigfiaelpbnn?hl=en), but sometimes the version available in the store might not be the latest due to review delays.
 
 
-## Load the latest version of the extension package directly via Developer mode.
+## 2.Load the latest version of the extension package directly via Developer mode.
 
 1.Click on **the latest version** in the Release section
 
@@ -35,6 +35,12 @@ You can directly download it via the [Chrome Web Store](https://chromewebstore.g
 ![alt text](./public/image-5.png)
 
 6.Import the extracted folder. Make sure to first open the extracted folder, then import **the folder with the same name inside it**.
+
+![alt text](./public/image-6.png)
+
+7.Finally, click on **Manage Extensions**, and then **pin gpt-tutor** to the browser.
+
+![alt text](./public/image-7.png)
 
 
 # License
