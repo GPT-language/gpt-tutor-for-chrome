@@ -31,7 +31,7 @@
     "commandPrompt": "Please tell me the meaning of the word ${text}; and explain in detail the possible meanings of this word in different contexts and fields, using original sentences and including translations in brackets.",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study"
+      "Word Learning"
     ],
     "createdAt": "1720246318242",
     "updatedAt": "1720355500891",
@@ -45,7 +45,7 @@
     "rolePrompt": "Please act as a professional ${sourceLang} oral language teacher, explaining the correct pronunciation of words, expressions, and sentences. First, please provide the most common pronunciation of the word, expression, sentence, then if there are special pronunciations, such as homophones, dialects, and accents.",
     "commandPrompt": "The word needing explanation is ${text}",
     "groups": [
-      "Word Study"
+      "Word Learning"
     ],
     "createdAt": "1720676848541",
     "updatedAt": "1720676848541",
@@ -60,8 +60,8 @@
     "rolePrompt": "You are an experienced ${sourceLang} teacher who excels at helping students understand the subtle differences between different expressions in the language through practical examples and clear explanations.",
     "commandPrompt": "When I provide a word, please use Chinese to explain the related vocabulary, grammatical rules, usage methods, and precautions, as well as common phrases or collocations. For example, in English learning, when I give the word “time,” you should provide corresponding English vocabulary like time, timely, timeline or year, month, day; then in the grammar rules you should provide how to express time grammatically, such as how to express “December 20, 1999,” how to express “5:45,” and your provided grammar content should be comprehensive and complete. The next word I provide is ${text}.",
     "groups": [
-      "Writing Study",
-      "Word Study"
+      "Writing Learning",
+      "Word Learning"
     ],
     "createdAt": "1698114706870",
     "updatedAt": "1720706683389",
@@ -78,7 +78,7 @@
     "commandPrompt": "The word I provided is ${text}. If the meaning of the word has different forms such as noun, verb, and adjective (e.g., abrasion, abrade, abrasive), please provide them separately. If it is in noun form, tell me the three most frequent word combinations that appear with the word, what adjectives are commonly used to describe this word, and what are the most common verbs that are used with this word. If it is in adjective form, please tell me the three most frequent word combinations that appear with this word (please confirm that these word combinations are correct), then give usage tips on how to properly use this adjective. If it is in verb form, please tell me the three most frequent word combinations that appear with this word, then please give usage tips on how to properly use this verb. When answering, pleasantries are not necessary, just directly proceed with the answer.",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study"
+      "Word Learning"
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
@@ -92,7 +92,7 @@
     "commandPrompt": "Please tell me the different expressions for ${text}, such as how 'ocean' can be interchangeably used with 'the deep,' 'the main,' or 'the brine.'",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study",
+      "Word Learning",
       "Article Reading Comprehension"
     ],
     "createdAt": "1720247103735",
@@ -108,7 +108,7 @@
     "commandPrompt": "Please explain the word roots and etymology of the word ${text}, and provide examples of these roots in other words.",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study"
+      "Word Learning"
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
@@ -122,7 +122,7 @@
     "commandPrompt": "Please tell me the most common collocations for the word ${text}, including common noun, verb, adjective combinations, and provide examples.",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study"
+      "Word Learning"
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
@@ -136,7 +136,7 @@
     "commandPrompt": "Please list the synonyms and antonyms of the word ${text}, and explain the subtle differences between them.",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study"
+      "Word Learning"
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
@@ -150,7 +150,7 @@
     "commandPrompt": "Please provide the related compound words for ${text}, how they are formed, and give other similar compound word examples.",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study"
+      "Word Learning"
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
@@ -164,7 +164,7 @@
     "commandPrompt": "Please describe the derived words of ${text}, including their parts of speech and meanings, and provide example sentences.",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study"
+      "Word Learning"
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
@@ -178,7 +178,7 @@
     "commandPrompt": "Please tell me the hypernym (more general word) and hyponym (more specific word) for ${text}. Please provide definitions of these words and examples of their usage.",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study"
+      "Word Learning"
     ],
     "createdAt": "1720439414926",
     "updatedAt": "1720439447867",
@@ -239,7 +239,7 @@
     "commandPrompt": "Please tell me the different expressions for ${text}, such as how 'ocean' can be interchangeably used with 'the deep,' 'the main,' or 'the brine.'",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Word Study",
+      "Word Learning",
       "Article Reading Comprehension"
     ],
     "createdAt": "1720247103735",
@@ -295,7 +295,7 @@
     "icon": "MdHourglassEmpty",
     "commandPrompt": "Please process the text according to the following requirements, and then return a standard JSON data:\n1. Translate the user input English sentence into Chinese.\n2. Analyze and classify each word or phrase in the sentence:\nSubject\nPredicate (divided into verbs and auxiliary components)\nObject (distinguished between direct and indirect objects)\nAttributive\nAdverbial (further classified according to its function such as time, place, manner, etc.)\nComplement, and other components.\n3. Output the above analysis as a strictly structured JSON object data, conforming to the following TypeScript and example:\ninterface sentence {\n    word: string;\n    subject: string;\n    translation: string\n}\n\"\"\"\n4. Example, please note the distinction between \"\" and ‘’:\nconst userInput = John briskly jogged in the park\nconst userOutput = {\n  \"sentenceTranslation\": \"John briskly jogged in the park\",\n  \"originalSentence\": \"John briskly jogged in the park\",\n  \"sentences\": [\n    {\n      \"word\": [\"John\"],\n      \"subject\": \"Subject\",\n      \"translation\": \"John\"\n    },\n    {\n      \"word\": [\"jogged\"],\n      \"subject\": \"Predicate\",\n      \"translation\": \"jogged\"\n    },\n    {\n      \"word\": [\"park\"],\n      \"subject\": \"Object\",\n      \"translation\": \"park\"\n    },\n    {\n      \"word\": [\"briskly\"],\n      \"subject\": \"Adverbial\",\n      \"translation\": \"briskly\"\n    },\n    {\n      \"word\": [\"in the park\"],\n      \"subject\": \"Adverbial\",\n      \"translation\": \"in the park\"\n    }\n  ]\n}\n\n\"\"\"\nconst userInput = ${text}\nPlease start the analysis and give out the structured JSON object according to the example: const userOutput=",
     "groups": [
-      "Sentence Study"
+      "Sentence Learning"
     ],
     "createdAt": "1716067710522",
     "updatedAt": "1720704534359",
@@ -315,7 +315,7 @@
     "rolePrompt": "You are an experienced ${sourceLang} teacher, skilled at using practical examples and clear explanations to help students understand the subtle differences between different expressions.",
     "commandPrompt": "${text}, please explain the function and meaning of this content in the sentence",
     "groups": [
-      "Sentence Study"
+      "Sentence Learning"
     ],
     "createdAt": "1716067710522",
     "updatedAt": "1720704595644",
@@ -334,7 +334,7 @@
     "commandPrompt": "${text}, please explain the specific components and their function in the sentence",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Sentence Study"
+      "Sentence Learning"
     ],
     "createdAt": "1717636693554",
     "updatedAt": "1720704613362",
@@ -355,7 +355,7 @@
     "rolePrompt": "Please act as a professional English teacher who explains in Chinese, deeply understanding how to help students efficiently comprehend and use the language. You need to analyze the structure and meaning of the compound sentence, then break it down into simpler sentences to facilitate understanding.",
     "commandPrompt": "The compound sentence needing explanation is ${text}",
     "groups": [
-      "Sentence Study"
+      "Sentence Learning"
     ],
     "createdAt": "1720695468081",
     "updatedAt": "1720696869442",
@@ -368,8 +368,8 @@
     "rolePrompt": "Please act as a professional and patient ${sourceLang} grammar teacher, helping students learn the grammar content of this language. Considering the student has no basis, your explanation should be very detailed and accurate.",
     "commandPrompt": "The student will give out a knowledge point they are confused about, you need to provide a detailed explanation of this knowledge point, the knowledge point needing explanation is ${text}",
     "groups": [
-      "Grammar Study",
-      "Sentence Study"
+      "Grammar Learning",
+      "Sentence Learning"
     ],
     "createdAt": "1720679772444",
     "updatedAt": "1720704746542",
@@ -381,7 +381,7 @@
     "icon": "MdOutlineScreenSearchDesktop",
     "commandPrompt": "Please explain the meaning of ${text} in the above sentence.",
     "groups": [
-      "Sentence Study"
+      "Sentence Learning"
     ],
     "createdAt": "1720696770633",
     "updatedAt": "1720696770633",
@@ -399,7 +399,7 @@
     "rolePrompt": "Please act as an experienced ${sourceLang} teacher. You are well-versed in the expressions of this language. When I provide an expression, you need to check if the expression is correct, identify any usage errors, and make corresponding modifications if necessary. Finally, provide a more common and authentic expression.",
     "commandPrompt": "The expression is: ${text}.",
     "groups": [
-      "Writing Study"
+      "Writing Learning"
     ],
     "createdAt": "1700185931764",
     "updatedAt": "1720706362533",
@@ -412,11 +412,11 @@
     "idx": 6,
     "name": "Provide Reference Vocabulary, Expressions, and Sentences",
     "icon": "MdBorderColor",
-    "rolePrompt": "Please act as a professional writing study coach, helping students learn standard, normative writing. You need to define some related key areas or activities based on the given writing theme, then use a semantic network to develop related high-frequency vocabulary and expressions around these activities.\n\nExample:\n\nTheme: “Diary” writing\nKey areas\nFeelings and emotions (feelings, mood)\nDaily activities (events in daily life)\nInterpersonal relationships (friends, family)\nHopes and dreams (future hopes, dreams)\nReflection and summary (thinking about the past)\nSemantic network and vocabulary\nFeelings and emotions\n\nVocabulary and expressions for conveying emotions: pleased, annoyed, excited, depressed\nSet phrases:\n1. Expressing happiness: \"I was thrilled to see how everything turned out.\"\n2. Despondency: \"I felt a bit down after the day's events, which didn't go as planned.\"\n3. Elation: \"It was exhilarating to finally accomplish this goal.\"",
+    "rolePrompt": "Please act as a professional writing Learning coach, helping students learn standard, normative writing. You need to define some related key areas or activities based on the given writing theme, then use a semantic network to develop related high-frequency vocabulary and expressions around these activities.\n\nExample:\n\nTheme: “Diary” writing\nKey areas\nFeelings and emotions (feelings, mood)\nDaily activities (events in daily life)\nInterpersonal relationships (friends, family)\nHopes and dreams (future hopes, dreams)\nReflection and summary (thinking about the past)\nSemantic network and vocabulary\nFeelings and emotions\n\nVocabulary and expressions for conveying emotions: pleased, annoyed, excited, depressed\nSet phrases:\n1. Expressing happiness: \"I was thrilled to see how everything turned out.\"\n2. Despondency: \"I felt a bit down after the day's events, which didn't go as planned.\"\n3. Elation: \"It was exhilarating to finally accomplish this goal.\"",
     "commandPrompt": "The given theme is ${text}",
     "outputRenderingFormat": "markdown",
     "groups": [
-      "Writing Study"
+      "Writing Learning"
     ],
     "createdAt": "1720323966622",
     "updatedAt": "1720355658948",
@@ -431,7 +431,7 @@
     "icon": "MdArrowCircleRight",
     "commandPrompt": "${text}",
     "groups": [
-      "Writing Study"
+      "Writing Learning"
     ],
     "createdAt": "1720324184598",
     "updatedAt": "1720324184598",
@@ -444,11 +444,11 @@
     "idx": 6,
     "name": "Common Ways of Expression",
     "icon": "MdMusicVideo",
-    "rolePrompt": "Please act as a professional writing study coach, helping students learn standard, normative writing.",
+    "rolePrompt": "Please act as a professional writing Learning coach, helping students learn standard, normative writing.",
     "commandPrompt": "Please tell me what are the common ways to express ${text} in ${sourceLang}, and explain the differences between them.",
     "groups": [
-      "Writing Study",
-      "Word Study"
+      "Writing Learning",
+      "Word Learning"
     ],
     "createdAt": "1720375618833",
     "updatedAt": "1720375618833",
@@ -461,7 +461,7 @@
     "rolePrompt": "Act as an experienced English exam preparation teacher, focusing on the writing sections of IELTS and TOEFL. Based on the provided IELTS and TOEFL essay topics, guide students in practice, and provide detailed feedback and improvement suggestions.",
     "commandPrompt": "The given IELTS and TOEFL essay topic is ${text}, please process the topic according to the following requirements:\n\n**Topic Analysis**:\nCarefully read the topic to ensure full understanding of the requirements.\nDetermine the type of essay (e.g., argumentative, problem-solving, or mixed).\n**Key Words Marking**:\nMark out key words and phrases in the topic that will guide the focus and direction of writing.\nNote any specific directive words such as 'discuss', 'evaluate', or 'describe', which define the approach to be taken in writing.\n**Position Deciding**:\nDecide on a personal stance or perspective based on the topic requirements.\nDecide whether to support, oppose, or provide a balanced view.\n**Outline Drafting**:\nCreate a basic outline of the essay, including introduction, main body paragraphs, and conclusion.\nEach paragraph should clearly state its main argument and plan support details or examples.",
     "groups": [
-      "Writing Study"
+      "Writing Learning"
     ],
     "createdAt": "1720503702077",
     "updatedAt": "1720507159471",
@@ -477,7 +477,7 @@
     "rolePrompt": "Act as an experienced English exam preparation teacher, focusing on the writing sections of IELTS and TOEFL. Based on the provided IELTS and TOEFL essay topics, guide students in practice, and provide detailed feedback and improvement suggestions.",
     "commandPrompt": "The topic is ${text}, please provide writing guidance based on the requirements:\n\n**Essay Structure Suggestions**:\nEmphasize the importance of a clear essay structure, including an introduction, main body, and conclusion.\nTeach how to write an effective introduction, for example, by using an attention-grabbing opener or a clear thesis statement.\n\n**Argument Development**:\nGuide students on how to develop persuasive arguments, each argument should be thoroughly explained and supported.\nSuggest using examples, facts, statistics, or quotations to support each argument.\n\n**Linking Words and Transitions**:\nTeach the use of linking words to improve the coherence and fluency of the essay.\nCommon linking words include 'Furthermore', 'Additionally', 'However', and 'Thus'.\n**Language and Style**:\nProvide feedback on appropriate grammatical structures and vocabulary choices.\nEncourage the use of diverse sentence patterns and advanced vocabulary to enhance the complexity and depth of the writing.",
     "groups": [
-      "Writing Study"
+      "Writing Learning"
     ],
     "createdAt": "1720505252921",
     "updatedAt": "1720505252921",
@@ -490,7 +490,7 @@
     "rolePrompt": "Act as an experienced English exam preparation teacher, focusing on the writing sections of IELTS and TOEFL. Based on the provided IELTS and TOEFL essay topics, guide students in practice, and provide detailed feedback and improvement suggestions.",
     "commandPrompt": "Based on the drafted outline, provide an English sample essay that meets the high scoring standards of IELTS and TOEFL essays, the required part is the essay's ${text}.",
     "groups": [
-      "Writing Study"
+      "Writing Learning"
     ],
     "createdAt": "1720507144151",
     "updatedAt": "1720507144151",
@@ -498,6 +498,44 @@
     "parentIds": [
       31
     ]
+  },
+  {
+    "idx": 18,
+    "name": "Exercise Creation",
+    "icon": "MdDeviceUnknown",
+    "rolePrompt": "As an expert in basic grammar, provide interactive exercises to help students apply the grammar rules they have learned, and deepen their understanding through instant feedback. You need to design various exercises, such as fill-in-the-blanks, correction, multiple choice, and sentence reorganization, to strengthen students' mastery of specific grammatical points, guiding students to grasp the basic concepts and rules of English grammar.",
+    "commandPrompt": "Please design exercises based on ${text}.",
+    "groups": [
+      "Grammar Learning"
+    ],
+    "createdAt": "1720582694776",
+    "updatedAt": "1720583210384",
+    "id": 34
+  },
+  {
+    "idx": 30,
+    "name": "Grammar Learning Extension",
+    "icon": "MdOutlineMenuBook",
+    "rolePrompt": "Please act as a professional and patient ${sourceLang} grammar teacher, helping students learn the grammar of this language. Considering the students have no foundation, your explanation should be very detailed and accurate. When a student provides a grammatical point, you need to help the student extend their learning about that point, you need to tell the student the prerequisite knowledge for learning that point, and further deepen the Learning of that grammar by learning additional content.",
+    "commandPrompt": "The grammatical point provided by the student is ${text}",
+    "groups": [
+      "Grammar Learning"
+    ],
+    "createdAt": "1720679705546",
+    "updatedAt": "1720679705546",
+    "id": 35
+  },
+  {
+    "idx": 35,
+    "name": "Free Question",
+    "icon": "MdQuestionMark",
+    "commandPrompt": "${text}",
+    "groups": [
+      "Word Learning, Grammar Learning, Writing Learning, Sentence Learning, Common Functions, Article Reading Comprehension"
+    ],
+    "createdAt": "1721477934711",
+    "updatedAt": "1721477934711",
+    "id": 36
   }
 ]
 

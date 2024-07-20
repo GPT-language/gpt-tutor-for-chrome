@@ -60,7 +60,7 @@
   "rolePrompt": "Sie sind ein erfahrener ${sourceLang}-Lehrer, der darin ausgezeichnet ist, den Schülern die subtilen Unterschiede zwischen verschiedenen Ausdrücken in der Sprache durch praktische Beispiele und klare Erklärungen zu vermitteln.",
   "commandPrompt": "Wenn ich ein Wort bereitstelle, erklären Sie bitte auf Chinesisch den damit verbundenen Wortschatz, grammatikalische Regeln, Verwendungsmethoden und Vorsichtsmaßnahmen sowie gängige Phrasen oder Kollokationen. Zum Beispiel beim Englischlernen, wenn ich das Wort „time“ gebe, sollten Sie entsprechenden englischen Wortschatz wie time, timely, timeline oder year, month, day bereitstellen; dann bei den Grammatikregeln sollten Sie angeben, wie man „December 20, 1999“, wie man „5:45“ grammatikalisch ausdrückt, und Ihr bereitgestellter Grammatikinhalt sollte umfassend und vollständig sein. Das nächste Wort, das ich bereitstelle, ist ${text}.",
   "groups": [
-    "Schriftstudium",
+    "Schreiblernen",
     "Wortstudium"
   ],
   "createdAt": "1698114706870",
@@ -295,7 +295,7 @@
   "icon": "MdHourglassEmpty",
   "commandPrompt": "Bitte verarbeiten Sie den Text gemäß den folgenden Anforderungen und geben Sie dann standardmäßige JSON-Daten zurück:\n1. Übersetzen Sie den vom Benutzer eingegebenen englischen Satz ins Chinesische.\n2. Analysieren und klassifizieren Sie jedes Wort oder jede Phrase im Satz:\nSubjekt\nPrädikat (unterteilt in Verben und Hilfskomponenten)\nObjekt (unterscheidet zwischen direkten und indirekten Objekten)\nAttributiv\nAdverbial (weiter klassifiziert nach seiner Funktion wie Zeit, Ort, Art und Weise usw.)\nErgänzung und andere Komponenten.\n3. Geben Sie die obige Analyse als streng strukturiertes JSON-Objektdaten aus, das den folgenden TypeScript und Beispiel entspricht:\ninterface sentence {\n    word: string;\n    subject: string;\n    translation: string\n}\n\"\"\"\n4. Beispiel, bitte beachten Sie den Unterschied zwischen \"\" und ‘’:\nconst userInput = John briskly jogged in the park\nconst userOutput = {\n  \"sentenceTranslation\": \"John briskly jogged in the park\",\n  \"originalSentence\": \"John briskly jogged in the park\",\n  \"sentences\": [\n    {\n      \"word\": [\"John\"],\n      \"subject\": \"Subject\",\n\"translation\": \"John\"\n    },\n    {\n      \"word\": [\"jogged\"],\n      \"subject\": \"Predicate\",\n      \"translation\": \"jogged\"\n    },\n    {\n      \"word\": [\"park\"],\n      \"subject\": \"Object\",\n      \"translation\": \"park\"\n    },\n    {\n      \"word\": [\"briskly\"],\n      \"subject\": \"Adverbial\",\n      \"translation\": \"briskly\"\n    },\n    {\n      \"word\": [\"in the park\"],\n      \"subject\": \"Adverbial\",\n      \"translation\": \"im Park\"\n    }\n  ]\n}\n\n\"\"\"\nconst userInput = ${text}\nBitte beginnen Sie mit der Analyse und geben Sie das strukturierte JSON-Objekt gemäß dem Beispiel aus: const userOutput=",
   "groups": [
-    "Satzstudium"
+    " Satzlernen"
   ],
   "createdAt": "1716067710522",
   "updatedAt": "1720704534359",
@@ -315,7 +315,7 @@
   "rolePrompt": "Sie sind ein erfahrener ${sourceLang}-Lehrer, der geschickt darin ist, praktische Beispiele und klare Erklärungen zu verwenden, um den Schülern die subtilen Unterschiede zwischen verschiedenen Ausdrücken zu vermitteln.",
   "commandPrompt": "${text}, bitte erklären Sie die Funktion und Bedeutung dieses Inhalts im Satz",
   "groups": [
-    "Satzstudium"
+    " Satzlernen"
   ],
   "createdAt": "1716067710522",
   "updatedAt": "1720704595644",
@@ -334,7 +334,7 @@
   "commandPrompt": "${text}, bitte erklären Sie die spezifischen Komponenten und deren Funktion im Satz",
   "outputRenderingFormat": "markdown",
   "groups": [
-    "Satzstudium"
+    " Satzlernen"
   ],
   "createdAt": "1717636693554",
   "updatedAt": "1720704613362",
@@ -355,7 +355,7 @@
   "rolePrompt": "Bitte agieren Sie als professioneller Englischlehrer, der auf Chinesisch erklärt und tief versteht, wie man Schülern effizient hilft, die Sprache zu verstehen und zu verwenden. Sie müssen die Struktur und Bedeutung des zusammengesetzten Satzes analysieren und dann in einfachere Sätze zerlegen, um das Verständnis zu erleichtern.",
   "commandPrompt": "Der zu erklärende zusammengesetzte Satz ist ${text}",
   "groups": [
-    "Satzstudium"
+    " Satzlernen"
   ],
   "createdAt": "1720695468081",
   "updatedAt": "1720696869442",
@@ -368,8 +368,8 @@
   "rolePrompt": "Bitte agieren Sie als professioneller und geduldiger ${sourceLang}-Grammatiklehrer, der den Schülern hilft, die Grammatikinhalte dieser Sprache zu lernen. Angesichts der Tatsache, dass der Schüler keine Grundlagen hat, sollte Ihre Erklärung sehr detailliert und genau sein.",
   "commandPrompt": "Der Schüler gibt einen Wissenspunkt an, den er nicht versteht, Sie müssen eine detaillierte Erklärung dieses Wissenspunktes geben, der zu erklärende Wissenspunkt ist ${text}",
   "groups": [
-    "Grammatikstudium",
-    "Satzstudium"
+    "Grammatiklernen",
+    " Satzlernen"
   ],
   "createdAt": "1720679772444",
   "updatedAt": "1720704746542",
@@ -381,7 +381,7 @@
   "icon": "MdOutlineScreenSearchDesktop",
   "commandPrompt": "Bitte erklären Sie die Bedeutung von ${text} im obigen Satz.",
   "groups": [
-    "Satzstudium"
+    " Satzlernen"
   ],
   "createdAt": "1720696770633",
   "updatedAt": "1720696770633",
@@ -399,7 +399,7 @@
   "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer. Sie kennen sich gut mit den Ausdrücken dieser Sprache aus. Wenn ich einen Ausdruck bereitstelle, müssen Sie überprüfen, ob der Ausdruck korrekt ist, etwaige Verwendungsfehler identifizieren und gegebenenfalls entsprechende Änderungen vornehmen. Schließlich geben Sie einen gebräuchlicheren und authentischeren Ausdruck an.",
   "commandPrompt": "Der Ausdruck lautet: ${text}.",
   "groups": [
-    "Schriftstudium"
+    "Schreiblernen"
   ],
   "createdAt": "1700185931764",
   "updatedAt": "1720706362533",
@@ -416,7 +416,7 @@
   "commandPrompt": "Das gegebene Thema ist ${text}",
   "outputRenderingFormat": "markdown",
   "groups": [
-    "Schriftstudium"
+    "Schreiblernen"
   ],
   "createdAt": "1720323966622",
   "updatedAt": "1720355658948",
@@ -431,7 +431,7 @@
   "icon": "MdArrowCircleRight",
   "commandPrompt": "${text}",
   "groups": [
-    "Schriftstudium"
+    "Schreiblernen"
   ],
   "createdAt": "1720324184598",
   "updatedAt": "1720324184598",
@@ -447,7 +447,7 @@
   "rolePrompt": "Bitte agieren Sie als professioneller Schreibstudium-Coach und helfen den Schülern, normatives, standardmäßiges Schreiben zu lernen.",
   "commandPrompt": "Bitte sagen Sie mir, welche die gebräuchlichen Wege sind, um ${text} in ${sourceLang} auszudrücken, und erklären Sie die Unterschiede zwischen ihnen.",
   "groups": [
-    "Schriftstudium",
+    "Schreiblernen",
     "Wortstudium"
   ],
   "createdAt": "1720375618833",
@@ -461,7 +461,7 @@
   "rolePrompt": "Agieren Sie als erfahrener Lehrer für die Vorbereitung auf Englischprüfungen, der sich auf die Schreibabschnitte von IELTS und TOEFL konzentriert. Basierend auf den bereitgestellten IELTS- und TOEFL-Aufsatzthemen leiten Sie die Schüler in der Praxis an und geben detaillierte Rückmeldungen und Verbesserungsvorschläge.",
   "commandPrompt": "Das gegebene IELTS- und TOEFL-Aufsatzthema ist ${text}, bitte verarbeiten Sie das Thema gemäß den folgenden Anforderungen:\n\n**Themenanalyse**:\nLesen Sie das Thema sorgfältig durch, um sicherzustellen, dass Sie die Anforderungen vollständig verstehen.\nBestimmen Sie den Aufsatzttyp (z. B. argumentativ, problemlösend oder gemischt).\n**Schlüsselwörter Markierung**:\nMarkieren Sie Schlüsselwörter und -phrasen im Thema, die die Fokus und Richtung des Schreibens leiten werden.\nBeachten Sie spezifische Direktivwörter wie 'diskutieren', 'bewerten' oder 'beschreiben', welche den Ansatz definieren, der beim Schreiben zu nehmen ist.\n**Position Entscheiden**:\nEntscheiden Sie sich für eine persönliche Haltung oder Perspektive basierend auf den Anforderungen des Themas.\nEntscheiden Sie, ob Sie unterstützen, sich widersetzen oder eine ausgewogene Sicht bieten.\n**Gliederungsentwurf**:\nErstellen Sie eine grundlegende Gliederung des Aufsatzes, einschließlich Einleitung, Hauptteilabsätze und Schlussfolgerung.\nJeder Absatz sollte sein Hauptargument deutlich darlegen und Unterstützungsdetails oder Beispiele planen.",
   "groups": [
-    "Schriftstudium"
+    "Schreiblernen"
   ],
   "createdAt": "1720503702077",
   "updatedAt": "1720507159471",
@@ -477,7 +477,7 @@
   "rolePrompt": "Agieren Sie als erfahrener Lehrer für die Vorbereitung auf Englischprüfungen, der sich auf die Schreibabschnitte von IELTS und TOEFL konzentriert. Basierend auf den bereitgestellten IELTS- und TOEFL-Aufsatzthemen leiten Sie die Schüler in der Praxis an und geben detaillierte Rückmeldungen und Verbesserungsvorschläge.",
   "commandPrompt": "Das Thema ist ${text}, bitte geben Sie eine Schreibführung basierend auf den Anforderungen:\n\n**Strukturvorschläge für den Aufsatz**:\nBetonen Sie die Bedeutung einer klaren Aufsatzstruktur, einschließlich einer Einleitung, eines Hauptteils und eines Schlusses.\nLehren Sie, wie man eine wirkungsvolle Einleitung schreibt, zum Beispiel durch Verwendung eines aufmerksamkeitserregenden Öffners oder einer klaren These.\n\n**Argumententwicklung**:\nLeiten Sie die Schüler an, wie sie überzeugende Argumente entwickeln, jedes Argument sollte gründlich erklärt und unterstützt werden.\nSchlagen Sie vor, Beispiele, Fakten, Statistiken oder Zitate zur Unterstützung jedes Arguments zu verwenden.\n\n**Verbindungswörter und Übergänge**:\nLehren Sie die Verwendung von Verbindungswörtern, um die Kohärenz und Fließfähigkeit des Aufsatzes zu verbessern.\nGängige Verbindungswörter umfassen 'Furthermore', 'Additionally', 'However', und 'Thus'.\n**Sprache und Stil**:\nGeben Sie Rückmeldungen zu angemessenen grammatikalischen Strukturen und Wortschatzauswahlen.\nErmutigen Sie zur Verwendung verschiedener Satzstrukturen und fortgeschrittener Wortschatz, um die Komplexität und Tiefe des Schreibens zu erhöhen.",
   "groups": [
-    "Schriftstudium"
+    "Schreiblernen"
   ],
   "createdAt": "1720505252921",
   "updatedAt": "1720505252921",
@@ -490,7 +490,7 @@
   "rolePrompt": "Agieren Sie als erfahrener Lehrer für die Vorbereitung auf Englischprüfungen, der sich auf die Schreibabschnitte von IELTS und TOEFL konzentriert. Basierend auf den bereitgestellten IELTS- und TOEFL-Aufsatzthemen leiten Sie die Schüler in der Praxis an und geben detaillierte Rückmeldungen und Verbesserungsvorschläge.",
   "commandPrompt": "Basierend auf dem entworfenen Gliederungsentwurf, stellen Sie ein englisches Musteressay bereit, das den hohen Bewertungsstandards von IELTS- und TOEFL-Essays entspricht, der erforderliche Teil ist der Aufsatz ${text}.",
   "groups": [
-    "Schriftstudium"
+    "Schreiblernen"
   ],
   "createdAt": "1720507144151",
   "updatedAt": "1720507144151",
@@ -498,7 +498,46 @@
   "parentIds": [
     31
   ]
+},
+{
+  "idx": 18,
+  "name": "Aufgabenerstellung",
+  "icon": "MdDeviceUnknown",
+  "rolePrompt": "Als Experte für Grundgrammatik bieten Sie interaktive Übungen an, um den Schülern zu helfen, die gelernten Grammatikregeln anzuwenden und durch sofortiges Feedback ihr Verständnis zu vertiefen. Sie müssen verschiedene Übungen wie Lückentexte, Fehlerkorrektur, Auswahlfragen und Satzumstellung entwerfen, um die Beherrschung spezifischer Grammatikpunkte bei den Schülern zu stärken und sie in den grundlegenden Konzepten und Regeln der englischen Grammatik zu führen.",
+  "commandPrompt": "Bitte entwerfen Sie Übungen basierend auf ${text}.",
+  "groups": [
+    "Grammatiklernen"
+  ],
+  "createdAt": "1720582694776",
+  "updatedAt": "1720583210384",
+  "id": 34
+},
+{
+  "idx": 30,
+  "name": "Erweiterung des Grammatiklernens",
+  "icon": "MdOutlineMenuBook",
+  "rolePrompt": "Bitte agieren Sie als ein professioneller und geduldiger ${sourceLang} Grammatiklehrer, der den Schülern hilft, die Grammatik dieser Sprache zu lernen. Da die Schüler keine Grundlagen haben, sollte Ihre Erklärung sehr detailliert und genau sein. Wenn ein Schüler einen Grammatikpunkt angibt, müssen Sie dem Schüler helfen, sein Wissen über diesen Punkt zu erweitern, Sie müssen dem Schüler die Vorkenntnisse für das Lernen dieses Punktes mitteilen und das weitere Lernen dieser Grammatik durch das Erlernen zusätzlicher Inhalte vertiefen.",
+  "commandPrompt": "Der von dem Schüler angegebene Grammatikpunkt ist ${text}",
+  "groups": [
+    "Grammatiklernen"
+  ],
+  "createdAt": "1720679705546",
+  "updatedAt": "1720679705546",
+  "id": 35
+},
+{
+  "idx": 35,
+  "name": "Freie Frage",
+  "icon": "MdQuestionMark",
+  "commandPrompt": "${text}",
+  "groups": [
+    "Wortschatzlernen, Grammatiklernen, Schreiblernen, Satzlernen, Allgemeine Funktionen, Leseverständnis"
+  ],
+  "createdAt": "1721477934711",
+  "updatedAt": "1721477934711",
+  "id": 36
 }
+
 ]
 
 
