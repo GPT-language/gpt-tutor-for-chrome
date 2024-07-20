@@ -525,5 +525,17 @@
     "createdAt": "1720679705546",
     "updatedAt": "1720679705546",
     "id": 35
+  },
+  {
+    "idx": 30,
+    "name": "自由提问",
+    "icon": "MdQuestionMark",
+    "commandPrompt": "${text}",
+    "groups": [
+      "单词学习","语法学习","写作学习","句子学习","常用功能","文章阅读理解"
+    ],
+    "createdAt": "1721477934711",
+    "updatedAt": "1721477934711",
+    "id": 36
   }
 ]

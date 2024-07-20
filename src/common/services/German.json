@@ -531,7 +531,7 @@
   "icon": "MdQuestionMark",
   "commandPrompt": "${text}",
   "groups": [
-    "Wortschatzlernen, Grammatiklernen, Schreiblernen, Satzlernen, Allgemeine Funktionen, Leseverständnis"
+    "Wortschatzlernen", "Grammatiklernen", "Schreiblernen", "Satzlernen", "Allgemeine Funktionen", "Leseverständnis"
   ],
   "createdAt": "1721477934711",
   "updatedAt": "1721477934711",

@@ -49,10 +49,10 @@
   },
   {
     "idx": 0,
-    "name": ["Apprentissage des Expressions"],
+    "name": ["Étude de las Expressions"],
     "icon": "MdMusicVideo",
     "rolePrompt": "Vous êtes un professeur expérimenté de ${sourceLang} qui excelle à aider les étudiants à comprendre les subtilités des différentes expressions de la langue à travers des exemples pratiques et des explications claires.",
-    "commandPrompt": "Lorsque je fournis un mot, veuillez utiliser le chinois pour expliquer le vocabulaire associé, les règles grammaticales, les méthodes d'utilisation et les précautions, ainsi que les expressions courantes ou les collocations. Par exemple, dans l'apprentissage de l'anglais, lorsque je donne le mot 'time', vous devriez fournir le vocabulaire anglais correspondant comme time, timely, timeline ou year, month, day ; puis dans les règles grammaticales vous devriez fournir comment exprimer le temps grammaticalement, comme comment exprimer 'December 20, 1999', comment exprimer '5:45', et le contenu grammatical que vous fournissez devrait être complet et complet. Le prochain mot que je fournis est ${text}.",
+    "commandPrompt": "Lorsque je fournis un mot, veuillez utiliser le chinois pour expliquer le vocabulaire associé, les règles grammaticales, les méthodes d'utilisation et les précautions, ainsi que les expressions courantes ou les collocations. Par exemple, dans l'Étude de la l'anglais, lorsque je donne le mot 'time', vous devriez fournir le vocabulaire anglais correspondant comme time, timely, timeline ou year, month, day ; puis dans les règles grammaticales vous devriez fournir comment exprimer le temps grammaticalement, comme comment exprimer 'December 20, 1999', comment exprimer '5:45', et le contenu grammatical que vous fournissez devrait être complet et complet. Le prochain mot que je fournis est ${text}.",
     "groups": ["Étude d'Écriture", "Étude de Mots"],
     "createdAt": "1698114706870",
     "updatedAt": "1720706683389",
@@ -268,7 +268,7 @@
     "idx": 0,
     "name": "Expliquer le Contenu de la Phrase",
     "icon": "MdAnchor",
-    "parentNames": "Analyse de la Phrase, Expliquer l'Expression, Apprentissage des Expressions",
+    "parentNames": "Analyse de la Phrase, Expliquer l'Expression, Étude de las Expressions",
     "rolePrompt": "Vous êtes un professeur expérimenté de ${sourceLang}, compétent à utiliser des exemples pratiques et des explications claires pour aider les étudiants à comprendre les subtilités entre différentes expressions.",
     "commandPrompt": "${text}, veuillez expliquer la fonction et la signification de ce contenu dans la phrase",
     "groups": ["Étude de la Phrase"],
@@ -447,7 +447,7 @@
     "idx": 30,
     "name": "Extension de l'étude de la grammaire",
     "icon": "MdOutlineMenuBook",
-    "rolePrompt": "Veuillez agir en tant que professeur de grammaire ${sourceLang} professionnel et patient, aidant les étudiants à apprendre la grammaire de cette langue. Compte tenu du fait que les étudiants n'ont aucune base, votre explication doit être très détaillée et précise. Lorsqu'un étudiant fournit un point grammatical, vous devez aider l'étudiant à approfondir son apprentissage de ce point, vous devez informer l'étudiant des connaissances préalables nécessaires pour apprendre ce point et approfondir l'étude de cette grammaire en apprenant du contenu supplémentaire.",
+    "rolePrompt": "Veuillez agir en tant que professeur de grammaire ${sourceLang} professionnel et patient, aidant les étudiants à apprendre la grammaire de cette langue. Compte tenu du fait que les étudiants n'ont aucune base, votre explication doit être très détaillée et précise. Lorsqu'un étudiant fournit un point grammatical, vous devez aider l'étudiant à approfondir son Étude de la ce point, vous devez informer l'étudiant des connaissances préalables nécessaires pour apprendre ce point et approfondir l'étude de cette grammaire en apprenant du contenu supplémentaire.",
     "commandPrompt": "Le point grammatical fourni par l'étudiant est ${text}",
     "groups": [
       "Étude de la Grammaire"
@@ -455,6 +455,18 @@
     "createdAt": "1720679705546",
     "updatedAt": "1720679705546",
     "id": 35
+  },
+  {
+    "idx": 35,
+    "name": "Question Libre",
+    "icon": "MdQuestionMark",
+    "commandPrompt": "${text}",
+    "groups": [
+      "Étude de Mots", "Étude de la Grammaire", "Étude d'Écriture", "Étude de la Phrase", "Fonctions Communes", "Compréhension de lecture"
+    ],
+    "createdAt": "1721477934711",
+    "updatedAt": "1721477934711",
+    "id": 36
   }
   
 ]

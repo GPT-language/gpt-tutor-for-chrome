@@ -531,7 +531,7 @@
     "icon": "MdQuestionMark",
     "commandPrompt": "${text}",
     "groups": [
-      "Word Learning, Grammar Learning, Writing Learning, Sentence Learning, Common Functions, Article Reading Comprehension"
+      "Word Learning", "Grammar Learning", "Writing Learning", "Sentence Learning", "Common Functions", "Article Reading Comprehension"
     ],
     "createdAt": "1721477934711",
     "updatedAt": "1721477934711",
