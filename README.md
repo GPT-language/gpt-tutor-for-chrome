@@ -5,6 +5,37 @@
     GPT-Tutor is a practical tool that uses AI to provide comprehensive language learning assistance. 
 </p>
 
+
+
+
+# Demo Usage
+
+gpt-tutor includes various learning functions such as vocabulary, grammar, sentences, reading articles, and writing. Here, we will simply demonstrate two features within vocabulary and grammar learning.
+
+**NOTE**: The following images use Chinese/English learning as examples, but gpt-tutor supports learning not only in Chinese/English.
+
+## Vocabulary Learning
+
+### Word Explanation
+
+![alt text](./public/image-12.png)
+
+### Synonyms and Distinctions
+
+![alt text](./public/image-13.png)
+
+
+## Grammar Learning
+
+### Grammar Explanation
+
+![alt text](./public/image-14.png)
+
+### Grammar Learning Extension
+
+![alt text](./public/image-15.png)
+
+
 # How to install
 
 ## 1.Chrome Web Store

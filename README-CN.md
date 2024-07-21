@@ -6,6 +6,34 @@
 </p>
 
 
+# 使用演示
+
+gpt-tutor包括单词、语法、句子、文章阅读、写作等多方面的学习功能，这里只简单演示单词和语法学习中的两个功能。
+
+**注意**：以下图片中以中文/英文学习为例，但gpt-tutor支持学习的不仅是中文/英文学习。
+
+## 单词学习
+
+### 单词解释
+
+![alt text](./public/image-10.png)
+
+### 同义表达和区别解释
+
+![alt text](./public/image-11.png)
+
+
+## 语法学习
+
+### 解释语法
+
+![alt text](./public/image-8.png)
+
+### 语法学习延申
+
+![alt text](./public/image-9.png)
+
+
 # 如何安装
 
 ## 1.Chrome应用商店
