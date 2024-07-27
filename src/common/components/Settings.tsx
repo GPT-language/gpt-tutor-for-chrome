@@ -1896,7 +1896,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     >
                         <div>{t('If you find this tool helpful, you can buy my kitty a treat.')}</div>
                         <div>
-                            <a href='https://afdian.net/a/zy1999' target='_blank' rel='noopener noreferrer'>
+                            <a href='https://afdian.com/a/zy1999' target='_blank' rel='noopener noreferrer'>
                                 爱发电
                             </a>
                         </div>
