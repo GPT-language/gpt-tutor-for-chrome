@@ -5,7 +5,18 @@
     GPT-Tutor is a practical tool that uses AI to provide comprehensive language learning assistance. 
 </p>
 
+# What is GPT-Tutor？
+GPT-Tutor is an AI-powered language learning tool designed to function as a round-the-clock, always-available tutor that offers patient and comprehensive assistance across various aspects of language learning. Here’s what makes it unique:
 
+- 24/7 Availability: GPT-Tutor operates continuously, ready to explain pronunciation, vocabulary, grammar, and assist with reading and writing anytime you need.
+
+- Educational Quality: It aims to replace low-quality and ineffective education in regions lacking educational resources, providing a high-quality alternative to inadequately trained language teachers.
+
+- Advanced Features: Unlike basic vocabulary apps, GPT-Tutor offers a more diverse and systematic way to learn words, customizable to fit different learning styles and needs.
+
+- Multi-Language Support: It supports learning multiple languages, allowing simultaneous study of pronunciation, vocabulary, sentences, grammar, and writing, effectively linking these aspects into a cohesive learning experience.
+
+GPT-Tutor is more than just a tool; it's a comprehensive solution that integrates various learning components into a unified platform, enhancing both the efficiency and effectiveness of language education.
 
 
 # Demo Usage
