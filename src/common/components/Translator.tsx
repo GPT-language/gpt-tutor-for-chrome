@@ -589,60 +589,73 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         if (!settings?.i18n) {
             return
         }
-        const languageCode = settings.i18n
-        console.log('languageCode is ', languageCode)
-        let promptsData: Action[] | [] = []
-
-        switch (languageCode) {
-            case 'zh-Hans':
-                promptsData = ChineseActionsData as Action[]
-                break
-
-            case 'zh-Hant':
-                promptsData = TraditionalChineseActionData as Action[]
-                break
-
-            case 'en':
-                promptsData = EnglishActionData as Action[]
-                break
-
-            case 'ja':
-                promptsData = JapaneseActionData as Action[]
-                break
-            case 'ko':
-                promptsData = KoreanActionData as Action[]
-                break
-
-            case 'ru':
-                promptsData = RussianActionData as Action[]
-                break
-
-            case 'th':
-                promptsData = ThaiActionData as Action[]
-                break
-
-            case 'ar':
-                promptsData = ArabicActionData as Action[]
-                break
-            case 'hi':
-                promptsData = HindiActionData as Action[]
-                break
-            case 'fr':
-                promptsData = FrenchActionData as Action[]
-                break
-            case 'de':
-                promptsData = GermanActionData as Action[]
-                break
-
-            default:
-                // 可以处理未知的语言代码
-                console.log('Unsupported language code')
-                promptsData = EnglishActionData as Action[]
-                break
+    
+        const loadActions = async () => {
+            const languageCode = settings.i18n
+            console.log('languageCode is ', languageCode)
+    
+            // 从 localStorage 获取上次加载的语言
+            const lastLoadedLanguage = localStorage.getItem('lastLoadedLanguage')
+    
+            // 检查是否已存在 action 且语言未变化
+            const existingAction = await actionService.get(1)
+            if (existingAction && lastLoadedLanguage === languageCode) {
+                console.log('Actions already exist and language unchanged. Skipping bulk put.')
+                return
+            }
+    
+            let promptsData: Action[] | [] = []
+    
+            switch (languageCode) {
+                case 'zh-Hans':
+                    promptsData = ChineseActionsData as Action[]
+                    break
+                case 'zh-Hant':
+                    promptsData = TraditionalChineseActionData as Action[]
+                    break
+                case 'en':
+                    promptsData = EnglishActionData as Action[]
+                    break
+                case 'ja':
+                    promptsData = JapaneseActionData as Action[]
+                    break
+                case 'ko':
+                    promptsData = KoreanActionData as Action[]
+                    break
+                case 'ru':
+                    promptsData = RussianActionData as Action[]
+                    break
+                case 'th':
+                    promptsData = ThaiActionData as Action[]
+                    break
+                case 'ar':
+                    promptsData = ArabicActionData as Action[]
+                    break
+                case 'hi':
+                    promptsData = HindiActionData as Action[]
+                    break
+                case 'fr':
+                    promptsData = FrenchActionData as Action[]
+                    break
+                case 'de':
+                    promptsData = GermanActionData as Action[]
+                    break
+                default:
+                    console.log('Unsupported language code')
+                    promptsData = EnglishActionData as Action[]
+                    break
+            }
+    
+            console.log('Loading new promptsData for language:', languageCode)
+            await actionService.bulkPut(promptsData)
+            
+            // 更新 localStorage 中的语言记录
+            localStorage.setItem('lastLoadedLanguage', languageCode || 'en')
+            
+            refreshActions()
         }
-        console.log('final promptsData is ', promptsData)
-        actionService.bulkPut(promptsData)
-        refreshActions()
+    
+        loadActions()
     }, [settings?.i18n])
 
     useEffect(() => {
@@ -2108,18 +2121,112 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 )}
                                 {isNotLogin && settings?.provider === 'ChatGPT' && (
                                     <div
+                                    style={{
+                                        fontSize: '12px',
+                                        color: theme.colors.contentPrimary,
+                                    }}
+                                >
+                                    <span>{t('Please login to ChatGPT Web')}: </span>
+                                    <a
+                                        href='https://chat.openai.com'
+                                        target='_blank'
+                                        rel='noreferrer'
                                         style={{
-                                            fontSize: '12px',
+                                            color: theme.colors.contentSecondary,
                                         }}
                                     >
-                                        <span>{t('Please login to ChatGPT Web')}: </span>
-                                        <a href='https://chat.openai.com' target='_blank' rel='noreferrer'>
-                                            Login
-                                        </a>
-                                    </div>
+                                        Login
+                                    </a>
+                                </div>
                                 )}
                             </div>
                         )}
+                        {isNotLogin && settings?.provider === 'Kimi' && (
+                                    <div
+                                        style={{
+                                            fontSize: '12px',
+                                            color: theme.colors.contentPrimary,
+                                        }}
+                                    >
+                                        {isDesktopApp() ? (
+                                            <>
+                                                {t('Go to the')}{' '}
+                                                <a
+                                                    target='_blank'
+                                                    href={
+                                                        settings?.i18n?.toLowerCase().includes('zh')
+                                                            ? 'https://github.com/openai-translator/openai-translator/blob/main/docs/kimi-cn.md'
+                                                            : 'https://github.com/openai-translator/openai-translator/blob/main/docs/kimi.md'
+                                                    }
+                                                    rel='noreferrer'
+                                                    style={{
+                                                        color: theme.colors.contentSecondary,
+                                                    }}
+                                                >
+                                                    Tutorial
+                                                </a>{' '}
+                                                {t('to get your API Key.')}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>{t('Please login to Kimi Web')}: </span>
+                                                <a
+                                                    href='https://kimi.moonshot.cn/'
+                                                    target='_blank'
+                                                    rel='noreferrer'
+                                                    style={{
+                                                        color: theme.colors.contentSecondary,
+                                                    }}
+                                                >
+                                                    Login
+                                                </a>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                {isNotLogin && settings?.provider === 'ChatGLM' && (
+                                    <div
+                                        style={{
+                                            fontSize: '12px',
+                                            color: theme.colors.contentPrimary,
+                                        }}
+                                    >
+                                        {isDesktopApp() ? (
+                                            <>
+                                                {t('Go to the')}{' '}
+                                                <a
+                                                    target='_blank'
+                                                    href={
+                                                        settings?.i18n?.toLowerCase().includes('zh')
+                                                            ? 'https://github.com/openai-translator/openai-translator/blob/main/docs/chatglm-cn.md'
+                                                            : 'https://github.com/openai-translator/openai-translator/blob/main/docs/chatglm.md'
+                                                    }
+                                                    rel='noreferrer'
+                                                    style={{
+                                                        color: theme.colors.contentSecondary,
+                                                    }}
+                                                >
+                                                    Tutorial
+                                                </a>{' '}
+                                                {t('to get your API Key.')}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>{t('Please login to ChatGLM Web')}: </span>
+                                                <a
+                                                    href='https://chatglm.cn/'
+                                                    target='_blank'
+                                                    rel='noreferrer'
+                                                    style={{
+                                                        color: theme.colors.contentSecondary,
+                                                    }}
+                                                >
+                                                    Login
+                                                </a>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                     </div>
                 </div>
             </div>

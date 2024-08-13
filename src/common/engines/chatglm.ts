@@ -140,10 +140,7 @@ export class ChatGLM extends AbstractEngine {
                         },
                     }),
                     signal: signalController.signal,
-                    onError: () => {
-                        signalController.abort()
-                        req.onError?.('Failed to create conversation')
-                    },
+                    onError: () => {},
                     onMessage: async (msg) => {
                         const data = JSON.parse(msg)
                         conversationID = data.conversation_id
@@ -180,7 +177,7 @@ export class ChatGLM extends AbstractEngine {
                         content: [
                             {
                                 type: 'text',
-                                text: req.rolePrompt + '\n' + req.commandPrompt,
+                                text: req.rolePrompt ? req.rolePrompt + '\n\n' + req.commandPrompt : req.commandPrompt,
                             },
                         ],
                     },

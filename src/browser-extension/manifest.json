@@ -3,7 +3,7 @@
 
     "name": "GPT Tutor",
     "description": "GPT-Tutor is a  extension that uses the ChatGPT API for language learning.",
-    "version": "1.0.0.5",
+    "version": "1.0.0.6",
 
     "icons": {
         "16": "icon.png",
@@ -78,6 +78,7 @@
         "https://chatgpt.com/",
         "https://*.chatglm.cn/",
         "https://*.moonshot.cn/",
+        "https://*.volces.com/",
         "https://*.deepseek.com/"
     ]
 }

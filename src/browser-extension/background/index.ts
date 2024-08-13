@@ -6,6 +6,8 @@ import { fileService } from '../../common/internal-services/file'
 import { actionInternalService } from '../../common/internal-services/action'
 // Import the functions you need from the SDKs you need
 import { setUserConfig } from '../../common/utils'
+import { keyKimiAccessToken } from '@/common/engines/kimi'
+import { keyChatGLMAccessToken } from '@/common/engines/chatglm'
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -21,6 +23,7 @@ browser.contextMenus?.create(
         browser.runtime.lastError
     }
 )
+
 
 browser.contextMenus?.onClicked.addListener(async function (info) {
     const [tab] = await chrome.tabs.query({ active: true })
@@ -70,6 +73,49 @@ try {
             types: ['xmlhttprequest'],
         },
         ['requestBody']
+    )
+    browser.webRequest.onBeforeSendHeaders.addListener(
+        (details) => {
+            if (details.url.includes('/api/user')) {
+                const headers = details.requestHeaders || []
+                const authorization = headers.find((h) => h.name === 'Authorization')?.value || ''
+                const accessToken = authorization.split(' ')[1]
+                browser.storage.local
+                    .set({
+                        [keyKimiAccessToken]: accessToken,
+                    })
+                    .then(() => {
+                        console.log('Kimi access_token saved')
+                    })
+            }
+        },
+        {
+            urls: ['https://*.moonshot.cn/*'],
+            types: ['xmlhttprequest'],
+        },
+        ['requestHeaders']
+    )
+
+    browser.webRequest.onBeforeSendHeaders.addListener(
+        (details) => {
+            if (details.url.includes('/chatglm/user-api/user/info')) {
+                const headers = details.requestHeaders || []
+                const authorization = headers.find((h) => h.name === 'Authorization')?.value || ''
+                const accessToken = authorization.split(' ')[1]
+                browser.storage.local
+                    .set({
+                        [keyChatGLMAccessToken]: accessToken,
+                    })
+                    .then(() => {
+                        console.log('Kimi access_token saved')
+                    })
+            }
+        },
+        {
+            urls: ['https://*.chatglm.cn/*'],
+            types: ['xmlhttprequest'],
+        },
+        ['requestHeaders']
     )
 } catch (error) {
     console.error('Error setting up webRequest listener:', error)
