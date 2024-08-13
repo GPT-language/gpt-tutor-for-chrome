@@ -33,7 +33,7 @@ const mapSliderValueToTime = (sliderValue: number) => {
     }
 }
 
-const calculateSliderPosition = (minutes) => {
+const calculateSliderPosition = (minutes: number) => {
     if (minutes <= 60) {
         return minutes // First 60 minutes
     } else if (minutes <= 1440) {
@@ -47,7 +47,7 @@ const calculateSliderPosition = (minutes) => {
     }
 }
 
-const simplifyMark = (mark) => {
+const simplifyMark = (mark: string) => {
     const regex = /(\d+)([a-zA-Z]*)/ // 正则表达式匹配数字和后面的字母
     const match = mark.match(regex)
 
@@ -196,6 +196,7 @@ export const ReviewManager = () => {
     const [selectFile, setSelectFile] = useState<SavedFile | null>(null)
     const [totalWords, setTotalWords] = useState(100)
     const [fileOptions, setFileOptions] = useState<fileOptions[]>([])
+    const [isOpen, setIsOpen] = useState(true)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -270,36 +271,44 @@ export const ReviewManager = () => {
         updateStudyPlan()
     }, [dailyWords, savedIntervals, selectFile, selectedWord, startTime, totalWords])
 
-    const handleTimeRangeChange = (index: number) => {
-        const ranges = ['Today', 'This Week', 'This Month']
-        const newIndex = (index + ranges.length) % ranges.length // 保证index始终有效
-        const newRange = ranges[newIndex]
-        setTimeRange(newRange)
-        console.log(`Switched to: ${newRange}`)
-    }
-
     const handleSave = () => {
-        const reviewSettings: ReviewSettings = {
-            dailyWords: dailyWords,
-            interval: selectedStrategy.array,
-            startTime: new Date(),
-        }
-        if (!selectFile?.id || !selectFile.reviewSettings) {
-            return
-        }
-        const strategy: StrategyOption = {
-            id: selectFile?.id,
-            label: selectFile?.name,
-            array: selectFile.reviewSettings.interval,
-        }
-        strategyOptions.push(strategy)
-        setSelectedStrategy(strategy)
-        if (!strategyOptions.find((option) => option.id === selectFile?.id)) {
-            strategyOptions.push(strategy)
+        console.log('handleSave 函数被触发')
+        try {
+            const reviewSettings: ReviewSettings = {
+                dailyWords: dailyWords,
+                interval: selectedStrategy.array,
+                startTime: new Date(),
+            }
+            console.log('reviewSettings:', reviewSettings)
+
+            if (!selectFile?.id) {
+                console.error('selectFile 无效')
+                return
+            }
+
+            // 移除对 selectFile.reviewSettings 的检查
+            const strategy: StrategyOption = {
+                id: selectFile.id,
+                label: selectFile.name,
+                array: selectedStrategy.array, // 使用当前选择的策略数组
+            }
+            console.log('新策略:', strategy)
+
+            if (!strategyOptions.find((option) => option.id === selectFile.id)) {
+                console.log('添加新策略到 strategyOptions')
+                strategyOptions.push(strategy)
+            }
             setSelectedStrategy(strategy)
+
+            console.log('正在更新复习设置...')
+            fileService.updateReviewSettings(selectFile.id, reviewSettings)
+
+            setActionStr(t('Review settings saved'))
+            console.log('设置已保存，正在关闭组件...')
+            setIsOpen(false) // 关闭组件
+        } catch (error) {
+            console.error('保存过程中出错:', error)
         }
-        fileService.updateReviewSettings(selectFile?.id, reviewSettings)
-        setActionStr(t('Review settings saved'))
     }
 
     const handleSliderChange = (sliderPositions: number[]) => {
@@ -339,6 +348,10 @@ export const ReviewManager = () => {
         // 当策略更改时更新滑块位置
         setSliderValues(selectedStrategy.array.map(calculateSliderPosition))
     }, [selectedStrategy])
+
+    if (!isOpen) {
+        return null // 如果 isOpen 为 false，不渲染组件
+    }
 
     return (
         <div>
