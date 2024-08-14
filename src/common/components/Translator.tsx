@@ -2152,27 +2152,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     fontSize: '12px',
                                     color: theme.colors.contentPrimary,
                                 }}
-                            >
-                                {isDesktopApp() ? (
-                                    <>
-                                        {t('Go to the')}{' '}
-                                        <a
-                                            target='_blank'
-                                            href={
-                                                settings?.i18n?.toLowerCase().includes('zh')
-                                                    ? 'https://github.com/openai-translator/openai-translator/blob/main/docs/kimi-cn.md'
-                                                    : 'https://github.com/openai-translator/openai-translator/blob/main/docs/kimi.md'
-                                            }
-                                            rel='noreferrer'
-                                            style={{
-                                                color: theme.colors.contentSecondary,
-                                            }}
-                                        >
-                                            Tutorial
-                                        </a>{' '}
-                                        {t('to get your API Key.')}
-                                    </>
-                                ) : (
+                            >                             
                                     <>
                                         <span>{t('Please login to Kimi Web')}: </span>
                                         <a
@@ -2186,7 +2166,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                             Login
                                         </a>
                                     </>
-                                )}
+                                
                             </div>
                         )}
                         {isNotLogin && settings?.provider === 'ChatGLM' && (
@@ -2196,26 +2176,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     color: theme.colors.contentPrimary,
                                 }}
                             >
-                                {isDesktopApp() ? (
-                                    <>
-                                        {t('Go to the')}{' '}
-                                        <a
-                                            target='_blank'
-                                            href={
-                                                settings?.i18n?.toLowerCase().includes('zh')
-                                                    ? 'https://github.com/openai-translator/openai-translator/blob/main/docs/chatglm-cn.md'
-                                                    : 'https://github.com/openai-translator/openai-translator/blob/main/docs/chatglm.md'
-                                            }
-                                            rel='noreferrer'
-                                            style={{
-                                                color: theme.colors.contentSecondary,
-                                            }}
-                                        >
-                                            Tutorial
-                                        </a>{' '}
-                                        {t('to get your API Key.')}
-                                    </>
-                                ) : (
                                     <>
                                         <span>{t('Please login to ChatGLM Web')}: </span>
                                         <a
@@ -2229,7 +2189,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                             Login
                                         </a>
                                     </>
-                                )}
                             </div>
                         )}
                     </div>
