@@ -454,7 +454,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const highlightRef = useRef<HighlightInTextarea | null>(null)
     const { t, i18n } = useTranslation()
     const { settings } = useSettings()
+    const settingsRef = useRef(settings)
     const [finalText, setFinalText] = useState(props.text)
+
+    useEffect(() => {
+        settingsRef.current = settings
+    }, [settings])
 
     useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -589,23 +594,23 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         if (!settings?.i18n) {
             return
         }
-    
+
         const loadActions = async () => {
             const languageCode = settings.i18n
             console.log('languageCode is ', languageCode)
-    
+
             // 从 localStorage 获取上次加载的语言
             const lastLoadedLanguage = localStorage.getItem('lastLoadedLanguage')
-    
+
             // 检查是否已存在 action 且语言未变化
             const existingAction = await actionService.get(1)
             if (existingAction && lastLoadedLanguage === languageCode) {
                 console.log('Actions already exist and language unchanged. Skipping bulk put.')
                 return
             }
-    
+
             let promptsData: Action[] | [] = []
-    
+
             switch (languageCode) {
                 case 'zh-Hans':
                     promptsData = ChineseActionsData as Action[]
@@ -645,16 +650,16 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     promptsData = EnglishActionData as Action[]
                     break
             }
-    
+
             console.log('Loading new promptsData for language:', languageCode)
             await actionService.bulkPut(promptsData)
-            
+
             // 更新 localStorage 中的语言记录
             localStorage.setItem('lastLoadedLanguage', languageCode || 'en')
-            
+
             refreshActions()
         }
-    
+
         loadActions()
     }, [settings?.i18n])
 
@@ -794,7 +799,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [selectedWord?.idx, words])
 
     useEffect(() => {
-        if (!settings) {
+        if (!settingsRef.current) {
             return
         }
         let engineProvider
@@ -802,11 +807,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             const [provider, modelName] = activateAction.model.split('&')
             engineProvider = provider as Provider
         } else {
-            engineProvider = settings.provider
+            engineProvider = settingsRef.current.provider
         }
         const engine = getEngine(engineProvider)
         setEngine(engine)
-    }, [settings.apiModel, settings.provider, settings.apiKey, settings, activateAction])
+    }, [settingsRef.current?.provider, activateAction])
 
     useEffect(() => {
         setTranslatedLines(translatedText.split('\n'))
@@ -879,7 +884,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         if (connected) {
             try {
                 await addNewNote(deckname, front, back)
-                setActionStr('Note added successfully!')
+                toast.success('Note added successfully!')
             } catch (error) {
                 console.error('Error adding note:', error)
                 setErrorMessage(`Error: ${error}`)
@@ -2121,112 +2126,112 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 )}
                                 {isNotLogin && settings?.provider === 'ChatGPT' && (
                                     <div
-                                    style={{
-                                        fontSize: '12px',
-                                        color: theme.colors.contentPrimary,
-                                    }}
-                                >
-                                    <span>{t('Please login to ChatGPT Web')}: </span>
-                                    <a
-                                        href='https://chat.openai.com'
-                                        target='_blank'
-                                        rel='noreferrer'
                                         style={{
-                                            color: theme.colors.contentSecondary,
+                                            fontSize: '12px',
+                                            color: theme.colors.contentPrimary,
                                         }}
                                     >
-                                        Login
-                                    </a>
-                                </div>
+                                        <span>{t('Please login to ChatGPT Web')}: </span>
+                                        <a
+                                            href='https://chat.openai.com'
+                                            target='_blank'
+                                            rel='noreferrer'
+                                            style={{
+                                                color: theme.colors.contentSecondary,
+                                            }}
+                                        >
+                                            Login
+                                        </a>
+                                    </div>
                                 )}
                             </div>
                         )}
                         {isNotLogin && settings?.provider === 'Kimi' && (
-                                    <div
-                                        style={{
-                                            fontSize: '12px',
-                                            color: theme.colors.contentPrimary,
-                                        }}
-                                    >
-                                        {isDesktopApp() ? (
-                                            <>
-                                                {t('Go to the')}{' '}
-                                                <a
-                                                    target='_blank'
-                                                    href={
-                                                        settings?.i18n?.toLowerCase().includes('zh')
-                                                            ? 'https://github.com/openai-translator/openai-translator/blob/main/docs/kimi-cn.md'
-                                                            : 'https://github.com/openai-translator/openai-translator/blob/main/docs/kimi.md'
-                                                    }
-                                                    rel='noreferrer'
-                                                    style={{
-                                                        color: theme.colors.contentSecondary,
-                                                    }}
-                                                >
-                                                    Tutorial
-                                                </a>{' '}
-                                                {t('to get your API Key.')}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span>{t('Please login to Kimi Web')}: </span>
-                                                <a
-                                                    href='https://kimi.moonshot.cn/'
-                                                    target='_blank'
-                                                    rel='noreferrer'
-                                                    style={{
-                                                        color: theme.colors.contentSecondary,
-                                                    }}
-                                                >
-                                                    Login
-                                                </a>
-                                            </>
-                                        )}
-                                    </div>
+                            <div
+                                style={{
+                                    fontSize: '12px',
+                                    color: theme.colors.contentPrimary,
+                                }}
+                            >
+                                {isDesktopApp() ? (
+                                    <>
+                                        {t('Go to the')}{' '}
+                                        <a
+                                            target='_blank'
+                                            href={
+                                                settings?.i18n?.toLowerCase().includes('zh')
+                                                    ? 'https://github.com/openai-translator/openai-translator/blob/main/docs/kimi-cn.md'
+                                                    : 'https://github.com/openai-translator/openai-translator/blob/main/docs/kimi.md'
+                                            }
+                                            rel='noreferrer'
+                                            style={{
+                                                color: theme.colors.contentSecondary,
+                                            }}
+                                        >
+                                            Tutorial
+                                        </a>{' '}
+                                        {t('to get your API Key.')}
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>{t('Please login to Kimi Web')}: </span>
+                                        <a
+                                            href='https://kimi.moonshot.cn/'
+                                            target='_blank'
+                                            rel='noreferrer'
+                                            style={{
+                                                color: theme.colors.contentSecondary,
+                                            }}
+                                        >
+                                            Login
+                                        </a>
+                                    </>
                                 )}
-                                {isNotLogin && settings?.provider === 'ChatGLM' && (
-                                    <div
-                                        style={{
-                                            fontSize: '12px',
-                                            color: theme.colors.contentPrimary,
-                                        }}
-                                    >
-                                        {isDesktopApp() ? (
-                                            <>
-                                                {t('Go to the')}{' '}
-                                                <a
-                                                    target='_blank'
-                                                    href={
-                                                        settings?.i18n?.toLowerCase().includes('zh')
-                                                            ? 'https://github.com/openai-translator/openai-translator/blob/main/docs/chatglm-cn.md'
-                                                            : 'https://github.com/openai-translator/openai-translator/blob/main/docs/chatglm.md'
-                                                    }
-                                                    rel='noreferrer'
-                                                    style={{
-                                                        color: theme.colors.contentSecondary,
-                                                    }}
-                                                >
-                                                    Tutorial
-                                                </a>{' '}
-                                                {t('to get your API Key.')}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span>{t('Please login to ChatGLM Web')}: </span>
-                                                <a
-                                                    href='https://chatglm.cn/'
-                                                    target='_blank'
-                                                    rel='noreferrer'
-                                                    style={{
-                                                        color: theme.colors.contentSecondary,
-                                                    }}
-                                                >
-                                                    Login
-                                                </a>
-                                            </>
-                                        )}
-                                    </div>
+                            </div>
+                        )}
+                        {isNotLogin && settings?.provider === 'ChatGLM' && (
+                            <div
+                                style={{
+                                    fontSize: '12px',
+                                    color: theme.colors.contentPrimary,
+                                }}
+                            >
+                                {isDesktopApp() ? (
+                                    <>
+                                        {t('Go to the')}{' '}
+                                        <a
+                                            target='_blank'
+                                            href={
+                                                settings?.i18n?.toLowerCase().includes('zh')
+                                                    ? 'https://github.com/openai-translator/openai-translator/blob/main/docs/chatglm-cn.md'
+                                                    : 'https://github.com/openai-translator/openai-translator/blob/main/docs/chatglm.md'
+                                            }
+                                            rel='noreferrer'
+                                            style={{
+                                                color: theme.colors.contentSecondary,
+                                            }}
+                                        >
+                                            Tutorial
+                                        </a>{' '}
+                                        {t('to get your API Key.')}
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>{t('Please login to ChatGLM Web')}: </span>
+                                        <a
+                                            href='https://chatglm.cn/'
+                                            target='_blank'
+                                            rel='noreferrer'
+                                            style={{
+                                                color: theme.colors.contentSecondary,
+                                            }}
+                                        >
+                                            Login
+                                        </a>
+                                    </>
                                 )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
