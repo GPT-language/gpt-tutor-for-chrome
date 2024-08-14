@@ -26,7 +26,6 @@ export function CopyButton({ text, styles }: { text: string; styles: { actionBut
                     </CopyToClipboard>
                 </div>
             </Tooltip>
-            <Toaster />
         </>
     )
 }

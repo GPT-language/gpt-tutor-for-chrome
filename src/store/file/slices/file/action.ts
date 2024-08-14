@@ -7,6 +7,7 @@ import { ReviewSettings, SavedFile, Word } from '@/common/internal-services/db'
 import { getInitialFileState } from '../file/initialState'
 import i18n from '@/common/i18n'
 import { strategyOptions } from '@/common/components/ReviewSettings'
+import toast from 'react-hot-toast'
 
 export interface ChatFileAction {
     getInitialFile: () => Promise<boolean>
@@ -110,50 +111,68 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         console.log('Review files initialized successfully.')
     },
 
-    async addWordToReviewFile(word, fileName) {
+    async getCompletedWords() {
         try {
-            const { currentFileId, selectedCategory } = get()
-            const reviewCategory = 'Review'
-            const currentDate = new Date()
-            let fileLength
-            let reviewSettings: ReviewSettings | undefined
-            if (selectedCategory !== 'Review') {
-                fileLength = await fileService.getFileLengthByName(reviewCategory, fileName)
-            } else {
-                fileLength = await fileService.getFileLengthById(currentFileId)
-            }
-            if (currentFileId) {
-                const currentFile = await fileService.fetchFileDetailsById(currentFileId)
-                reviewSettings = currentFile.reviewSettings
-            }
-
-            const reviewCount = word.reviewCount || 0
-            const nextReviewDate = fileService.getNextReviewDate(
-                currentDate,
-                reviewCount,
-                reviewSettings ? reviewSettings?.interval : strategyOptions[2].array
-            )
-
-            const newWordIdx = reviewCount === 0 ? fileLength + 1 : word.idx
-            const updatedWord = {
-                ...word,
-                idx: newWordIdx,
-                lastReviewed: currentDate,
-                nextReview: nextReviewDate,
-                reviewCount: reviewCount + 1,
-            }
-
-            const files = await fileService.fetchFilesByCategory(reviewCategory)
-            const targetFile = files.find((file) => file.name === fileName)
-            if (targetFile?.id) {
-                await fileService.updateWordInFile(targetFile.id, newWordIdx, updatedWord)
-            } else {
-                await fileService.createFile(fileName, reviewCategory, [updatedWord], reviewSettings)
-            }
+            const { currentFileId } = get()
+            if (!currentFileId) return []
+            const allWords = await fileService.fetchAllWordsInFile(currentFileId)
+            return allWords.filter((word) => word.nextReview === null)
         } catch (error) {
-            const { setActionStr } = get()
-            setActionStr(JSON.stringify(error.message))
-            console.error('Failed to add word to review file:', error)
+            console.error('Failed to get completed words:', error)
+            return []
+        }
+    },
+
+    async addWordToReviewFile(word, fileName) {
+        const { currentFileId, selectedCategory } = get()
+        const reviewCategory = 'Review'
+
+        // 检查单词是否已经存在于复习文件中
+        const reviewFiles = await fileService.fetchFilesByCategory(reviewCategory)
+        const targetFile = reviewFiles.find((file) => file.name === fileName)
+
+        if (targetFile && targetFile.id) {
+            const existingWords = await fileService.fetchAllWordsInFile(targetFile.id)
+            const wordExists = existingWords.some((w) => w.text === word.text)
+
+            if (wordExists) {
+                throw new Error('This word has already been added to review.')
+            }
+        }
+
+        const currentDate = new Date()
+        let fileLength
+        let reviewSettings: ReviewSettings | undefined
+        if (selectedCategory !== 'Review') {
+            fileLength = await fileService.getFileLengthByName(reviewCategory, fileName)
+        } else {
+            fileLength = await fileService.getFileLengthById(currentFileId)
+        }
+        if (currentFileId) {
+            const currentFile = await fileService.fetchFileDetailsById(currentFileId)
+            reviewSettings = currentFile.reviewSettings
+        }
+
+        const reviewCount = word.reviewCount || 0
+        const nextReviewDate = fileService.getNextReviewDate(
+            currentDate,
+            reviewCount,
+            reviewSettings ? reviewSettings?.interval : strategyOptions[2].array
+        )
+
+        const newWordIdx = reviewCount === 0 ? fileLength + 1 : word.idx
+        const updatedWord = {
+            ...word,
+            idx: newWordIdx,
+            lastReviewed: currentDate,
+            nextReview: nextReviewDate,
+            reviewCount: reviewCount + 1,
+        }
+
+        if (targetFile?.id) {
+            await fileService.updateWordInFile(targetFile.id, newWordIdx, updatedWord)
+        } else {
+            await fileService.createFile(fileName, reviewCategory, [updatedWord], reviewSettings)
         }
     },
 
@@ -171,6 +190,10 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 word.reviewCount + 1,
                 reviewSettings ? reviewSettings?.interval : strategyOptions[2].array
             )
+            if (!nextReviewDate) {
+                toast.success('You finished the review of this word')
+                return
+            }
             const updatedWord = {
                 ...word,
                 lastReviewed: currentDate,

@@ -1,4 +1,3 @@
-import { current } from 'immer'
 import { ReviewSettings, SavedFile, Translations, Word, getLocalDB, ActionOutputRenderingFormat } from './db'
 
 export class FileService {
@@ -51,6 +50,11 @@ export class FileService {
     async fetchFilesWithoutWords(): Promise<{ name: string; category: string; id?: number }[]> {
         const files = await this.db.files.toArray()
         return files.map((file) => ({ name: file.name, category: file.category, id: file.id }))
+    }
+
+    async fetchAllWordsInFile(fileId: number): Promise<Word[]> {
+        const file = await this.fetchFileDetailsById(fileId)
+        return file.words
     }
 
     // 获取文件名和ID（按类别）
@@ -220,7 +224,6 @@ export class FileService {
     ): Promise<void> {
         const file = await this.fetchFileDetailsById(fileId)
         let word: Word | undefined
-        console.log('file words is in addOrUpdateTranslationInWord ', file.words)
         // 这里传入的wordText是最新的输入内容，但是传入的idx仍然是之前激活action的idx
         if (isParent) {
             word = file?.words.find((w) => w.idx === wordIdx)
@@ -235,6 +238,7 @@ export class FileService {
                 text: wordText,
                 translations: { [actionName]: { text, format, messageId, conversationId } },
                 isNew: true,
+                reviewCount: 0,
             }
             file.words.push(word) // 添加到列表末尾
         } else {
@@ -292,10 +296,15 @@ export class FileService {
     }
 
     // 根据上次复习时间和复习次数计算下次复习时间
-    getNextReviewDate(lastReviewed: Date, reviewCount: number, intervals: number[]): Date {
-        // 如果超出初始间隔，设定为每月复习一次
+    getNextReviewDate(lastReviewed: Date, reviewCount: number, intervals: number[]): Date | undefined {
         console.log('getNextReviewDate', lastReviewed, reviewCount, intervals)
-        const nextInterval = intervals[reviewCount] ?? 1440 // 使用 ?? 操作符确保当 intervals[reviewCount] 为 undefined 时使用 30 天
+
+        // 如果复习次数超过了间隔数组的长度，返回 undefined 表示复习完成
+        if (reviewCount >= intervals.length) {
+            return undefined
+        }
+
+        const nextInterval = intervals[reviewCount]
         // 计算下次复习时间
         return new Date(lastReviewed.getTime() + nextInterval * 60 * 1000)
     }

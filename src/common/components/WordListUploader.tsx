@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useChatStore } from '@/store/file/store'
 import { Word } from '../internal-services/db'
 import { fileService } from '../internal-services/file'
@@ -7,6 +7,8 @@ import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { Search } from 'baseui-sd/icon'
 import { rgb } from 'polished'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
+
 const WordListUploader = () => {
     const {
         words,
@@ -33,6 +35,9 @@ const WordListUploader = () => {
     const [displayWords, setDisplayWords] = useState<Word[]>(words)
     const [currentTime, setCurrentTime] = useState<Date>(new Date())
     const [latestNextWordNeedToReview, setLatestNextWordNeedToReview] = useState<Date | null>(null)
+    const reminderIntervalRef = useRef<NodeJS.Timeout | null>(null)
+    const reviewWordsCountRef = useRef(0)
+    const hasShownReviewNotificationRef = useRef(false)
 
     const handleSearchSubmit = () => {
         searchWord(searchTerm)
@@ -116,29 +121,35 @@ const WordListUploader = () => {
     }, [currentFileId, itemsPerPage])
 
     useEffect(() => {
+        console.log('Effect triggered:', { IsInitialized, currentFileId, selectedWords, words });
+
         if (!IsInitialized || !currentFileId) {
-            return
+            console.log('Not initialized or no current file');
+            return;
         }
+
         if (!selectedWords[currentFileId]) {
-            loadWords(currentFileId, 1)
-            setCurrentPage(1)
-            selectWord(words[0])
-        }
-        if (currentFileId && IsInitialized && selectedWords[currentFileId]) {
-            const saveWord = selectedWords[currentFileId]
+            console.log('No selected word for current file, loading first page');
+            loadWords(currentFileId, 1);
+            setCurrentPage(1);
+            selectWord(words[0]);
+        } else {
+            console.log('Selected word exists for current file');
+            const saveWord = selectedWords[currentFileId];
             if (saveWord) {
-                selectWord(saveWord)
-                const page = Math.floor((saveWord.idx - 1) / itemsPerPage) + 1
-                loadWords(currentFileId, page)
-                setCurrentPage(page)
+                console.log('Selecting saved word:', saveWord);
+                selectWord(saveWord);
+                const page = Math.floor((saveWord.idx - 1) / itemsPerPage) + 1;
+                console.log('Calculated page:', page);
+                loadWords(currentFileId, page);
+                setCurrentPage(page);
             } else {
-                // 处理无有效选中词条的情况
-                loadWords(currentFileId, 1)
-                setCurrentPage(1)
-                selectWord(words[0])
+                console.log('No valid selected word, loading first page');
+                loadWords(currentFileId, 1);
+                setCurrentPage(1);
+                selectWord(words[0]);
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentFileId, IsInitialized])
 
     useEffect(() => {
@@ -159,9 +170,17 @@ const WordListUploader = () => {
                 setDisplayWords([])
                 return
             }
+            const fileWords = (await fileService.fetchFileDetailsById(currentFileId))?.words || []
+            const reviewWords = fileWords.filter((word) => word.nextReview && word.nextReview <= new Date())
+            reviewWordsCountRef.current = reviewWords.length // 更新 ref
+            if (reviewWords.length > 0 && !hasShownReviewNotificationRef.current) {
+                hasShownReviewNotificationRef.current = true
+                toast(t('There are ') + reviewWords.length + t(' words need to review'), {
+                    icon: '🔔',
+                    duration: 5000,
+                })
+            }
             if (selectedCategory === 'Review') {
-                const fileWords = (await fileService.fetchFileDetailsById(currentFileId))?.words || []
-                const reviewWords = fileWords.filter((word) => word.nextReview && word.nextReview <= new Date())
                 // 计算最新的需要复习的单词，即nextReview大于当前时间且最接近当前时间的单词
                 if (words.length === 0) {
                     let closest: Word | null = null
@@ -184,25 +203,53 @@ const WordListUploader = () => {
                     setLatestNextWordNeedToReview(closest.nextReview)
                 } else if (words.length > 0) {
                     setLatestNextWordNeedToReview(null)
-                    setActionStr(t('There are ') + reviewWords.length + t(' words need to review'))
+                    setActionStr(t('There are ') + reviewWordsCountRef.current + t(' words need to review'))
                     // 根据当前页码计算起始索引和终止索引
                     const startIndex = (currentPage - 1) * itemsPerPage
                     const endIndex = startIndex + itemsPerPage
                     // 切割数组以只包含当前页的单词
                     setDisplayWords(reviewWords.slice(startIndex, endIndex))
+                } else {
+                    // 如果没有需要复习的单词，清除定时提醒
+                    if (reminderIntervalRef.current) {
+                        clearInterval(reminderIntervalRef.current)
+                        reminderIntervalRef.current = null
+                    }
                 }
             } else {
                 setDisplayWords(words)
             }
         }
         updateReviewStatus()
-        // 筛除nextReview还没到的单词
-        // 后续还要增加reviewCount的筛除
-    }, [words, currentPage, selectedCategory, currentFileId, setActionStr, t])
+    }, [words, currentPage, selectedCategory, currentFileId, setActionStr, t, hasShownReviewNotificationRef])
+
+    useEffect(() => {
+        if (reviewWordsCountRef.current === 0) {
+            if (reminderIntervalRef.current) {
+                clearInterval(reminderIntervalRef.current)
+                reminderIntervalRef.current = null
+            }
+            return
+        }
+        const showReminder = () => {
+            toast(t('There are ') + reviewWordsCountRef.current + t(' words need to review'), {
+                icon: '🔔',
+                duration: 5000,
+            })
+        }
+        showReminder() // 立即显示一次提醒
+
+        reminderIntervalRef.current = setInterval(showReminder, 10 * 1000) // 每10分钟提醒一次
+
+        return () => {
+            if (reminderIntervalRef.current) {
+                clearInterval(reminderIntervalRef.current)
+            }
+        }
+    }, [t])
 
     useEffect(() => {
         if (selectedCategory !== 'Review' || !currentFileId) {
-            setActionStr('')
             return
         }
         if (words.length !== 0) {
@@ -217,15 +264,12 @@ const WordListUploader = () => {
     }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedCategory, setActionStr, t, words.length])
 
     useEffect(() => {
-        if (selectedCategory !== 'Review') {
-            return
-        }
         const intervalId = setInterval(() => {
-            setCurrentTime(new Date()) // 更新当前时间状态
-        }, 1000) // 每秒钟更新一次
+            setCurrentTime(new Date())
+        }, 1000) // 每秒更新一次
 
         return () => clearInterval(intervalId) // 清理定时器
-    }, [selectedCategory])
+    }, []) // 空依赖数组，确保只在组件挂载时设置定时器
 
     return (
         <div style={{ height: '100%', overflow: 'auto', width: 'auto' }}>

@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { actionInternalService } from '../internal-services/action'
 import { Select, Value } from 'baseui-sd/select'
 import { Textarea } from 'baseui-sd/textarea'
+import toast from 'react-hot-toast'
+
 interface ActionListProps {
     onActionClick: (action: Action | undefined, assistantActionText?: string) => void // 从父组件传入的处理函数
     performAll: (actions: Action[]) => void
@@ -25,7 +27,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         activateAction,
         setAction,
         isShowActionList,
-        setActionStr,
         currentPage,
         setCurrentPage,
     } = useChatStore()
@@ -39,7 +40,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     const [isShowAssistantList, setIsShowAssistantList] = useState(false)
     const [value, setValue] = useState<Value>([])
     const reviewFileName = t('To review') + t(selectedCategory)
-    const [inputValue, setInputValue] = useState('')
     const [assistantActionText, setAssistantActionText] = useState('')
 
     const handlePerformAllClick = () => {
@@ -53,12 +53,17 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         }
         try {
             await addWordToReviewFile(selectedWord, reviewFileName)
-            setActionStr(t('Added to review'))
+            toast.success(t('Added to review'))
+            if (!showNext) {
+                setShowNext(true)
+            }
         } catch (error) {
-            setActionStr(t('Failed to add to review'))
-        }
-        if (!showNext) {
-            setShowNext(true)
+            if (error instanceof Error && error.message === 'This word has already been added to review') {
+                toast.error(t('This word has already been added to review'))
+            } else {
+                toast.error(t('Failed to add to review'))
+                console.error('Failed to add word to review file:', error)
+            }
         }
     }
 
@@ -121,7 +126,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
     useEffect(() => {
         if (!activateAction) {
-            console.debug('continue click but no action activated')
             return
         }
         const nextAction = actions.find((action) => action.idx === activateAction?.idx + 1)
@@ -134,7 +138,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
     useEffect(() => {
         if (!selectedWord) {
-            console.debug('no word selected')
             return
         }
         const nextWord = words.find((word) => word.idx === selectedWord.idx + 1)
@@ -153,7 +156,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
     const handleContinueClick = () => {
         if (!activateAction) {
-            console.debug('continue click but no action activated')
             return
         }
         const nextAction = actions.find((action) => action.idx === activateAction?.idx + 1)
@@ -175,7 +177,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     useEffect(() => {
         const fetchActions = async () => {
             if (!activateAction?.childrenIds) {
-                console.log('no children ids')
                 return
             }
             const childrenActionsId = activateAction?.childrenIds
@@ -184,20 +185,29 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
             if (childrenActions) {
                 setAssistantActions(childrenActions)
-            } else {
-                console.log('not found children actions')
             }
         }
         fetchActions()
     }, [activateAction])
 
-    switch (selectedCategory) {
-        case 'Review':
-            if (currentFileId !== 0 && selectedWord !== null) {
-                return (
+    const renderButtons = () => {
+        if (!selectedWord) {
+            return null
+        }
+
+        if (selectedCategory === 'Review') {
+            return (
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        width: '100%',
+                    }}
+                >
                     <div
                         style={{
                             display: 'flex',
+                            width: '50%',
                             marginBottom: '8px',
                             justifyContent: 'center',
                             alignItems: 'center',
@@ -222,137 +232,172 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                             <u>{t('Complete this review')}</u>
                         </Button>
                     </div>
-                )
-            }
-            return null // 当selectedWord === null时，不显示内容
+                </div>
+            )
+        }
 
-        default:
-            if (isShowActionList && selectedWord !== null && words) {
-                if (showNext && isCompleted) {
-                    return (
-                        <Button
-                            size={SIZE.compact}
-                            shape={SHAPE.default}
-                            kind={KIND.tertiary}
-                            onClick={isSelectedNextWord ? handleStartToLearnClick : handleNextWordClick}
-                            style={{ width: '100%' }}
-                        >
-                            <u>
-                                {!isNextWord
-                                    ? t('Next page')
-                                    : isSelectedNextWord
-                                    ? t('Start to learn new item')
-                                    : t('Next item')}
-                            </u>
-                        </Button>
-                    )
-                } else {
-                    return (
-                        <div
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                width: '100%',
-                            }}
-                        >
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    marginBottom: '8px',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                <Button
-                                    size={SIZE.compact}
-                                    shape={SHAPE.default}
-                                    kind={KIND.tertiary}
-                                    onClick={() => setIsShowAssistantList(!isShowAssistantList)}
-                                    style={{ width: '50%', marginRight: '8px' }}
-                                >
-                                    <u>{t('More explanations')}</u>
-                                </Button>
-                                <Button
-                                    size={SIZE.compact}
-                                    shape={SHAPE.default}
-                                    kind={KIND.tertiary}
-                                    onClick={isCompleted ? handleAddWordClick : handleContinueClick}
-                                    style={{ width: '50%' }}
-                                >
-                                    <u>{isCompleted ? t('Add to the review') : t('Continue')}</u>
-                                </Button>
-                            </div>
-                            {!isCompleted && (
-                                <div>
-                                    <Button
-                                        size={SIZE.compact}
-                                        shape={SHAPE.default}
-                                        kind={KIND.tertiary}
-                                        onClick={handleAddWordClick}
-                                        style={{ width: '100%' }}
-                                    >
-                                        <u>{t('Add to the review')}</u>
-                                    </Button>
-                                </div>
-                            )}
-                            {isShowAssistantList && (
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        width: '100%',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'row',
-                                            marginBottom: '8px',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                        }}
-                                    >
-                                        <Select
-                                            size={SIZE.compact}
-                                            options={assistantActions.map((action) => ({
-                                                id: action.idx,
-                                                label: action.name,
-                                            }))}
-                                            placeholder={t('Select an action')}
-                                            value={value}
-                                            labelKey='label'
-                                            valueKey='id'
-                                            onChange={({ value }) => handleAssistantActionChange(value)}
-                                        />
-                                        <Button
-                                            kind={KIND.secondary}
-                                            size={SIZE.compact}
-                                            onClick={() =>
-                                                assistantActionText
-                                                    ? handleOpenAction(value[0]?.id, assistantActionText)
-                                                    : handleSelectAndExecuteAction(value[0]?.id)
-                                            }
-                                        >
-                                            {t('Execute')}
-                                        </Button>
-                                    </div>
-                                    <div style={{ minWidth: '200px' }}>
-                                        <Textarea
-                                            onChange={(e) => setAssistantActionText(e.currentTarget.value)}
-                                            value={assistantActionText}
-                                            resize='vertical'
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )
-                }
-            }
-            return null // 当 isShowActionList 为 false 时不显示任何内容
+        if (showNext && isCompleted) {
+            return (
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        width: '100%',
+                    }}
+                >
+                    <Button
+                        size={SIZE.compact}
+                        shape={SHAPE.default}
+                        kind={KIND.tertiary}
+                        onClick={isSelectedNextWord ? handleStartToLearnClick : handleNextWordClick}
+                        style={{ width: '50%' }}
+                    >
+                        <u>
+                            {!isNextWord
+                                ? t('Next page')
+                                : isSelectedNextWord
+                                ? t('Start to learn new item')
+                                : t('Next item')}
+                        </u>
+                    </Button>
+                </div>
+            )
+        }
+
+        const showAddToReview =
+            selectedWord.translations &&
+            typeof selectedWord.translations === 'object' &&
+            Object.keys(selectedWord.translations).length > 0
+        const buttons = []
+
+        const halfWidthButtons = []
+
+        if (showAddToReview) {
+            // 如果回答已经完成，则显示更多解释和继续按钮
+            halfWidthButtons.push(
+                <Button
+                    key='moreExplanations'
+                    size={SIZE.compact}
+                    shape={SHAPE.default}
+                    kind={KIND.tertiary}
+                    onClick={() => setIsShowAssistantList(!isShowAssistantList)}
+                    style={{ width: '50%', marginRight: '8px' }}
+                >
+                    <u>{t('More explanations')}</u>
+                </Button>
+            )
+            halfWidthButtons.push(
+                <Button
+                    key='continue'
+                    size={SIZE.compact}
+                    shape={SHAPE.default}
+                    kind={KIND.tertiary}
+                    onClick={handleContinueClick}
+                    style={{ width: '50%' }}
+                >
+                    <u>{t('Continue')}</u>
+                </Button>
+            )
+        }
+
+        buttons.push(
+            <div key='halfWidthButtons' style={{ display: 'flex', width: '100%', marginBottom: '8px' }}>
+                {halfWidthButtons}
+            </div>
+        )
+
+        if (showAddToReview || isCompleted) {
+            buttons.push(
+                <Button
+                    key='addToReview'
+                    size={SIZE.compact}
+                    shape={SHAPE.default}
+                    kind={KIND.tertiary}
+                    onClick={handleAddWordClick}
+                    style={{ width: '100%', marginBottom: '8px' }}
+                >
+                    <u>{t('Add to the review')}</u>
+                </Button>
+            )
+        }
+
+        return (
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    width: '100%',
+                }}
+            >
+                <div
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        width: '50%',
+                        alignItems: 'center',
+                    }}
+                >
+                    {buttons}
+                </div>
+                {isShowAssistantList && renderAssistantList()}
+            </div>
+        )
     }
+
+    const renderAssistantList = () => (
+        <div
+            style={{
+                display: 'flex',
+                width: '50%',
+                flexDirection: 'column',
+                alignItems: 'center',
+            }}
+        >
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    marginBottom: '8px',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                }}
+            >
+                <Select
+                    size={SIZE.compact}
+                    options={assistantActions.map((action) => ({
+                        id: action.idx,
+                        label: action.name,
+                    }))}
+                    placeholder={t('Select an action')}
+                    value={value}
+                    labelKey='label'
+                    valueKey='id'
+                    onChange={({ value }) => handleAssistantActionChange(value)}
+                />
+                <Button
+                    kind={KIND.secondary}
+                    size={SIZE.compact}
+                    onClick={() =>
+                        assistantActionText
+                            ? handleOpenAction(value[0]?.id, assistantActionText)
+                            : handleSelectAndExecuteAction(value[0]?.id)
+                    }
+                >
+                    {t('Execute')}
+                </Button>
+            </div>
+            <div style={{ minWidth: '200px' }}>
+                <Textarea
+                    onChange={(e) => setAssistantActionText(e.currentTarget.value)}
+                    value={assistantActionText}
+                    resize='vertical'
+                />
+            </div>
+        </div>
+    )
+
+    return renderButtons()
 })
 
 export default ActionList

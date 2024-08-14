@@ -8,6 +8,8 @@ import { fileService } from '../internal-services/file'
 import { useTranslation } from 'react-i18next'
 import { ReviewSettings, SavedFile } from '../internal-services/db'
 import { useChatStore } from '@/store/file/store'
+import toast from 'react-hot-toast'
+
 type StrategyOption = {
     id: string | number
     label: string
@@ -45,21 +47,6 @@ const calculateSliderPosition = (minutes: number) => {
     } else {
         return 126 // One year
     }
-}
-
-const simplifyMark = (mark: string) => {
-    const regex = /(\d+)([a-zA-Z]*)/ // 正则表达式匹配数字和后面的字母
-    const match = mark.match(regex)
-
-    if (!match) return mark // 如果没有匹配，返回原始标记
-
-    const [_, numStr, unit] = match // 解构匹配结果，_ 是整个匹配，numStr 是数字部分，unit 是单位
-    const num = parseInt(numStr, 10) // 将数字字符串转换为数字
-
-    return numStr
-
-    // 如果不满足以上任何条件，返回原始标记
-    return mark
 }
 
 const getAdjustedMarks = (marks: Record<number, { label: string; style: object }>, sliderPositions: number[]) => {
@@ -142,7 +129,7 @@ export const strategyOptions: StrategyOption[] = [
     },
     {
         id: 'daily',
-        label: '每日复习',
+        label: '每日复习策略',
         array: [0, 1440, 1440, 1440, 1440, 1440, 1440, 1440, 1440, 1440],
     },
     {
@@ -186,7 +173,7 @@ export const ReviewManager = () => {
             array: [0, 5, 30, 60, 240, 1440, 5760, 12960, 21600, 36000],
         },
     ]
-    const { setActionStr, selectedWord } = useChatStore()
+    const { selectedWord } = useChatStore()
     const [selectedStrategy, setSelectedStrategy] = useState(strategyOptions[0])
     const [sliderValues, setSliderValues] = useState(() => selectedStrategy.array.map(calculateSliderPosition))
     const [startTime, setStartTime] = useState(new Date())
@@ -196,7 +183,6 @@ export const ReviewManager = () => {
     const [selectFile, setSelectFile] = useState<SavedFile | null>(null)
     const [totalWords, setTotalWords] = useState(100)
     const [fileOptions, setFileOptions] = useState<fileOptions[]>([])
-    const [isOpen, setIsOpen] = useState(true)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -272,42 +258,34 @@ export const ReviewManager = () => {
     }, [dailyWords, savedIntervals, selectFile, selectedWord, startTime, totalWords])
 
     const handleSave = () => {
-        console.log('handleSave 函数被触发')
         try {
             const reviewSettings: ReviewSettings = {
                 dailyWords: dailyWords,
                 interval: selectedStrategy.array,
                 startTime: new Date(),
             }
-            console.log('reviewSettings:', reviewSettings)
 
             if (!selectFile?.id) {
-                console.error('selectFile 无效')
+                toast.error(t('Invalid file selection'))
                 return
             }
 
-            // 移除对 selectFile.reviewSettings 的检查
             const strategy: StrategyOption = {
                 id: selectFile.id,
                 label: selectFile.name,
-                array: selectedStrategy.array, // 使用当前选择的策略数组
+                array: selectedStrategy.array,
             }
-            console.log('新策略:', strategy)
 
             if (!strategyOptions.find((option) => option.id === selectFile.id)) {
-                console.log('添加新策略到 strategyOptions')
                 strategyOptions.push(strategy)
             }
             setSelectedStrategy(strategy)
 
-            console.log('正在更新复习设置...')
             fileService.updateReviewSettings(selectFile.id, reviewSettings)
 
-            setActionStr(t('Review settings saved'))
-            console.log('设置已保存，正在关闭组件...')
-            setIsOpen(false) // 关闭组件
+            toast.success(t('Review settings saved successfully'))
         } catch (error) {
-            console.error('保存过程中出错:', error)
+            toast.error(t('Error saving review settings'))
         }
     }
 
@@ -349,9 +327,6 @@ export const ReviewManager = () => {
         setSliderValues(selectedStrategy.array.map(calculateSliderPosition))
     }, [selectedStrategy])
 
-    if (!isOpen) {
-        return null // 如果 isOpen 为 false，不渲染组件
-    }
 
     return (
         <div>
