@@ -121,33 +121,33 @@ const WordListUploader = () => {
     }, [currentFileId, itemsPerPage])
 
     useEffect(() => {
-        console.log('Effect triggered:', { IsInitialized, currentFileId, selectedWords, words });
+        console.log('Effect triggered:', { IsInitialized, currentFileId, selectedWords, words })
 
         if (!IsInitialized || !currentFileId) {
-            console.log('Not initialized or no current file');
-            return;
+            console.log('Not initialized or no current file')
+            return
         }
 
         if (!selectedWords[currentFileId]) {
-            console.log('No selected word for current file, loading first page');
-            loadWords(currentFileId, 1);
-            setCurrentPage(1);
-            selectWord(words[0]);
+            console.log('No selected word for current file, loading first page')
+            loadWords(currentFileId, 1)
+            setCurrentPage(1)
+            selectWord(words[0])
         } else {
-            console.log('Selected word exists for current file');
-            const saveWord = selectedWords[currentFileId];
+            console.log('Selected word exists for current file')
+            const saveWord = selectedWords[currentFileId]
             if (saveWord) {
-                console.log('Selecting saved word:', saveWord);
-                selectWord(saveWord);
-                const page = Math.floor((saveWord.idx - 1) / itemsPerPage) + 1;
-                console.log('Calculated page:', page);
-                loadWords(currentFileId, page);
-                setCurrentPage(page);
+                console.log('Selecting saved word:', saveWord)
+                selectWord(saveWord)
+                const page = Math.floor((saveWord.idx - 1) / itemsPerPage) + 1
+                console.log('Calculated page:', page)
+                loadWords(currentFileId, page)
+                setCurrentPage(page)
             } else {
-                console.log('No valid selected word, loading first page');
-                loadWords(currentFileId, 1);
-                setCurrentPage(1);
-                selectWord(words[0]);
+                console.log('No valid selected word, loading first page')
+                loadWords(currentFileId, 1)
+                setCurrentPage(1)
+                selectWord(words[0])
             }
         }
     }, [currentFileId, IsInitialized])
@@ -275,25 +275,36 @@ const WordListUploader = () => {
         <div style={{ height: '100%', overflow: 'auto', width: 'auto' }}>
             <div style={{ minHeight: '160px' }}>
                 <ol start={(currentPage - 1) * itemsPerPage + 1}>
-                    {displayWords.map((entry, index) => (
-                        <li
-                            key={index}
-                            style={{
-                                cursor: 'pointer',
-                                backgroundColor:
-                                    selectedWord && entry.text === selectedWord.text ? rgb(255, 255, 0) : 'transparent',
-                            }}
-                            onClick={() => handleWordClick(entry)}
-                        >
-                            {entry.text.includes(' ')
-                                ? entry.text.split(' ').length > 15
-                                    ? entry.text.split(' ').slice(0, 10).join(' ') + '...'
-                                    : entry.text
-                                : entry.text.length > 12
-                                ? entry.text.substring(0, 10) + '...'
-                                : entry.text}
-                        </li>
-                    ))}
+                    {displayWords.map((entry, index) => {
+                        // 检查 entry 和 entry.text 是否存在
+                        if (!entry || typeof entry.text !== 'string') {
+                            return null // 如果 entry 或 entry.text 无效，则不渲染这个项
+                        }
+
+                        const displayText = entry.text.includes(' ')
+                            ? entry.text.split(' ').length > 15
+                                ? entry.text.split(' ').slice(0, 10).join(' ') + '...'
+                                : entry.text
+                            : entry.text.length > 12
+                            ? entry.text.substring(0, 10) + '...'
+                            : entry.text
+
+                        return (
+                            <li
+                                key={index}
+                                style={{
+                                    cursor: 'pointer',
+                                    backgroundColor:
+                                        selectedWord && entry.text === selectedWord.text
+                                            ? rgb(255, 255, 0)
+                                            : 'transparent',
+                                }}
+                                onClick={() => handleWordClick(entry)}
+                            >
+                                {displayText}
+                            </li>
+                        )
+                    })}
                 </ol>
             </div>
             <div
