@@ -10,7 +10,11 @@ import { useNavigate, Routes, Route, MemoryRouter } from 'react-router-dom'
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
-const PUBLISHABLE_KEY = 'pk_test_ZXhvdGljLWJ1bGxmcm9nLTM2LmNsZXJrLmFjY291bnRzLmRldiQ'
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+
+
+
 
 if (!PUBLISHABLE_KEY) {
     throw new Error('Missing Publishable Key')

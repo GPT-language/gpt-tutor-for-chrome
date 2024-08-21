@@ -20,8 +20,9 @@
         "noEmit": true,
         "noEmitOnError": true,
         "jsx": "react-jsx",
-        "typeRoots": ["node_modules/@types"],
+        "typeRoots": ["node_modules/@types", "src"],
+        "types": ["vite/client"],
         "resolveJsonModule": true
     },
-    "include": ["src", "src-tauri", "vite.config.*.ts", ".eslintrc.js", "playwright.config.ts", "e2e"]
+    "include": ["src", "src-tauri", "vite.config.*.ts", ".eslintrc.js", "playwright.config.ts", "e2e", "vite-env.d.ts"]
 }
