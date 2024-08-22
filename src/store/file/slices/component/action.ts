@@ -1,0 +1,28 @@
+/* eslint-disable prettier/prettier */
+import { StateCreator } from 'zustand'
+import { ComponentState } from './initialState'
+export interface ComponentAction {
+    setShowActionManager: (isShow: boolean) => void
+    setShowSettings: (isShow: boolean) => void
+    setShowWordBookManager: (isShow: boolean) => void
+    setShowCategorySelector: (isShow: boolean) => void
+    setShowReviewManager: (isShow: boolean) => void
+    setShowYouGlish: (isShow: boolean) => void
+    setShowTextParser: (isShow: boolean) => void
+    setShowBuyMeACoffee: (isShow: boolean) => void
+    toggleMessageCard: () => void
+    setIsShowActionList: (isShow: boolean) => void
+}
+
+export const component: StateCreator<ComponentState, [['zustand/devtools', never]], [], ComponentAction> = (set) => ({
+    setShowActionManager: (isShow) => set({ showActionManager: isShow }),
+    setShowSettings: (isShow) => set({ showSettings: isShow }),
+    setShowWordBookManager: (isShow) => set({ showWordBookManager: isShow }),
+    setShowCategorySelector: (isShow) => set({ showCategorySelector: isShow }),
+    setShowReviewManager: (isShow) => set({ showReviewManager: isShow }),
+    setShowYouGlish: (isShow) => set({ showYouGlish: isShow }),
+    setShowTextParser: (isShow) => set({ showTextParser: isShow }),
+    setShowBuyMeACoffee: (isShow) => set({ showBuyMeACoffee: isShow }),
+    toggleMessageCard: () => set((state) => ({ isShowMessageCard: !state.isShowMessageCard })),
+    setIsShowActionList: (isShow) => set({ isShowActionList: isShow }),
+})

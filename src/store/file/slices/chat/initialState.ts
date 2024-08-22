@@ -14,10 +14,6 @@ export interface ChatState {
     actions: Action[]
     assistantAction: Action | undefined
     activateAction: Action | undefined
-    isShowActionList: boolean
-    isShowMessageCard: boolean
-    showActionManager: boolean
-    showSettings: boolean
     actionStr: string
     // 复习周期
     reviewIntervals: number[]
@@ -31,16 +27,6 @@ function getFromStorage(key: string, defaultValue: unknown) {
         console.error('Error parsing JSON from localStorage for key:', key, error)
         return defaultValue // 返回默认值或执行其他错误处理
     }
-}
-
-function getNumberFromStorage(key: string, defaultValue: unknown) {
-    const item = localStorage.getItem(key)
-    return item ? Number(item) : defaultValue
-}
-
-function getObjectFromStorage(key: string, defaultValue: unknown) {
-    const item = localStorage.getItem(key)
-    return item ? JSON.parse(item) : defaultValue
 }
 
 export const initialChatState: ChatState = {
@@ -58,10 +44,6 @@ export const initialChatState: ChatState = {
     activatedModel: '',
     activatedProvider: '',
     accessToken: '',
-    isShowActionList: false,
-    isShowMessageCard: false,
-    showActionManager: false,
-    showSettings: false,
     actionStr: '',
     reviewIntervals: getFromStorage('reviewIntervals', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
 }

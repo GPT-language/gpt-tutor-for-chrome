@@ -1905,17 +1905,6 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                                 Patreon
                             </a>
                         </div>
-                        <a
-                            href={
-                                settings?.i18n === 'zh-Hans'
-                                    ? 'https://weibo.com/u/2432250323'
-                                    : 'https://x.com/Heraclitius'
-                            }
-                            target='_blank'
-                            rel='noopener noreferrer'
-                        >
-                            {settings?.i18n === 'zh-Hans' ? '瞅瞅我的可爱小猫！' : t('See my cute kitty!')}
-                        </a>
                     </div>
                 </ModalBody>
             </Modal>

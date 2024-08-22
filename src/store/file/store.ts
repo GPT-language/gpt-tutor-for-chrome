@@ -6,8 +6,9 @@ import { StateCreator } from 'zustand/vanilla'
 import { ChatStoreState, initialState } from './initialState'
 import { ChatFileAction, chatFile } from './slices/file/action'
 import { ChatAction, chat } from './slices/chat/action'
+import { ComponentAction, component } from './slices/component/action'
 
-export type ChatStore = ChatStoreState & ChatFileAction & ChatAction
+export type ChatStore = ChatStoreState & ChatFileAction & ChatAction & ComponentAction
 
 //  ===============  聚合 createStoreFn ============ //
 
@@ -15,6 +16,7 @@ const createStore: StateCreator<ChatStore, [['zustand/devtools', never]]> = (...
     ...initialState,
     ...chatFile(...params),
     ...chat(...params),
+    ...component(...params),
 })
 
 //  ===============  实装 useStore ============ //
