@@ -20,6 +20,7 @@ const CategorySelector = () => {
         deleteCategory,
         loadFiles,
         setSelectedCategory,
+        setShowWordBookManager,
     } = useChatStore()
     const [showNewCategoryInput, setShowNewCategoryInput] = useState(false)
     const [newCategory, setNewCategory] = useState('')
@@ -43,7 +44,6 @@ const CategorySelector = () => {
             addFile(file, selectedCategory)
         }
         setShowSelectBox(false)
-        localStorage.setItem('files', JSON.stringify(files))
     }
 
     const handleCategoryChange = async (cat: string) => {
@@ -71,13 +71,13 @@ const CategorySelector = () => {
             id: file.id,
             label: file.name,
         })),
-        { id: 0, label: t('Download lexicon file') }
+        { id: 0, label: t('Download') }
     ]
 
     const onChange = (params: { value: { id: number; label: string }[] }) => {
         const { value } = params
         if (value.length > 0 && value[0].id === 0) {
-            window.open('https://github.com/GPT-language/gpt-tutor-resources/blob/main/README.md')
+            setShowWordBookManager(true)
         } else {
             selectFile(value[0].id)
         }

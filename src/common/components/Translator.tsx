@@ -57,7 +57,7 @@ import { GrMoreVertical } from 'react-icons/gr'
 import { StatefulPopover } from 'baseui-sd/popover'
 import { StatefulMenu } from 'baseui-sd/menu'
 import { IconType } from 'react-icons'
-import { GiPlatform } from 'react-icons/gi'
+import { GiBookshelf, GiPlatform } from 'react-icons/gi'
 import { IoIosRocket } from 'react-icons/io'
 import 'katex/dist/katex.min.css'
 import Latex from 'react-latex-next'
@@ -78,6 +78,7 @@ import CategorySelector from './CategorySelector'
 import { Accordion, Panel } from 'baseui-sd/accordion'
 import MessageCard from './MessageCard'
 import { ReviewManager } from './ReviewSettings'
+import WordBookViewer from './WordBookViewer'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
 
 const cache = new LRUCache({
@@ -442,12 +443,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowSettings,
         actionStr,
         setActionStr,
+        showWordBookManager,
+        setShowWordBookManager,
+        showReviewManager,
+        setShowReviewManager,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
     const [translationFlag, forceTranslate] = useReducer((x: number) => x + 1, 0)
-
-    const [showReviewManger, setShowReviewManager] = useState(false)
 
     const editorRef = useRef<HTMLTextAreaElement>(null)
     const isCompositing = useRef(false)
@@ -1629,6 +1632,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                             if (actionID === '__review__') {
                                                 setShowReviewManager(true)
                                             }
+                                            if (actionID === '__wordbook__') {
+                                                setShowWordBookManager(true)
+                                            }
                                             setAction(actions?.find((a) => a.id === (actionID as number)))
                                         }}
                                         items={[
@@ -1689,6 +1695,23 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     >
                                                         <GiPlatform />
                                                         {t('Review Manager')}
+                                                    </div>
+                                                ),
+                                            },
+                                            {
+                                                id: '__wordbook__',
+                                                label: (
+                                                    <div
+                                                        style={{
+                                                            display: 'flex',
+                                                            flexDirection: 'row',
+                                                            alignItems: 'center',
+                                                            gap: 6,
+                                                            fontWeight: 500,
+                                                        }}
+                                                    >
+                                                        <GiBookshelf />
+                                                        {t('Word Book Manager')}
                                                     </div>
                                                 ),
                                             },
@@ -2252,7 +2275,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 </ModalBody>
             </Modal>
             <Modal
-                isOpen={showReviewManger}
+                isOpen={showReviewManager}
                 onClose={() => {
                     setShowReviewManager(false)
                 }}
@@ -2271,6 +2294,28 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 </ModalHeader>
                 <ModalBody>
                     <ReviewManager />
+                </ModalBody>
+            </Modal>
+            <Modal
+                isOpen={showWordBookManager}
+                onClose={() => {
+                    setShowWordBookManager(false)
+                }}
+                closeable
+                size='full'
+                autoFocus
+                animate
+                role='dialog'
+            >
+                <ModalHeader>
+                    <div
+                        style={{
+                            padding: 5,
+                        }}
+                    />
+                </ModalHeader>
+                <ModalBody>
+                    <WordBookViewer />
                 </ModalBody>
             </Modal>
             <Toaster />
