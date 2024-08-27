@@ -121,8 +121,6 @@ const WordListUploader = () => {
     }, [currentFileId, itemsPerPage])
 
     useEffect(() => {
-        console.log('Effect triggered:', { IsInitialized, currentFileId, selectedWords, words })
-
         if (!IsInitialized || !currentFileId) {
             console.log('Not initialized or no current file')
             return
@@ -150,6 +148,7 @@ const WordListUploader = () => {
                 selectWord(words[0])
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentFileId, IsInitialized])
 
     useEffect(() => {
@@ -171,7 +170,9 @@ const WordListUploader = () => {
                 return
             }
             const fileWords = (await fileService.fetchFileDetailsById(currentFileId))?.words || []
-            const reviewWords = fileWords.filter((word) => word.nextReview && word.nextReview <= new Date())
+            const reviewWords = fileWords.filter(
+                (word) => !word.completed && word.nextReview && word.nextReview <= new Date()
+            )
             reviewWordsCountRef.current = reviewWords.length // 更新 ref
             if (reviewWords.length > 0 && !hasShownReviewNotificationRef.current) {
                 hasShownReviewNotificationRef.current = true
@@ -200,7 +201,8 @@ const WordListUploader = () => {
                             }
                         }
                     })
-                    setLatestNextWordNeedToReview(closest.nextReview)
+                    setLatestNextWordNeedToReview(closest ? closest.nextReview : null)
+                    setDisplayWords([])
                 } else if (words.length > 0) {
                     setLatestNextWordNeedToReview(null)
                     setActionStr(t('There are ') + reviewWordsCountRef.current + t(' words need to review'))

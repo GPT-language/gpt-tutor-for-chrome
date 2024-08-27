@@ -1,5 +1,5 @@
 import { memo, useState, useEffect } from 'react'
-import { Action } from '../internal-services/db'
+import { Action, Word } from '../internal-services/db'
 import { useChatStore } from '@/store/file/store'
 import { Button, KIND, SHAPE, SIZE } from 'baseui-sd/button'
 import { useTranslation } from 'react-i18next'
@@ -18,7 +18,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         words,
         selectedWord,
         selectWord,
-        currentFileId,
         selectedCategory,
         addWordToReviewFile,
         updateReviewStatus,
@@ -26,9 +25,9 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         actions,
         activateAction,
         setAction,
-        isShowActionList,
         currentPage,
         setCurrentPage,
+        markWordAsLearned,
     } = useChatStore()
     const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
     const [isCompleted, setIsCompleted] = useState(false)
@@ -90,11 +89,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         if (!selectedWord) {
             return
         }
-        const nextWord = words.find((word) => word.idx === selectedWord.idx + 1)
-        if (nextWord) {
-            selectWord(nextWord)
-            setIsSelectedNextWord(true)
-        }
         const nextAction = actions.find((action) => action.idx === 0)
         setAction(nextAction)
         onActionClick(nextAction)
@@ -102,9 +96,11 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
 
     const handleReviewClick = async () => {
         if (!selectedWord) {
+            toast.error(t('No word selected'))
             return
         }
         await updateReviewStatus(selectedWord)
+        toast.success(t('You have finished the review of this word'))
     }
 
     const handleForgetClick = async () => {
@@ -112,6 +108,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             return
         }
         await markWordAsForgotten(selectedWord)
+        toast.success(t('You have marked this word as forgotten'))
     }
 
     const handleSelectAndExecuteAction = (selectedIdx: number | string | undefined) => {
@@ -158,13 +155,23 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         if (!activateAction) {
             return
         }
-        const nextAction = actions.find((action) => action.idx === activateAction?.idx + 1)
+        let nextAction: Action | undefined
+        nextAction = actions.find((action) => action.idx === activateAction?.idx + 1)
 
         if (nextAction) {
             onActionClick(nextAction)
         } else {
-            console.debug('no next action')
+            nextAction = actions.find((action) => action.idx === 0)
+            setAction(nextAction)
+            toast.success(t('You have finished the review of this word'))
+            handleNextWordClick()
         }
+    }
+
+    const handleMarkWordAsLearned = (word: Word, reviewFileName: string) => {
+        markWordAsLearned(word, reviewFileName)
+        handleNextWordClick()
+        toast.success(t('You have marked this word as learned'))
     }
 
     useEffect(() => {
@@ -268,22 +275,51 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             selectedWord.translations &&
             typeof selectedWord.translations === 'object' &&
             Object.keys(selectedWord.translations).length > 0
+
+        const showMarkAsLearned = selectedWord
         const buttons = []
 
         const halfWidthButtons = []
+
+        if (showMarkAsLearned && !showAddToReview) {
+            halfWidthButtons.push(
+                <Button
+                    key='markAsLearned'
+                    size={SIZE.compact}
+                    shape={SHAPE.default}
+                    kind={KIND.tertiary}
+                    onClick={() => handleMarkWordAsLearned(selectedWord, reviewFileName)}
+                    style={{ width: '50%', marginRight: '8px' }}
+                >
+                    <u>{t('Mark as learned')}</u>
+                </Button>
+            )
+            halfWidthButtons.push(
+                <Button
+                    key='startToLearn'
+                    size={SIZE.compact}
+                    shape={SHAPE.default}
+                    kind={KIND.tertiary}
+                    onClick={handleStartToLearnClick}
+                    style={{ width: '50%' }}
+                >
+                    <u>{t('Start to learn new item')}</u>
+                </Button>
+            )
+        }
 
         if (showAddToReview) {
             // 如果回答已经完成，则显示更多解释和继续按钮
             halfWidthButtons.push(
                 <Button
-                    key='moreExplanations'
+                    key='markAsLearned'
                     size={SIZE.compact}
                     shape={SHAPE.default}
                     kind={KIND.tertiary}
-                    onClick={() => setIsShowAssistantList(!isShowAssistantList)}
+                    onClick={handleNextWordClick}
                     style={{ width: '50%', marginRight: '8px' }}
                 >
-                    <u>{t('More explanations')}</u>
+                    <u>{t('Next item')}</u>
                 </Button>
             )
             halfWidthButtons.push(
