@@ -783,6 +783,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     // 只有在selectedWord存在且idx改变时触发
     useEffect(() => {
         if (!selectedWord) {
+            setTranslations({})
             console.log('selectedWord is empty, clear translations')
             return
         }
@@ -1064,9 +1065,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
 
             if (text !== selectedWord?.text) {
-                if (!activateAction.parentIds) {
-                    selectWordNotInCurrentFile(text)
-                }
+                selectWordNotInCurrentFile(text)
+                
             }
             console.log('translateText before', text)
 
@@ -1156,9 +1156,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 if (activateAction.outputRenderingFormat === 'json' && !showTextParser) {
                                     setShowTextParser(true)
                                 }
-                                if (!selectedWord) {
-                                    setTranslations({})
-                                }
                                 const newTranslatedText = message.isFullText
                                     ? message.content
                                     : translatedText + message.content
@@ -1220,19 +1217,25 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 } = useChatStore.getState()
 
                                 if (activateAction?.name) {
-                                    updateTranslationText(translatedText, activateAction?.name, finalText)
-                                    setIsShowActionList(true)
-
-                                    handleTranslationUpdate(
-                                        selectedWord?.idx || selectWordIdx,
-                                        activateAction?.name,
-                                        finalText,
-                                        translatedText,
-                                        activateAction?.outputRenderingFormat || 'markdown',
-                                        messageId,
-                                        conversationId
-                                    )
-                                }
+                                    // 使用 Promise.all 来并行执行异步操作
+                                    Promise.all([
+                                        updateTranslationText(translatedText, activateAction.name, finalText),
+                                        
+                                    ]).then(() => {
+                                        handleTranslationUpdate(
+                                            selectedWord?.idx || selectWordIdx,
+                                            activateAction.name,
+                                            finalText,
+                                            translatedText,
+                                            activateAction.outputRenderingFormat || 'markdown',
+                                            messageId,
+                                            conversationId
+                                        )   
+                                    }).catch((error) => {
+                                        console.error('Failed to update translation:', error)
+                // 可以在这里添加错误处理逻辑，如显示错误提示等
+            })
+        }
                                 return result
                             })
                         },

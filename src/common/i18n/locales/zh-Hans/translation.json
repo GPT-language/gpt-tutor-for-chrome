@@ -130,6 +130,8 @@
   "Expression": "表达",
   "Execute": "确定",
   "Finish": "完成学习，添加到复习",
+  "You have finished the review of this word": "您完成了该单词的复习",
+  "You have marked this word as forgotten": "您已将该单词标记为遗忘",
   "Language": "语言",
   "Category": "分类",
   "Vocabulary Type": "词汇类型",
@@ -196,5 +198,7 @@
   "Determine which groups this action belongs to": "设置该动作属于哪些群组",
   "You can set multiple group names": "您可以设置多个群组名",
   "Enter a group, then press Enter": "输入群组名，并按回车",
-  "Grammar": "语法"
+  "Grammar": "语法",
+  "Next function": "下一个功能",
+  "Mark as learned": "标记为已掌握"
 }

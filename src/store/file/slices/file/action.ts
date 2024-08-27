@@ -9,6 +9,8 @@ import i18n from '@/common/i18n'
 import { strategyOptions } from '@/common/components/ReviewSettings'
 import toast from 'react-hot-toast'
 
+declare const chrome: any
+
 export interface ChatFileAction {
     getInitialFile: () => Promise<boolean>
     addFile: (file: File, category: string) => Promise<number>
@@ -29,6 +31,7 @@ export interface ChatFileAction {
     setSelectedCategory: (category: string) => void
     addWordToReviewFile: (word: Word, fileName: string) => Promise<void>
     updateReviewStatus: (word: Word) => Promise<void>
+    markWordAsLearned: (word: Word, fileName: string) => Promise<void>
     markWordAsForgotten: (word: Word) => Promise<void>
     addWordToHistoryFile: (word: Word) => Promise<void>
     checkIfInitialized: () => Promise<boolean>
@@ -161,12 +164,21 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         )
 
         const newWordIdx = reviewCount === 0 ? fileLength + 1 : word.idx
-        const updatedWord = {
-            ...word,
-            idx: newWordIdx,
-            lastReviewed: currentDate,
-            nextReview: nextReviewDate,
-            reviewCount: reviewCount + 1,
+        let updatedWord: Word
+        if (nextReviewDate) {
+            updatedWord = {
+                ...word,
+                idx: newWordIdx,
+                lastReviewed: currentDate,
+                nextReview: nextReviewDate,
+                reviewCount: reviewCount + 1,
+            }
+        } else {
+            updatedWord = {
+                ...word,
+                idx: newWordIdx,
+                completed: true,
+            }
         }
 
         if (targetFile?.id) {
@@ -190,26 +202,82 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 word.reviewCount + 1,
                 reviewSettings ? reviewSettings?.interval : strategyOptions[2].array
             )
+            let updatedWord: Word
             if (!nextReviewDate) {
-                toast.success('You finished the review of this word')
+                updatedWord = {
+                    ...word,
+                    completed: true,
+                }
                 return
             }
-            const updatedWord = {
+            updatedWord = {
                 ...word,
                 lastReviewed: currentDate,
                 nextReview: nextReviewDate,
                 reviewCount: word.reviewCount + 1,
             }
             const updatedWords = await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
-            const disPlayedWords = updatedWords.filter((word) => word.nextReview && word.nextReview <= currentDate)
-            set({ words: disPlayedWords })
-            const nextWord = disPlayedWords[0]
-            selectWord(nextWord || null)
+            const disPlayedWords = updatedWords.filter(
+                (word) => !word.completed && word.nextReview && word.nextReview <= currentDate
+            )
+            if (disPlayedWords.length === 0) {
+                // 没有更多需要复习的单词
+                set({ words: [], selectedWord: null })
+                // 可能还需要更新其他状态，比如通知用户所有单词已复习完成
+            } else {
+                set({ words: disPlayedWords })
+                const nextWord = disPlayedWords[0]
+                selectWord(nextWord)
+            }
         } catch (error) {
-            const { setActionStr } = get()
-            setActionStr(JSON.stringify(error.message))
             console.error('Failed to update review status:', error)
         }
+    },
+
+    async markWordAsLearned(word: Word, fileName: string) {
+        const { currentFileId, selectedCategory } = get()
+        const reviewCategory = 'Review'
+
+        // 检查单词是否已经存在于复习文件中
+        const reviewFiles = await fileService.fetchFilesByCategory(reviewCategory)
+        const targetFile = reviewFiles.find((file) => file.name === fileName)
+
+        if (targetFile && targetFile.id) {
+            const existingWords = await fileService.fetchAllWordsInFile(targetFile.id)
+            const wordExists = existingWords.some((w) => w.text === word.text)
+
+            if (wordExists) {
+                throw new Error('This word has already been added to review.')
+            }
+        }
+
+        let fileLength
+        let reviewSettings: ReviewSettings | undefined
+        if (selectedCategory !== 'Review') {
+            fileLength = await fileService.getFileLengthByName(reviewCategory, fileName)
+        } else {
+            fileLength = await fileService.getFileLengthById(currentFileId)
+        }
+        if (currentFileId) {
+            const currentFile = await fileService.fetchFileDetailsById(currentFileId)
+            reviewSettings = currentFile.reviewSettings
+        }
+
+        const reviewCount = word.reviewCount || 0
+
+        const newWordIdx = reviewCount === 0 ? fileLength + 1 : word.idx
+        const updatedWord = {
+            ...word,
+            idx: newWordIdx,
+            completed: true,
+        }
+
+        if (targetFile?.id) {
+            await fileService.updateWordInFile(targetFile.id, newWordIdx, updatedWord)
+        } else {
+            await fileService.createFile(fileName, reviewCategory, [updatedWord], reviewSettings)
+        }
+        toast.success('Mark as learned')
     },
 
     async markWordAsForgotten(word: Word) {
@@ -223,6 +291,10 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             }
 
             const { currentFileId } = get()
+            if (!currentFileId) {
+                toast.error('No current file exists')
+                return
+            }
             const updatedWords = await fileService.updateWordInFile(currentFileId, word.idx, updatedWord)
             const disPlayedWords = updatedWords.filter((word) => word.nextReview && word.nextReview <= new Date())
             set({ words: disPlayedWords })
@@ -299,7 +371,6 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                     set(
                         produce((draft) => {
                             draft.words = words
-                            console.log('New words set:', words)
                         })
                     )
                     return true
@@ -363,7 +434,9 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         } else {
             setCurrentFileId(0)
         }
-        localStorage.setItem('currentFileId', currentFileId.toString())
+        if (currentFileId !== null) {
+            localStorage.setItem('currentFileId', currentFileId.toString())
+        }
     },
 
     setSelectedCategory(category: string) {
@@ -391,13 +464,15 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             alert('Word not found')
         }
     },
-    selectWord: (word: Word) => {
+    selectWord: (word: Word | null) => {
         const { currentFileId } = get()
 
         set(
             produce((draft) => {
                 draft.selectedWord = word
-                draft.selectedWords[currentFileId] = word
+                if (currentFileId !== null && currentFileId !== undefined) {
+                    draft.selectedWords[currentFileId] = word
+                }
                 chrome.storage.local.set({ selectedWord: JSON.stringify(draft.selectedWord) })
                 chrome.storage.local.set({ selectedWords: JSON.stringify(draft.selectedWords) })
             })
@@ -417,7 +492,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         } else {
             wordIdx = wordLength + 1
         }
-        const word: Word = { idx: wordIdx, text: text }
+        const word: Word = { idx: wordIdx, text: text, reviewCount: 0 }
         await addWordToHistoryFile(word)
         selectWord(word)
     },
@@ -437,11 +512,12 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     // 该方法并不处理indexDB中的保存，只负责更新显示状态
     // selectWordNotInCurrentFile方法负责将搜索结果中的单词idx和text添加到历史文件中，该方法则负责更新其中的translations
     updateTranslationText: async (newText: string, actionName: string, wordContent?: string) => {
-        const category = 'History'
-        const formattedDate = new Date().toISOString().slice(0, 10).replace(/-/g, '/')
-        const files = await fileService.fetchFilesByCategory(category)
-        const file = files.find((file) => file.category === category && file.name === formattedDate)
-        const wordInFile = file?.words.find((w) => w.text === wordContent)
+        try {
+            const category = 'History'
+            const formattedDate = new Date().toISOString().slice(0, 10).replace(/-/g, '/')
+            const files = await fileService.fetchFilesByCategory(category)
+            const file = files.find((file) => file.category === category && file.name === formattedDate)
+            const wordInFile = file?.words.find((w) => w.text === wordContent)
 
         set(
             produce((draft) => {
@@ -463,14 +539,12 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 }
 
                 // 验证 selectedWord 是否存在于 words 数组中
-                const wordInWords = draft.words.find((word) => word.text === wordContent)
+                const wordInWords = draft.words.find((word: Word) => word.text === wordContent)
 
                 if (!wordInWords) {
-                    draft.selectedWord = wordInFile || {} // 如果 wordInFile 为 null，初始化为空对象
+                    console.log('word is not in words')
+                    draft.selectedWord = wordInFile 
 
-                    if (!draft.selectedWord.translations) {
-                        draft.selectedWord.translations = {}
-                    }
                     if (!draft.selectedWord.translations[actionName]) {
                         draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' }
                     } else {
@@ -479,9 +553,6 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                     return
                 }
 
-                if (!wordInWords.translations) {
-                    wordInWords.translations = {}
-                }
                 if (!wordInWords.translations[actionName]) {
                     wordInWords.translations[actionName] = { text: newText, format: 'markdown' }
                 } else {
@@ -491,5 +562,13 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 wordInWords.translations = draft.selectedWord.translations
             })
         )
+    
+            // 如果需要，这里可以添加将更新后的数据保存到数据库的逻辑
+            // await fileService.updateWordInFile(...)
+    
+        } catch (error) {
+            console.error('更新翻译文本时出错:', error)
+            // 可以在这里添加错误处理逻辑，如显示错误提示等
+        }
     },
 })
