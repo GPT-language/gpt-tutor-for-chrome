@@ -1,9 +1,10 @@
-import { SavedFile, Word } from '@/common/internal-services/db'
+import { SavedFile, Translations, Word } from '@/common/internal-services/db'
 import i18n from '@/common/i18n'
 export interface ChatFileState {
     words: Word[]
     currentFileId: number | null
     currentPage: number
+    translations: Translations
     files: SavedFile[]
     categories: string[]
     selectedCategory: string
@@ -79,6 +80,7 @@ export const getInitialFileState = async (): Promise<ChatFileState> => {
 
     return {
         words: [],
+        translations: {},
         currentFileId,
         currentPage: 1,
         files: [],
@@ -91,6 +93,7 @@ export const getInitialFileState = async (): Promise<ChatFileState> => {
 
 export const initialFileState: ChatFileState = {
     words: [], // 当前文件的单词
+    translations: {},
     currentFileId: getNumberFromStorage('currentFileId', 0),
     currentPage: 1,
     files: [],

@@ -447,6 +447,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowWordBookManager,
         showReviewManager,
         setShowReviewManager,
+        translations,
+        setTranslations,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -736,7 +738,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
-    const [translations, setTranslations] = useState<Translations>({})
     const [activeKey, setActiveKey] = useState<Key | null>(null)
     const [parentAction, setParentAction] = useState<Action | undefined>(undefined)
 
@@ -783,8 +784,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     // 只有在selectedWord存在且idx改变时触发
     useEffect(() => {
         if (!selectedWord) {
-            setTranslations({})
-            console.log('selectedWord is empty, clear translations')
             return
         }
         if (selectedWord.text && selectedWord.idx) {
@@ -1066,7 +1065,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
             if (text !== selectedWord?.text) {
                 selectWordNotInCurrentFile(text)
-                
             }
             console.log('translateText before', text)
 
@@ -1161,43 +1159,15 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     : translatedText + message.content
 
                                 const actionName = useChatStore.getState().activateAction?.name
-
+                                console.log('Current activateAction:', actionName)
                                 if (actionName) {
-                                    setTranslations((prev) => {
-                                        const newTranslations = { ...prev }
-                                        if (newTranslations[actionName]) {
-                                            newTranslations[actionName] = {
-                                                ...newTranslations[actionName],
-                                                text: newTranslatedText, // 使用最新的翻译文本更新
-                                                format: activateAction?.outputRenderingFormat || 'markdown',
-                                            }
-                                        } else {
-                                            newTranslations[actionName] = {
-                                                text: newTranslatedText,
-                                                format: activateAction?.outputRenderingFormat || 'markdown',
-                                            }
+                                    setTranslations({
+                                        ...translations,
+                                        [actionName]: {
+                                            text: newTranslatedText,
+                                            format: activateAction?.outputRenderingFormat || 'markdown',
                                         }
-
-                                        return newTranslations
-                                    })
-                                } else {
-                                    setTranslations((prev) => {
-                                        const newTranslations = { ...prev }
-                                        if (newTranslations[activateAction?.name]) {
-                                            newTranslations[activateAction?.name] = {
-                                                ...newTranslations[activateAction?.name],
-                                                text: newTranslatedText, // 使用最新的翻译文本更新
-                                                format: activateAction?.outputRenderingFormat || 'markdown',
-                                            }
-                                        } else {
-                                            newTranslations[activateAction?.name] = {
-                                                text: newTranslatedText,
-                                                format: activateAction?.outputRenderingFormat || 'markdown',
-                                            }
-                                        }
-
-                                        return newTranslations
-                                    })
+                                    });
                                 }
 
                                 return newTranslatedText
@@ -1208,34 +1178,35 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             setTranslatedText((translatedText) => {
                                 const result = translatedText
                                 cache.set(cachedKey, result)
-                                const {
-                                    messageId,
-                                    conversationId,
-                                    activateAction,
-                                    setIsShowActionList,
-                                    updateTranslationText,
-                                } = useChatStore.getState()
+                                const { messageId, conversationId, activateAction, updateTranslationText } =
+                                    useChatStore.getState()
 
                                 if (activateAction?.name) {
+                                    setTranslations({
+                                        ...translations,
+                                        [activateAction.name]: {
+                                            text: translatedText,
+                                            format: activateAction?.outputRenderingFormat || 'markdown',
+                                        }
+                                    });
                                     // 使用 Promise.all 来并行执行异步操作
-                                    Promise.all([
-                                        updateTranslationText(translatedText, activateAction.name, finalText),
-                                        
-                                    ]).then(() => {
-                                        handleTranslationUpdate(
-                                            selectedWord?.idx || selectWordIdx,
-                                            activateAction.name,
-                                            finalText,
-                                            translatedText,
-                                            activateAction.outputRenderingFormat || 'markdown',
-                                            messageId,
-                                            conversationId
-                                        )   
-                                    }).catch((error) => {
-                                        console.error('Failed to update translation:', error)
-                // 可以在这里添加错误处理逻辑，如显示错误提示等
-            })
-        }
+                                    Promise.all([updateTranslationText(translatedText, activateAction.name, finalText)])
+                                        .then(() => {
+                                            handleTranslationUpdate(
+                                                selectedWord?.idx || selectWordIdx,
+                                                activateAction.name,
+                                                finalText,
+                                                translatedText,
+                                                activateAction.outputRenderingFormat || 'markdown',
+                                                messageId,
+                                                conversationId
+                                            )
+                                        })
+                                        .catch((error) => {
+                                            console.error('Failed to update translation:', error)
+                                            // 可以在这里添加错误处理逻辑，如显示错误提示等
+                                        })
+                                }
                                 return result
                             })
                         },
@@ -1364,6 +1335,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             setFinalText(editableText)
         }
     }, [editableText, finalText])
+
+    useEffect(() => {
+        console.log('Translations updated:', translations)
+    }, [translations])
 
     useEffect(() => {
         const controller = new AbortController()
@@ -2178,21 +2153,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     fontSize: '12px',
                                     color: theme.colors.contentPrimary,
                                 }}
-                            >                             
-                                    <>
-                                        <span>{t('Please login to Kimi Web')}: </span>
-                                        <a
-                                            href='https://kimi.moonshot.cn/'
-                                            target='_blank'
-                                            rel='noreferrer'
-                                            style={{
-                                                color: theme.colors.contentSecondary,
-                                            }}
-                                        >
-                                            Login
-                                        </a>
-                                    </>
-                                
+                            >
+                                <>
+                                    <span>{t('Please login to Kimi Web')}: </span>
+                                    <a
+                                        href='https://kimi.moonshot.cn/'
+                                        target='_blank'
+                                        rel='noreferrer'
+                                        style={{
+                                            color: theme.colors.contentSecondary,
+                                        }}
+                                    >
+                                        Login
+                                    </a>
+                                </>
                             </div>
                         )}
                         {isNotLogin && settings?.provider === 'ChatGLM' && (
@@ -2202,19 +2176,19 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     color: theme.colors.contentPrimary,
                                 }}
                             >
-                                    <>
-                                        <span>{t('Please login to ChatGLM Web')}: </span>
-                                        <a
-                                            href='https://chatglm.cn/'
-                                            target='_blank'
-                                            rel='noreferrer'
-                                            style={{
-                                                color: theme.colors.contentSecondary,
-                                            }}
-                                        >
-                                            Login
-                                        </a>
-                                    </>
+                                <>
+                                    <span>{t('Please login to ChatGLM Web')}: </span>
+                                    <a
+                                        href='https://chatglm.cn/'
+                                        target='_blank'
+                                        rel='noreferrer'
+                                        style={{
+                                            color: theme.colors.contentSecondary,
+                                        }}
+                                    >
+                                        Login
+                                    </a>
+                                </>
                             </div>
                         )}
                     </div>

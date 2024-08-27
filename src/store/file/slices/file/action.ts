@@ -3,7 +3,7 @@ import { produce } from 'immer'
 import { parse } from 'papaparse'
 import { fileService } from '@/common/internal-services/file'
 import { ChatStore } from '../../store'
-import { ReviewSettings, SavedFile, Word } from '@/common/internal-services/db'
+import { ReviewSettings, SavedFile, Translations, Word } from '@/common/internal-services/db'
 import { getInitialFileState } from '../file/initialState'
 import i18n from '@/common/i18n'
 import { strategyOptions } from '@/common/components/ReviewSettings'
@@ -37,6 +37,7 @@ export interface ChatFileAction {
     checkIfInitialized: () => Promise<boolean>
     initializeReviewFiles(): Promise<void>
     updateTranslationText: (translationText: string, actionName: string, wordContent?: string) => void
+    setTranslations: (translations: Translations) => void
 }
 
 export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatFileAction> = (set, get) => ({
@@ -321,11 +322,6 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 nextReview: undefined, // 假设 History 类别不需要复习日期
                 reviewCount: 0,
             }
-            const activateAction = get().activateAction
-
-            if (activateAction?.parentIds) {
-                return
-            }
 
             console.log('Updated word for History:', updatedWord)
 
@@ -506,7 +502,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     deleteSelectedWord: () => {
-        set({ selectedWord: null })
+        set({ selectedWord: null, translations: {} })
     },
 
     // 该方法并不处理indexDB中的保存，只负责更新显示状态
@@ -518,50 +514,52 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             const files = await fileService.fetchFilesByCategory(category)
             const file = files.find((file) => file.category === category && file.name === formattedDate)
             const wordInFile = file?.words.find((w) => w.text === wordContent)
-
-        set(
-            produce((draft) => {
-                // 如果 selectedWord 为 null，初始化为一个空对象
-                if (!draft.selectedWord) {
-                    draft.selectedWord = {}
-                }
-
-                // 确保 selectedWord 有 translations 属性
-                if (!draft.selectedWord.translations) {
-                    draft.selectedWord.translations = {}
-                }
-
-                // 检查特定 actionName 是否存在于 translations 中
-                if (!draft.selectedWord.translations[actionName]) {
-                    draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' }
-                } else {
-                    draft.selectedWord.translations[actionName].text = newText
-                }
-
-                // 验证 selectedWord 是否存在于 words 数组中
-                const wordInWords = draft.words.find((word: Word) => word.text === wordContent)
-
-                if (!wordInWords) {
-                    console.log('word is not in words')
-                    draft.selectedWord = wordInFile 
-
-                    if (!draft.selectedWord.translations[actionName]) {
-                        draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' }
-                    } else {
-                        draft.selectedWord.translations[actionName].text = newText
+    
+            set(
+                produce((draft) => {
+                    // 更新全局 translations 状态
+                    if (!draft.translations) {
+                        draft.translations = {}
                     }
-                    return
-                }
-
-                if (!wordInWords.translations[actionName]) {
-                    wordInWords.translations[actionName] = { text: newText, format: 'markdown' }
-                } else {
-                    wordInWords.translations[actionName].text = newText
-                }
-                // 更新 words 数组中的 word 的 translations 对象
-                wordInWords.translations = draft.selectedWord.translations
-            })
-        )
+    
+                    if (!draft.translations[actionName]) {
+                        draft.translations[actionName] = { text: newText, format: 'markdown' }
+                    } else {
+                        draft.translations[actionName].text = newText
+                    }
+    
+                    // 如果 selectedWord 存在，也更新它的 translations
+                    if (draft.selectedWord) {
+                        if (!draft.selectedWord.translations) {
+                            draft.selectedWord.translations = {}
+                        }
+                        draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' }
+                    }
+    
+                    // 验证 word 是否存在于 words 数组中
+                    const wordInWords = draft.words.find((word: Word) => word.text === wordContent)
+    
+                    if (!wordInWords) {
+                        console.log('word is not in words')
+                        if (wordInFile) {
+                            draft.selectedWord = { 
+                                ...wordInFile,
+                                translations: { ...draft.translations }
+                            }
+                        } else if (wordContent) {
+                            draft.selectedWord = {
+                                text: wordContent,
+                                translations: { ...draft.translations }
+                            }
+                        }
+                    } else {
+                        // 更新 words 数组中的 word 的 translations
+                        wordInWords.translations = { ...draft.translations }
+                    }
+    
+                    console.log('Updated translations:', draft.translations)
+                })
+            )
     
             // 如果需要，这里可以添加将更新后的数据保存到数据库的逻辑
             // await fileService.updateWordInFile(...)
@@ -570,5 +568,9 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             console.error('更新翻译文本时出错:', error)
             // 可以在这里添加错误处理逻辑，如显示错误提示等
         }
+    },
+
+    setTranslations: (translations: Translations) => {
+        set({ translations })
     },
 })

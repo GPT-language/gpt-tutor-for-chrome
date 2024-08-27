@@ -28,6 +28,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         currentPage,
         setCurrentPage,
         markWordAsLearned,
+        translations,
     } = useChatStore()
     const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
     const [isCompleted, setIsCompleted] = useState(false)
@@ -79,6 +80,9 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             selectWord(nextWord)
             setIsSelectedNextWord(true)
         } else {
+            if (selectedCategory === 'Review') {
+                return
+            }
             setCurrentPage(currentPage + 1)
             setIsSelectedNextWord(false)
         }
@@ -101,6 +105,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         }
         await updateReviewStatus(selectedWord)
         toast.success(t('You have finished the review of this word'))
+        handleNextWordClick()
     }
 
     const handleForgetClick = async () => {
@@ -207,7 +212,8 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                 <div
                     style={{
                         display: 'flex',
-                        justifyContent: 'center',
+                        flexDirection: 'column',
+                        alignItems: 'center',
                         width: '100%',
                     }}
                 >
@@ -237,6 +243,22 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                             style={{ width: '50%' }}
                         >
                             <u>{t('Complete this review')}</u>
+                        </Button>
+                    </div>
+                    <div
+                        style={{
+                            width: '50%',
+                            marginTop: '8px',
+                        }}
+                    >
+                        <Button
+                            size={SIZE.compact}
+                            shape={SHAPE.default}
+                            kind={KIND.tertiary}
+                            onClick={() => handleMarkWordAsLearned(selectedWord, reviewFileName)}
+                            style={{ width: '100%' }}
+                        >
+                            <u>{t('Mark as learned')}</u>
                         </Button>
                     </div>
                 </div>
@@ -272,9 +294,10 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         }
 
         const showAddToReview =
-            selectedWord.translations &&
-            typeof selectedWord.translations === 'object' &&
-            Object.keys(selectedWord.translations).length > 0
+            (selectedWord.translations &&
+                typeof selectedWord.translations === 'object' &&
+                Object.keys(selectedWord.translations).length > 0) ||
+            translations
 
         const showMarkAsLearned = selectedWord
         const buttons = []
@@ -309,7 +332,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         }
 
         if (showAddToReview) {
-            // 如果回答已经完成，则显示更多解释和继续按钮
+            // 如果回答已经完成，则显示继续按钮
             halfWidthButtons.push(
                 <Button
                     key='markAsLearned'
