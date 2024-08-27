@@ -39,6 +39,17 @@ if (window.speechSynthesis) {
     }
 }
 
+function cleanMarkdown(text: string): string {
+    return text
+        .replace(/#+\s/g, '') // 移除标题符号
+        .replace(/\*\*/g, '') // 移除粗体符号
+        .replace(/\*/g, '') // 移除斜体符号
+        .replace(/`/g, '') // 移除代码符号
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // 将链接替换为纯文本
+        .replace(/\n/g, ' ') // 将换行符替换为空格
+        .trim() // 去除首尾空白
+}
+
 export async function speak({ text, lang, messageId, conversationId, onFinish }: SpeakOptions) {
     const settings = await getSettings()
     const langTag = langCode2TTSLang[lang ?? 'en'] ?? 'en-US'
@@ -48,7 +59,7 @@ export async function speak({ text, lang, messageId, conversationId, onFinish }:
 
     if (!settings.tts?.provider || settings.tts?.provider === 'EdgeTTS') {
         return edgeSpeak({
-            text,
+            text: cleanMarkdown(text),
             lang: langTag,
             messageId,
             conversationId,

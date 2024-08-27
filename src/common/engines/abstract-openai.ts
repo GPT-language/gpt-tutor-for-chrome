@@ -64,11 +64,6 @@ export abstract class AbstractOpenAI extends AbstractEngine {
             stream: true,
         }
 
-        // Check if a better model should be used
-        if (activatedAction?.useBetterModel) {
-            requestBody.model = 'gpt-4-turbo'
-        }
-
         // Handle different output formats
         switch (activatedAction?.outputRenderingFormat) {
             case 'json':
