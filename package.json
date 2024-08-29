@@ -143,7 +143,7 @@
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-inline-import": "^1.0.1",
     "esbuild-server": "^0.1.2",
-    "eslint": "^8.41.0",
+    "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-import-resolver-typescript": "^3.5.5",
     "eslint-plugin-baseui": "^12.2.0",
