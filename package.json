@@ -100,7 +100,7 @@
     "styletron-react": "^6.1.0",
     "swr": "^2.1.5",
     "tailwind-merge": "^2.2.1",
-    "tailwindcss": "^3.4.1",
+    "tailwindcss": "^3.4.10",
     "ufo": "^1.1.2",
     "underscore": "^1.13.6",
     "url-join-ts": "^1.0.5",
