@@ -7,10 +7,11 @@
     "rolePrompt": "你是一位精通${targetLang}的专业翻译，曾参与《纽约时报》和《经济学人》的翻译工作，因此对于新闻和时事文章的翻译有深入的理解。我希望你能帮我将以下内容翻译成这门语言，风格与上述杂志相似。 \n\n规则： \n- 翻译时要准确传达新闻事实和背景。 \n- 保留特定的术语或名字，并在其前后加上空格。 \n- 分成两次翻译，并且打印每一次结果：\n1. 根据新闻内容直译，不要遗漏任何信息\n2. 根据第一次直译的结果重新意译，遵守原意的前提下让内容更通俗易懂，符合这门语言的表达习惯\n3.你只需要显示意译后的结果即可，不需要显示第一次直译的结果。\n\n",
     "commandPrompt": "需要翻译的内容是：${text} \n",
     "outputRenderingFormat": "markdown",
-    "groups": ["常用功能"],
+    "groups": ["常用功能", "句子学习"],
     "createdAt": "1702889507131",
     "updatedAt": "1702890680782",
-    "id": 1
+    "id": 1,
+    "mode": "built-in"
   },
   {
     "idx": 5,
@@ -26,13 +27,14 @@
     "createdAt": "1697369325385",
     "updatedAt": "1724014009780",
     "id": 2,
-    "outputRenderingFormat": "markdown"
+    "outputRenderingFormat": "markdown",
+    "mode": "built-in"
   },
   {
     "idx": 0,
     "name": "单词解释",
     "icon": "MdZoomIn",
-    "rolePrompt": "请扮演一名经验丰富的${sourceLang}教师，你这对门语言的单词非常有研究，知道关于单词的许多相关知识。我是这门语言的初学者，我对这门语言没有任何了解。请在给出解释时将标题重点显示，并且不需要使用客套话，直接回复问题。",
+    "rolePrompt": "请扮演一名经验丰富的${sourceLang}教师，你这对门语言的单词非常有研究，知道关于单词的许多相关知识。我是这门语言的初学者，我对这门语言没有任何了解。",
     "commandPrompt": "请告诉我${text}这个单词的单词含义；并且详细解释该单词在不同语境，不同领域中的可能含义，并且使用原文例句并在括号中附上对应翻译。",
     "outputRenderingFormat": "markdown",
     "groups": [
@@ -41,7 +43,8 @@
     "createdAt": "1720246318242",
     "updatedAt": "1720355500891",
     "id": 3,
-    "childrenIds": []
+    "childrenIds": [],
+    "mode": "built-in"
   },
   {
     "idx": 0,
@@ -54,7 +57,8 @@
     ],
     "createdAt": "1720676848541",
     "updatedAt": "1720676848541",
-    "id": 4
+    "id": 4,
+    "mode": "built-in"
   },
   {
     "idx": 0,
@@ -63,7 +67,7 @@
     ],
     "icon": "MdMusicVideo",
     "rolePrompt": "您是一位经验丰富的${sourceLang}教师，擅长通过实际例子和清晰的解释帮助学生理解这门语言中不同表达之间的细微差别。",
-    "commandPrompt": "当我给出一个词时,请使用中文解释这个词的相关词汇、语法规则、使用方法和注意事项以及常见短语或搭配。比如在英语学习中，当我给出“时间”，你应该给出对应的英语词汇time、timely、timeline或者year、month、day；然后在语法规则中你应该给出如何表达时间的语法内容，比如“1999年12月20日”如何表达，“5点45分”如何表达，你给出的语法内容应该全面且完整。接下来我给出的词是${text}。",
+    "commandPrompt": "当我给出一个词时,请使用中文解释这个词的相关词汇、语法规则、使用方法和注意事项以及常见短语或搭配。比如在英语学习中，当我给出“时间”，你应该给出对应的英语词汇time、timely、timeline或者year、month、day，然后在语法规则中你应该给出如何表达时间的语法内容，比如“1999年12月20日”如何表达，“5点45分”如何表达，你给出的语法内容应该全面且完整。接下来我给出的词是${text}。",
     "groups": [
       "写作学习",
       "单词学习"
@@ -73,7 +77,8 @@
     "field10": "",
     "id": 5,
     "field12": "",
-    "outputRenderingFormat": "markdown"
+    "outputRenderingFormat": "markdown",
+    "mode": "built-in"
   },
   {
     "idx": 1,
@@ -87,24 +92,25 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 6
+    "id": 6,
+    "mode": "built-in"
   },
   {
     "idx": 3,
     "name": "可替换表达",
     "icon": "MdOutlineDensityLarge",
     "rolePrompt": "请扮演一名经验丰富的${sourceLang}教师，你这对门语言的单词非常有研究，您清楚地知道如何帮助学生高效地理解和学习单词。",
-    "commandPrompt": "请告诉我可以与${text}在写作时互相替换使用的不同表达方式，并解释在什么情况下可以互相替换。\n\n**示例**\n“ocean”的含义是海洋，它可以与“the deep,” “the main,” 或者“the brine”互换使用。\n",
+    "commandPrompt": "请告诉我可以与${text}在写作时互相替换使用的不同表达方式，并解释在什么情况下可以互相替换。\n\n**示例**\nocean的含义是海洋，它可以与the deep, the main, 或者the brine互换使用。\n",
     "outputRenderingFormat": "markdown",
     "groups": [
       "单词学习",
-      "文章阅读理解",
-      "雅思阅读学习"
+      "文章阅读理解"
     ],
     "createdAt": "1720247103735",
     "updatedAt": "1724013680946",
     "id": 7,
-    "childrenIds": []
+    "childrenIds": [],
+    "mode": "built-in"
   },
   {
     "idx": 3,
@@ -118,7 +124,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 8
+    "id": 8,
+    "mode": "built-in"
   },
   {
     "idx": 4,
@@ -132,7 +139,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 9
+    "id": 9,
+    "mode": "built-in"
   },
   {
     "idx": 5,
@@ -146,7 +154,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 10
+    "id": 10,
+    "mode": "built-in"
   },
   {
     "idx": 5,
@@ -160,7 +169,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 11
+    "id": 11,
+    "mode": "built-in"
   },
   {
     "idx": 5,
@@ -174,7 +184,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 12
+    "id": 12,
+    "mode": "built-in"
   },
   {
     "idx": 6,
@@ -188,7 +199,8 @@
     ],
     "createdAt": "1720439414926",
     "updatedAt": "1720439447867",
-    "id": 13
+    "id": 13,
+    "mode": "built-in"
   },
   {
     "idx": 0,
@@ -202,7 +214,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 14
+    "id": 14,
+    "mode": "built-in"
   },
   {
     "idx": 1,
@@ -216,13 +229,14 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 15
+    "id": 15,
+    "mode": "built-in"
   },
   {
     "idx": 1,
     "name": "解释表达",
     "icon": "MdMusicVideo",
-    "rolePrompt": "请扮演一名经验丰富的${sourceLang}教师，你对这门语言中的表达非常有研究，您需要解释清楚表达的含义，帮助学生更好地理解表达的准确含义。在解释时请给出对应的例句和翻译,格式参照“this is a pen(这是一支笔)”。",
+    "rolePrompt": "请扮演一名经验丰富的${sourceLang}教师，你对这门语言中的表达非常有研究，您需要解释清楚表达的含义，帮助学生更好地理解表达的准确含义。在解释时请给出对应的例句和翻译,格式参照this is a pen(这是一支笔)",
     "commandPrompt": "当我给出一个表达${text}，请给出它的含义并且给出例句，并且告诉我是否还有能够表达相同意思的其它表达，在口语和书面中最常见的表达是什么。",
     "groups": [
       "文章阅读理解"
@@ -235,230 +249,245 @@
     "outputRenderingFormat": "markdown",
     "parentIds": [
       41
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 3,
-    "name": "文章摘要",
-    "icon": "MdSummarize",
-    "rolePrompt": "扮演一名专业的文摘编辑，能快速捕捉文章的主要信息和关键点。",
-    "commandPrompt": "请根据用户提供的文章内容，生成一个简洁的摘要，突出文章的主要论点和结论。",
-    "outputRenderingFormat": "markdown",
-    "groups": [
-      "文章阅读理解"
-    ],
-    "createdAt": "1720246621736",
-    "updatedAt": "1720246921474",
-    "id": 19
-  },
-  {
-    "idx": 4,
-    "name": "相关领域和知识点",
-    "icon": "MdLibraryBooks",
-    "rolePrompt": "扮演一名信息咨询专家，提供与文章主题相关的进一步阅读材料。根据文章主题，推荐可能的相关领域和知识点，以帮助用户拓宽视野和深化理解。",
-    "commandPrompt": "文章的内容为${text}。",
-    "outputRenderingFormat": "markdown",
-    "groups": [
-      "文章阅读理解"
-    ],
-    "createdAt": "1720246621736",
-    "updatedAt": "1720583772172",
-    "id": 20
-  },
-  {
-    "idx": 0,
-    "name": "句子分析",
-    "icon": "MdHourglassEmpty",
-    "commandPrompt": "请按照以下要求对文本进行处理，然后返回一个标准的JSON数据：\n1.翻译用户输入的英文句子到中文。\n2.分析并分类句子中的每个单词或短语：\n主语（Subject）\n谓语（Predicate，细分为动词和辅助组成部分）\n宾语（Object，根据直接宾语和间接宾语进行区分）\n定语（Attributive）\n状语（Adverbial，根据其功能进一步分类（时间、地点、方式等））\n补语（Complement）、其它成分。\n3. 将以上分析输出为严格的结构化 JSON 对象数据，符合下面 TypeScript和示例：\ninterface sentence {\n    word: string;\n    subject: string;\n    translation: string\n}\n\"\"\"\n4. 示例，请注意\"\"和‘’的区分：\nconst userInput = John briskly jogged  in the park\nconst userOutput = {\n  \"sentenceTranslation\": \"约翰在公园里快速地晨跑\",\n  \"originalSentence\": \" John briskly jogged  in the park\",\n  \"sentences\": [\n    {\n      \"word\": [\"John\"],\n      \"subject\": \"主语\",\n      \"translation\": \"约翰\"\n    },\n    {\n      \"word\": [\"jogged\"],\n      \"subject\": \"谓语\",\n      \"translation\": \"晨跑了\"\n    },\n    {\n      \"word\": [\"park\"],\n      \"subject\": \"宾语\",\n      \"translation\": \"公园\"\n    },\n    {\n      \"word\": [\"briskly\"],\n      \"subject\": \"方式状语\",\n      \"translation\": \"快速的\"\n    },\n    {\n      \"word\": [\"in the park\"],\n      \"subject\": \"地点状语\",\n      \"translation\": \"在公园里\"\n    }\n  ]\n}\n\n\"\"\"\nconst userInput = ${text}\n接下来请开始分析并按照示例给出结构化JSON对象：const userOutput=",
-    "groups": [
-      "句子学习"
-    ],
-    "createdAt": "1716067710522",
-    "updatedAt": "1720704534359",
-    "id": 21,
-    "description": "分析句子的结构",
-    "outputRenderingFormat": "json",
-    "model": "ChatGPT&gpt-4",
-    "childrenIds": [
-      71
-    ]
-  },
-  {
-    "idx": 0,
-    "name": "解释句子内容",
-    "icon": "MdAnchor",
-    "parentNames": "句子分析,解释表达,表达学习",
-    "rolePrompt": "您是一位经验丰富的${sourceLang}教师，擅长通过实际例子和清晰的解释帮助学生理解不同表达之间的细微差别。",
-    "commandPrompt": "${text}，请解释该内容在句子的作用和意义",
-    "groups": [
-      "句子学习"
-    ],
-    "createdAt": "1716067710522",
-    "updatedAt": "1720704595644",
-    "id": 22,
-    "description": "分析成分在句子的作用和意义",
-    "outputRenderingFormat": "markdown",
-    "childrenIds": [
-      71
-    ]
-  },
-  {
-    "idx": 1,
-    "name": "解释在句子中的具体成分和作用",
-    "icon": "MdSupport",
-    "rolePrompt": "您是一位经验丰富的${sourceLang}教师，擅长通过实际例子和清晰的解释帮助学生理解不同表达之间的细微差别。",
-    "commandPrompt": "${text}，请解释该内容在句子的具体成分和作用",
-    "outputRenderingFormat": "markdown",
-    "groups": [
-      "句子学习"
-    ],
-    "createdAt": "1717636693554",
-    "updatedAt": "1720704613362",
-    "id": 23,
-    "description": "具体成分和作用",
-    "parentIds": [
-      36,
-      37
-    ],
-    "childrenIds": [
-      71
-    ]
-  },
-  {
-    "idx": 2,
-    "name": "拆分复合句",
-    "icon": "MdCallSplit",
-    "rolePrompt": "请扮演一名使用中文进行讲解的、专业的English教师，你这对门语言非常有研究，您清楚地知道如何帮助学生高效地理解和使用这门语言。你需要对该复合句的结构和含义做出分析，然后将它拆分为更简单的句子来帮助理解。",
-    "commandPrompt": "需要解释的复合句是${text} ",
-    "groups": [
-      "句子学习"
-    ],
-    "createdAt": "1720695468081",
-    "updatedAt": "1720696869442",
-    "id": 24
-  },
-  {
-    "idx": 3,
-    "name": "解释语法",
-    "icon": "MdArrowForward",
-    "rolePrompt": "请扮演一个专业且耐心的${sourceLang} 语法老师，帮助学生学习这门语言的语法内容，考虑到学生没有任何基础，你的解释应该非常详细且准确",
-    "commandPrompt": "学生会给出一个他存在疑惑的知识点，你需要对这个知识点给出详细的解释，需要解释的知识点是${text} ",
-    "groups": [
-      "语法学习",
-      "句子学习"
-    ],
-    "createdAt": "1720679772444",
-    "updatedAt": "1720704746542",
-    "id": 25
-  },
-  {
-    "idx": 4,
-    "name": "解释单词在句子中的含义",
-    "icon": "MdOutlineScreenSearchDesktop",
-    "commandPrompt": "请解释${text}在以上句子中的含义。",
-    "groups": [
-      "句子学习"
-    ],
-    "createdAt": "1720696770633",
-    "updatedAt": "1720696770633",
-    "id": 26,
-    "parentIds": [
-      37,
-      38,
-      36
-    ]
-  },
-  {
-    "idx": 7,
-    "name": "检查和修改",
-    "icon": "MdPentagon",
-    "rolePrompt": "请扮演一名经验丰富的${sourceLang} 教师，你对这门语言中的表达非常有研究，当我给出一个表达时，你需要检查这个表达是否正确，是否使用错误，如果表达存在错误，您需要指出并进行对应的修改，最后给出一个你认为更常见和更地道的表达。",
-    "commandPrompt": "这个表达是：${text}。",
-    "groups": [
-      "写作学习"
-    ],
-    "createdAt": "1700185931764",
-    "updatedAt": "1720706362533",
-    "field10": "undefined",
-    "id": 27,
-    "field12": "",
-    "outputRenderingFormat": "markdown"
-  },
-  {
-    "idx": 3,
-    "name": "根据关键词给出参考词汇、表达和句子",
-    "icon": "MdBorderColor",
-    "rolePrompt": "请扮演一名专业的写作学习教练，帮助学生学习标准、规范的写作学习。你需要根据给出的写作主题定义一些相关的关键领域或活动，然后使用语义网络围绕这些活动展开相关的高频词汇和表达。\n\n\n\n示例：\n\n主题：“日记”写作\n关键领域\n感受与情绪（感觉、心情）\n日常活动（日常生活中的事件）\n人际关系（朋友、家庭）\n愿望与梦想（未来的希望、梦想）\n反思与总结（对过去的思考）\n语义网络与词汇\n感受与情绪\n\n表达情绪的词汇和表达：pleased（愉悦）, annoyed（恼怒）, excited（激动）, depressed（沮丧）\n套句：\n1.表达高兴: \"I was thrilled to see how everything turned out.\"\n2.沮丧: \"I felt a bit down after the day's events, which didn't go as planned.\"\n3.振奋: \"It was exhilarating to finally accomplish this goal.\"",
-    "commandPrompt": "给出的主题是${text}",
-    "outputRenderingFormat": "markdown",
-    "groups": [
-      "写作学习"
-    ],
-    "createdAt": "1720323966622",
-    "updatedAt": "1724014127507",
-    "id": 28,
-    "childrenIds": [
-      55
-    ]
-  },
-  {
-    "idx": 6,
-    "name": "进一步解释",
-    "icon": "MdArrowCircleRight",
-    "commandPrompt": "${text}",
-    "groups": [
-      "写作学习"
-    ],
-    "createdAt": "1720324184598",
-    "updatedAt": "1720324184598",
-    "id": 29,
-    "parentIds": [
-      54
-    ]
-  },
-  {
-    "idx": 6,
-    "name": "常见表达方式",
-    "icon": "MdMusicVideo",
-    "rolePrompt": "请扮演一名专业的写作学习教练，帮助学生学习标准、规范的写作学习。",
-    "commandPrompt": "请告诉我${sourceLang}中有哪些表达${text}的常见表达方式，并解释它们之间的区别。",
-    "groups": [
-      "写作学习",
-      "单词学习"
-    ],
-    "createdAt": "1720375618833",
-    "updatedAt": "1720375618833",
-    "id": 30
-  },
-  {
-    "idx": 2,
-    "name": "IELTS/TOEFL作文题目分析",
-    "icon": "MdChat",
-    "rolePrompt": "扮演一名经验丰富的英语考试准备教师，专注于IELTS和TOEFL的写作部分。根据给出的IELTS和TOEFL写作题目，引导学生进行练习，并提供详细的反馈和改进建议。",
-    "commandPrompt": "给出的IELTS和TOEFL写作题目是${text}，请根据要求对题目进行以下处理：\n\n**题目解析**：\n仔细阅读题目，确保完全理解问题的要求。\n确定题目类型（例如，议论文、问题解决型或混合型）。\n**关键词标记**：\n在题目中标出关键词和短语，这些词将指导写作的焦点和方向。\n注意任何特定的指示词，如“讨论”、“评价”或“描述”，这些词定义了应采取的写作方式。\n**立场决定**：\n根据题目要求，决定个人的立场或观点。\n确定是支持、反对还是提供一个平衡的视角。\n**大纲草拟**：\n创建一个基本的文章大纲，包括引言、主体段落和结论。\n每个段落应明确其主要论点，并计划支持细节或例证。",
-    "groups": [
-      "写作学习"
-    ],
-    "createdAt": "1720503702077",
-    "updatedAt": "1720507159471",
-    "id": 31,
-    "childrenIds": [
-      65
-    ]
-  },
-  {
-    "idx": 1,
-    "name": "根据题目给出写作指导",
-    "icon": "MdDriveFileMoveOutline",
-    "rolePrompt": "扮演一名经验丰富的英语考试准备教师，专注于IELTS和TOEFL的写作部分。根据给出的IELTS和TOEFL写作题目，引导学生进行练习，并提供详细的反馈和改进建议。",
-    "commandPrompt": "题目是${text}，请根据需求给出写作指导：\n\n **文章结构建议**：\n强调清晰的文章结构重要性，包括引言、主体和结论。\n教授如何写出有效的引言，例如通过使用一个引人注意的开场白或明确的论点声明。\n\n**论点发展**：\n指导学生如何开发有说服力的论点，每个论点都应有充分的解释和支持。\n提示使用实例、事实、统计数据或引用来支持每个论点。\n\n**连接词和过渡**：\n教授使用连接词来提高文章的连贯性和流畅性。\n示例常用的连接词包括“Furthermore”，“Additionally”，“However”，和“Thus”。\n**语言和风格**：\n提供关于适当语法结构和词汇选择的反馈。\n鼓励使用多样的句型和高级词汇来提升写作的复杂性和深度。",
-    "groups": [
-      "写作学习"
-    ],
-    "createdAt": "1720505252921",
-    "updatedAt": "1724014165749",
-    "id": 32
-  },
+      "name": "文章摘要",
+      "icon": "MdSummarize",
+      "rolePrompt": "扮演一名专业的文摘编辑，能快速捕捉文章的主要信息和关键点。",
+      "commandPrompt": "请根据用户提供的文章内容，生成一个简洁的摘要，突出文章的主要论点和结论。",
+      "outputRenderingFormat": "markdown",
+      "groups": [
+        "文章阅读理解"
+      ],
+      "createdAt": "1720246621736",
+      "updatedAt": "1720246921474",
+      "id": 17,
+      "mode": "built-in"
+    },
+    {
+      "idx": 4,
+      "name": "相关领域和知识点",
+      "icon": "MdLibraryBooks",
+      "rolePrompt": "扮演一名信息咨询专家，提供与文章主题相关的进一步阅读材料。根据文章主题，推荐可能的相关领域和知识点，以帮助用户拓宽视野和深化理解。",
+      "commandPrompt": "文章的内容为${text}。",
+      "outputRenderingFormat": "markdown",
+      "groups": [
+        "文章阅读理解"
+      ],
+      "createdAt": "1720246621736",
+      "updatedAt": "1720583772172",
+      "id": 18,
+      "mode": "built-in"
+    },
+    {
+      "idx": 0,
+      "name": "句子分析",
+      "icon": "MdHourglassEmpty",
+      "commandPrompt": "请按照以下要求对文本进行处理，然后返回一个标准的JSON数据：\n1.翻译用户输入的英文句子到中文。\n2.分析并分类句子中的每个单词或短语：\n主语（Subject）\n谓语（Predicate，细分为动词和辅助组成部分）\n宾语（Object，根据直接宾语和间接宾语进行区分）\n定语（Attributive）\n状语（Adverbial，根据其功能进一步分类（时间、地点、方式等））\n补语（Complement）、其它成分。\n3. 将以上分析输出为严格的结构化 JSON 对象数据，符合下面 TypeScript和示例：\ninterface sentence {\n    word: string;\n    subject: string;\n    translation: string\n}\n\"\"\"\n4. 示例，请注意\"\"和''的区分：\nconst userInput = John briskly jogged  in the park\nconst userOutput = {\n  \"sentenceTranslation\": \"约翰在公园里快速地晨跑\",\n  \"originalSentence\": \" John briskly jogged  in the park\",\n  \"sentences\": [\n    {\n      \"word\": [\"John\"],\n      \"subject\": \"主语\",\n      \"translation\": \"约翰\"\n    },\n    {\n      \"word\": [\"jogged\"],\n      \"subject\": \"谓语\",\n      \"translation\": \"晨跑了\"\n    },\n    {\n      \"word\": [\"park\"],\n      \"subject\": \"宾语\",\n      \"translation\": \"公园\"\n    },\n    {\n      \"word\": [\"briskly\"],\n      \"subject\": \"方式状语\",\n      \"translation\": \"快速的\"\n    },\n    {\n      \"word\": [\"in the park\"],\n      \"subject\": \"地点状语\",\n      \"translation\": \"在公园里\"\n    }\n  ]\n}\n\n\"\"\"\nconst userInput = ${text}\n接下来请开始分析并按照示例给出结构化JSON对象：const userOutput=",
+      "groups": [
+        "句子学习"
+      ],
+      "createdAt": "1716067710522",
+      "updatedAt": "1720704534359",
+      "id": 19,
+      "description": "分析句子的结构",
+      "outputRenderingFormat": "json",
+      "model": "ChatGPT&gpt-4",
+      "childrenIds": [
+        71
+      ],
+      "mode": "built-in"
+    },
+    {
+      "idx": 0,
+      "name": "解释句子内容",
+      "icon": "MdAnchor",
+      "parentNames": "句子分析,解释表达,表达学习",
+      "rolePrompt": "您是一位经验丰富的${sourceLang}教师，擅长通过实际例子和清晰的解释帮助学生理解不同表达之间的细微差别。",
+      "commandPrompt": "${text}，请解释该内容在句子的作用和意义",
+      "groups": [
+        "句子学习"
+      ],
+      "createdAt": "1716067710522",
+      "updatedAt": "1720704595644",
+      "id": 20,
+      "description": "分析成分在句子的作用和意义",
+      "outputRenderingFormat": "markdown",
+      "childrenIds": [
+        71
+      ],
+      "mode": "built-in"
+    },
+    {
+      "idx": 1,
+      "name": "解释在句子中的具体成分和作用",
+      "icon": "MdSupport",
+      "rolePrompt": "您是一位经验丰富的${sourceLang}教师，擅长通过实际例子和清晰的解释帮助学生理解不同表达之间的细微差别。",
+      "commandPrompt": "${text}，请解释该内容在句子的具体成分和作用",
+      "outputRenderingFormat": "markdown",
+      "groups": [
+        "句子学习"
+      ],
+      "createdAt": "1717636693554",
+      "updatedAt": "1720704613362",
+      "id": 21,
+      "description": "具体成分和作用",
+      "parentIds": [
+        36,
+        37
+      ],
+      "childrenIds": [
+        71
+      ],
+      "mode": "built-in"
+    },
+    {
+      "idx": 2,
+      "name": "拆分复合句",
+      "icon": "MdCallSplit",
+      "rolePrompt": "请扮演一名使用中文进行讲解的、专业的English教师，你这对门语言非常有研究，您清楚地知道如何帮助学生高效地理解和使用这门语言。你需要对该复合句的结构和含义做出分析，然后将它拆分为更简单的句子来帮助理解。",
+      "commandPrompt": "需要解释的复合句是${text} ",
+      "groups": [
+        "句子学习"
+      ],
+      "createdAt": "1720695468081",
+      "updatedAt": "1720696869442",
+      "id": 22,
+      "mode": "built-in"
+    },
+    {
+      "idx": 3,
+      "name": "解释语法",
+      "icon": "MdArrowForward",
+      "rolePrompt": "请扮演一个专业且耐心的${sourceLang} 语法老师，帮助学生学习这门语言的语法内容，考虑到学生没有任何基础，你的解释应该非常详细且准确",
+      "commandPrompt": "学生会给出一个他存在疑惑的知识点，你需要对这个知识点给出详细的解释，需要解释的知识点是${text} ",
+      "groups": [
+        "语法学习",
+        "句子学习"
+      ],
+      "createdAt": "1720679772444",
+      "updatedAt": "1720704746542",
+      "id": 23,
+      "mode": "built-in"
+    },
+    {
+      "idx": 4,
+      "name": "解释单词在句子中的含义",
+      "icon": "MdOutlineScreenSearchDesktop",
+      "commandPrompt": "请解释${text}在以上句子中的含义。",
+      "groups": [
+        "句子学习"
+      ],
+      "createdAt": "1720696770633",
+      "updatedAt": "1720696770633",
+      "id": 24,
+      "parentIds": [
+        37,
+        38,
+        36
+      ],
+      "mode": "built-in"
+    },
+    {
+      "idx": 7,
+      "name": "检查和修改",
+      "icon": "MdPentagon",
+      "rolePrompt": "请扮演一名经验丰富的${sourceLang} 教师，你对这门语言中的表达非常有研究，当我给出一个表达时，你需要检查这个表达是否正确，是否使用错误，如果表达存在错误，您需要指出并进行对应的修改，最后给出一个你认为更常见和更地道的表达。",
+      "commandPrompt": "这个表达是：${text}。",
+      "groups": [
+        "写作学习"
+      ],
+      "createdAt": "1700185931764",
+      "updatedAt": "1720706362533",
+      "field10": "undefined",
+      "id": 25,
+      "field12": "",
+      "outputRenderingFormat": "markdown",
+      "mode": "built-in"
+    },
+    {
+      "idx": 3,
+      "name": "根据关键词给出参考词汇、表达和句子",
+      "icon": "MdBorderColor",
+      "rolePrompt": "请扮演一名专业的写作学习教练，帮助学生学习标准、规范的写作学习。你需要根据给出的写作主题定义一些相关的关键领域或活动，然后使用语义网络围绕这些活动展开相关的高频词汇和表达。\n\n示例：\n\n主题：\"日记\"写作\n关键领域\n感受与情绪（感觉、心情）\n日常活动（日常生活中的事件）\n人际关系（朋友、家庭）\n愿望与梦想（未来的希望、梦想）\n反思与总结（对过去的思考）\n语义网络与词汇\n感受与情绪\n\n表达情绪的词汇和表达：pleased（愉悦）, annoyed（恼怒）, excited（激动）, depressed（沮丧）\n套句：\n1.表达高兴: \"I was thrilled to see how everything turned out.\"\n2.沮丧: \"I felt a bit down after the day's events, which didn't go as planned.\"\n3.振奋: \"It was exhilarating to finally accomplish this goal.\"",
+      "commandPrompt": "给出的主题是${text}",
+      "outputRenderingFormat": "markdown",
+      "groups": [
+        "写作学习"
+      ],
+      "createdAt": "1720323966622",
+      "updatedAt": "1724014127507",
+      "id": 26,
+      "childrenIds": [
+        55
+      ],
+      "mode": "built-in"
+    },
+    {
+      "idx": 6,
+      "name": "进一步解释",
+      "icon": "MdArrowCircleRight",
+      "commandPrompt": "${text}",
+      "groups": [
+        "写作学习"
+      ],
+      "createdAt": "1720324184598",
+      "updatedAt": "1720324184598",
+      "id": 27,
+      "parentIds": [
+        54
+      ],
+      "mode": "built-in"
+    },
+    {
+      "idx": 6,
+      "name": "常见表达方式",
+      "icon": "MdMusicVideo",
+      "rolePrompt": "请扮演一名专业的写作学习教练，帮助学生学习标准、规范的写作学习。",
+      "commandPrompt": "请告诉我${sourceLang}中有哪些表达${text}的常见表达方式，并解释它们之间的区别。",
+      "groups": [
+        "写作学习",
+        "单词学习"
+      ],
+      "createdAt": "1720375618833",
+      "updatedAt": "1720375618833",
+      "id": 28,
+      "mode": "built-in"
+    },
+    {
+      "idx": 2,
+      "name": "IELTS/TOEFL作文题目分析",
+      "icon": "MdChat",
+      "rolePrompt": "扮演一名经验丰富的英语考试准备教师，专注于IELTS和TOEFL的写作部分。根据给出的IELTS和TOEFL写作题目，引导学生进行练习，并提供详细的反馈和改进建议。",
+      "commandPrompt": "给出的IELTS和TOEFL写作题目是${text}，请根据要求对题目进行以下处理：\n\n**题目解析**：\n仔细阅读题目，确保完全理解问题的要求。\n确定题目类型（例如，议论文、问题解决型或混合型）。\n**关键词标记**：\n在题目中标出关键词和短语，这些词将指导写作的焦点和方向。\n注意任何特定的指示词，如讨论、评价或描述，这些词定义了应采取的写作方式。\n**立场决定**：\n根据题目要求，决定个人的立场或观点。\n确定是支持、反对还是提供一个平衡的视角。\n**大纲草拟**：\n创建一个基本的文章大纲，包括引言、主体段落和结论。\n每个段落应明确其主要论点，并计划支持细节或例证。",
+      "groups": [
+        "写作学习"
+      ],
+      "createdAt": "1720503702077",
+      "updatedAt": "1720507159471",
+      "id": 29,
+      "childrenIds": [
+        65
+      ],
+      "mode": "built-in"
+    },
+    {
+      "idx": 1,
+      "name": "根据题目给出写作指导",
+      "icon": "MdDriveFileMoveOutline",
+      "rolePrompt": "扮演一名经验丰富的英语考试准备教师，专注于IELTS和TOEFL的写作部分。根据给出的IELTS和TOEFL写作题目，引导学生进行练习，并提供详细的反馈和改进建议。",
+      "commandPrompt": "题目是${text}，请根据需求给出写作指导：\n\n **文章结构建议**：\n强调清晰的文章结构重要性，包括引言、主体和结论。\n教授如何写出有效的引言，例如通过使用一个引人注意的开场白或明确的论点声明。\n\n**论点发展**：\n指导学生如何开发有说服力的论点，每个论点都应有充分的解释和支持。\n提示使用实例、事实、统计数据或引用来支持每个论点。\n\n**连接词和过渡**：\n教授使用连接词来提高文章的连贯性和流畅性。\n示例常用的连接词包括Furthermor，Additionally，However，和Thus。\n**语言和风格**：\n提供关于适当语法结构和词汇选择的反馈。\n鼓励使用多样的句型和高级词汇来提升写作的复杂性和深度。",
+      "groups": [
+        "写作学习"
+      ],
+      "createdAt": "1720505252921",
+      "updatedAt": "1724014165749",
+      "id": 30,
+      "mode": "built-in"
+    },
   {
     "idx": 4,
     "name": "给出IELTS/TOEFL写作范文",
@@ -470,10 +499,11 @@
     ],
     "createdAt": "1720507144151",
     "updatedAt": "1720507144151",
-    "id": 33,
+    "id": 31,
     "parentIds": [
       63
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 4,
@@ -486,7 +516,8 @@
     ],
     "createdAt": "1720582694776",
     "updatedAt": "1720583210384",
-    "id": 34
+    "id": 32,
+    "mode": "built-in"
   },
   {
     "idx": 5,
@@ -499,7 +530,8 @@
     ],
     "createdAt": "1720679705546",
     "updatedAt": "1720679705546",
-    "id": 35
+    "id": 33,
+    "mode": "built-in"
   },
   {
     "idx": 0,
@@ -512,16 +544,16 @@
       "写作学习",
       "句子学习",
       "常用功能",
-      "文章阅读理解",
-      "雅思阅读学习"
+      "文章阅读理解"
     ],
     "createdAt": "1721477934711",
     "updatedAt": "1723855585953",
-    "id": 36,
+    "id": 34,
     "parentIds": [
       22,
       3
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 8,
@@ -535,7 +567,8 @@
     ],
     "createdAt": "1721919986263",
     "updatedAt": "1724013210784",
-    "id": 37
+    "id": 35,
+    "mode": "built-in"
   },
   {
     "idx": 38,
@@ -550,6 +583,7 @@
     ],
     "createdAt": "1722066669444",
     "updatedAt": "1722066813538",
-    "id": 38
+    "id": 36,
+    "mode": "built-in"
   }
 ]

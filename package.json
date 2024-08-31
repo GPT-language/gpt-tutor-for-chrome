@@ -44,6 +44,7 @@
     "clsx": "^1.2.1",
     "common-tags": "^1.8.2",
     "date-fns": "^2.29.3",
+    "deep-object-diff": "^1.1.9",
     "destr": "^2.0.0",
     "dexie": "^3.2.3",
     "dexie-react-hooks": "^1.1.3",

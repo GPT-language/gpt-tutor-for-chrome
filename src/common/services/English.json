@@ -9,7 +9,8 @@
     "groups": ["Common Functions"],
     "createdAt": "1702889507131",
     "updatedAt": "1702890680782",
-    "id": 1
+    "id": 1,
+    "mode": "built-in"
 },
   {
     "idx": 0,
@@ -21,7 +22,8 @@
     "createdAt": "1697369325385",
     "updatedAt": "1702828509642",
     "id": 2,
-    "outputRenderingFormat": "markdown"
+    "outputRenderingFormat": "markdown",
+    "mode": "built-in"
   },
   {
     "idx": 0,
@@ -36,7 +38,8 @@
     "createdAt": "1720246318242",
     "updatedAt": "1720355500891",
     "id": 3,
-    "childrenIds": []
+    "childrenIds": [],
+    "mode": "built-in"
   },
   {
     "idx": 0,
@@ -49,7 +52,8 @@
     ],
     "createdAt": "1720676848541",
     "updatedAt": "1720676848541",
-    "id": 4
+    "id": 4,
+    "mode": "built-in"
   },
   {
     "idx": 0,
@@ -58,7 +62,7 @@
     ],
     "icon": "MdMusicVideo",
     "rolePrompt": "You are an experienced ${sourceLang} teacher who excels at helping students understand the subtle differences between different expressions in the language through practical examples and clear explanations.",
-    "commandPrompt": "When I provide a word, please use Chinese to explain the related vocabulary, grammatical rules, usage methods, and precautions, as well as common phrases or collocations. For example, in English learning, when I give the word “time,” you should provide corresponding English vocabulary like time, timely, timeline or year, month, day; then in the grammar rules you should provide how to express time grammatically, such as how to express “December 20, 1999,” how to express “5:45,” and your provided grammar content should be comprehensive and complete. The next word I provide is ${text}.",
+    "commandPrompt": "When I provide a word, please use Chinese to explain the related vocabulary, grammatical rules, usage methods, and precautions, as well as common phrases or collocations. For example, in English learning, when I give the word \"time,\" you should provide corresponding English vocabulary like time, timely, timeline or year, month, day; then in the grammar rules you should provide how to express time grammatically, such as how to express \"December 20, 1999,\" how to express \"5:45,\" and your provided grammar content should be comprehensive and complete. The next word I provide is ${text}.",
     "groups": [
       "Writing Learning",
       "Word Learning"
@@ -68,7 +72,8 @@
     "field10": "",
     "id": 5,
     "field12": "",
-    "outputRenderingFormat": "markdown"
+    "outputRenderingFormat": "markdown",
+    "mode": "built-in"
   },
   {
     "idx": 1,
@@ -82,7 +87,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 6
+    "id": 6,
+    "mode": "built-in"
   },
   {
     "idx": 2,
@@ -98,7 +104,8 @@
     "createdAt": "1720247103735",
     "updatedAt": "1720706657557",
     "id": 7,
-    "childrenIds": []
+    "childrenIds": [],
+    "mode": "built-in"
   },
   {
     "idx": 3,
@@ -112,7 +119,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 8
+    "id": 8,
+    "mode": "built-in"
   },
   {
     "idx": 4,
@@ -126,7 +134,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 9
+    "id": 9,
+    "mode": "built-in"
   },
   {
     "idx": 5,
@@ -140,7 +149,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 10
+    "id": 10,
+    "mode": "built-in"
   },
   {
     "idx": 5,
@@ -154,7 +164,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 11
+    "id": 11,
+    "mode": "built-in"
   },
   {
     "idx": 5,
@@ -168,7 +179,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 12
+    "id": 12,
+    "mode": "built-in"
   },
   {
     "idx": 6,
@@ -182,7 +194,8 @@
     ],
     "createdAt": "1720439414926",
     "updatedAt": "1720439447867",
-    "id": 13
+    "id": 13,
+    "mode": "built-in"
   },
   {
     "idx": 0,
@@ -196,7 +209,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 14
+    "id": 14,
+    "mode": "built-in"
   },
   {
     "idx": 1,
@@ -210,13 +224,14 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 15
+    "id": 15,
+    "mode": "built-in"
   },
   {
     "idx": 1,
     "name": "Explanation of Expression",
     "icon": "MdMusicVideo",
-    "rolePrompt": "Please act as an experienced ${sourceLang} teacher, well-versed in the expressions of this language. You need to clearly explain the meaning of the expression, helping students better understand the accurate meaning of the expression. When explaining, please provide corresponding examples and translations, formatted like “this is a pen (this is a pen).”",
+    "rolePrompt": "Please act as an experienced ${sourceLang} teacher, well-versed in the expressions of this language. You need to clearly explain the meaning of the expression, helping students better understand the accurate meaning of the expression. When explaining, please provide corresponding examples and translations, formatted like \"this is a pen (this is a pen).\"",
     "commandPrompt": "When I provide an expression ${text}, please provide its meaning and give examples. Also, tell me if there are other expressions that can convey the same meaning. What are the most common expressions in spoken and written language?",
     "groups": [
       "Article Reading Comprehension"
@@ -229,7 +244,8 @@
     "outputRenderingFormat": "markdown",
     "parentIds": [
       41
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 2,
@@ -245,7 +261,8 @@
     "createdAt": "1720247103735",
     "updatedAt": "1720706657557",
     "id": 17,
-    "childrenIds": []
+    "childrenIds": [],
+    "mode": "built-in"
   },
   {
     "idx": 2,
@@ -259,7 +276,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 18
+    "id": 18,
+    "mode": "built-in"
   },
   {
     "idx": 3,
@@ -273,7 +291,8 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720246921474",
-    "id": 19
+    "id": 19,
+    "mode": "built-in"
   },
   {
     "idx": 4,
@@ -287,13 +306,14 @@
     ],
     "createdAt": "1720246621736",
     "updatedAt": "1720583772172",
-    "id": 20
+    "id": 20,
+    "mode": "built-in"
   },
   {
     "idx": 0,
     "name": "Sentence Analysis",
     "icon": "MdHourglassEmpty",
-    "commandPrompt": "Please process the text according to the following requirements, and then return a standard JSON data:\n1. Translate the user input English sentence into Chinese.\n2. Analyze and classify each word or phrase in the sentence:\nSubject\nPredicate (divided into verbs and auxiliary components)\nObject (distinguished between direct and indirect objects)\nAttributive\nAdverbial (further classified according to its function such as time, place, manner, etc.)\nComplement, and other components.\n3. Output the above analysis as a strictly structured JSON object data, conforming to the following TypeScript and example:\ninterface sentence {\n    word: string;\n    subject: string;\n    translation: string\n}\n\"\"\"\n4. Example, please note the distinction between \"\" and ‘’:\nconst userInput = John briskly jogged in the park\nconst userOutput = {\n  \"sentenceTranslation\": \"John briskly jogged in the park\",\n  \"originalSentence\": \"John briskly jogged in the park\",\n  \"sentences\": [\n    {\n      \"word\": [\"John\"],\n      \"subject\": \"Subject\",\n      \"translation\": \"John\"\n    },\n    {\n      \"word\": [\"jogged\"],\n      \"subject\": \"Predicate\",\n      \"translation\": \"jogged\"\n    },\n    {\n      \"word\": [\"park\"],\n      \"subject\": \"Object\",\n      \"translation\": \"park\"\n    },\n    {\n      \"word\": [\"briskly\"],\n      \"subject\": \"Adverbial\",\n      \"translation\": \"briskly\"\n    },\n    {\n      \"word\": [\"in the park\"],\n      \"subject\": \"Adverbial\",\n      \"translation\": \"in the park\"\n    }\n  ]\n}\n\n\"\"\"\nconst userInput = ${text}\nPlease start the analysis and give out the structured JSON object according to the example: const userOutput=",
+    "commandPrompt": "Please process the text according to the following requirements, and then return a standard JSON data:\n1. Translate the user input English sentence into Chinese.\n2. Analyze and classify each word or phrase in the sentence:\nSubject\nPredicate (divided into verbs and auxiliary components)\nObject (distinguished between direct and indirect objects)\nAttributive\nAdverbial (further classified according to its function such as time, place, manner, etc.)\nComplement, and other components.\n3. Output the above analysis as a strictly structured JSON object data, conforming to the following TypeScript and example:\ninterface sentence {\n    word: string;\n    subject: string;\n    translation: string\n}\n\"\"\"\n4. Example, please note the distinction between \"\" and '':\nconst userInput = John briskly jogged in the park\nconst userOutput = {\n  \"sentenceTranslation\": \"John briskly jogged in the park\",\n  \"originalSentence\": \"John briskly jogged in the park\",\n  \"sentences\": [\n    {\n      \"word\": [\"John\"],\n      \"subject\": \"Subject\",\n      \"translation\": \"John\"\n    },\n    {\n      \"word\": [\"jogged\"],\n      \"subject\": \"Predicate\",\n      \"translation\": \"jogged\"\n    },\n    {\n      \"word\": [\"park\"],\n      \"subject\": \"Object\",\n      \"translation\": \"park\"\n    },\n    {\n      \"word\": [\"briskly\"],\n      \"subject\": \"Adverbial\",\n      \"translation\": \"briskly\"\n    },\n    {\n      \"word\": [\"in the park\"],\n      \"subject\": \"Adverbial\",\n      \"translation\": \"in the park\"\n    }\n  ]\n}\n\n\"\"\"\nconst userInput = ${text}\nPlease start the analysis and give out the structured JSON object according to the example: const userOutput=",
     "groups": [
       "Sentence Learning"
     ],
@@ -305,7 +325,8 @@
     "model": "ChatGPT&gpt-4",
     "childrenIds": [
       71
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 0,
@@ -324,7 +345,8 @@
     "outputRenderingFormat": "markdown",
     "childrenIds": [
       71
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 1,
@@ -346,7 +368,8 @@
     ],
     "childrenIds": [
       71
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 2,
@@ -359,7 +382,8 @@
     ],
     "createdAt": "1720695468081",
     "updatedAt": "1720696869442",
-    "id": 24
+    "id": 24,
+    "mode": "built-in"
   },
   {
     "idx": 3,
@@ -373,7 +397,8 @@
     ],
     "createdAt": "1720679772444",
     "updatedAt": "1720704746542",
-    "id": 25
+    "id": 25,
+    "mode": "built-in"
   },
   {
     "idx": 4,
@@ -390,7 +415,8 @@
       22,
       23,
       21
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 5,
@@ -406,13 +432,14 @@
     "field10": "undefined",
     "id": 27,
     "field12": "",
-    "outputRenderingFormat": "markdown"
+    "outputRenderingFormat": "markdown",
+    "mode": "built-in"
   },
   {
     "idx": 6,
     "name": "Provide Reference Vocabulary, Expressions, and Sentences",
     "icon": "MdBorderColor",
-    "rolePrompt": "Please act as a professional writing Learning coach, helping students learn standard, normative writing. You need to define some related key areas or activities based on the given writing theme, then use a semantic network to develop related high-frequency vocabulary and expressions around these activities.\n\nExample:\n\nTheme: “Diary” writing\nKey areas\nFeelings and emotions (feelings, mood)\nDaily activities (events in daily life)\nInterpersonal relationships (friends, family)\nHopes and dreams (future hopes, dreams)\nReflection and summary (thinking about the past)\nSemantic network and vocabulary\nFeelings and emotions\n\nVocabulary and expressions for conveying emotions: pleased, annoyed, excited, depressed\nSet phrases:\n1. Expressing happiness: \"I was thrilled to see how everything turned out.\"\n2. Despondency: \"I felt a bit down after the day's events, which didn't go as planned.\"\n3. Elation: \"It was exhilarating to finally accomplish this goal.\"",
+    "rolePrompt": "Please act as a professional writing Learning coach, helping students learn standard, normative writing. You need to define some related key areas or activities based on the given writing theme, then use a semantic network to develop related high-frequency vocabulary and expressions around these activities.\n\nExample:\n\nTheme: Diary writing\nKey areas\nFeelings and emotions (feelings, mood)\nDaily activities (events in daily life)\nInterpersonal relationships (friends, family)\nHopes and dreams (future hopes, dreams)\nReflection and summary (thinking about the past)\nSemantic network and vocabulary\nFeelings and emotions\n\nVocabulary and expressions for conveying emotions: pleased, annoyed, excited, depressed\nSet phrases:\n1. Expressing happiness: 'I was thrilled to see how everything turned out.'\n2. Despondency: 'I felt a bit down after the day's events, which didn't go as planned.'\n3. Elation: 'It was exhilarating to finally accomplish this goal.'",
     "commandPrompt": "The given theme is ${text}",
     "outputRenderingFormat": "markdown",
     "groups": [
@@ -423,7 +450,8 @@
     "id": 28,
     "childrenIds": [
       29
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 6,
@@ -438,7 +466,8 @@
     "id": 29,
     "parentIds": [
       28
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 6,
@@ -452,7 +481,8 @@
     ],
     "createdAt": "1720375618833",
     "updatedAt": "1720375618833",
-    "id": 30
+    "id": 30,
+    "mode": "built-in"
   },
   {
     "idx": 15,
@@ -468,7 +498,8 @@
     "id": 31,
     "childrenIds": [
       33
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 16,
@@ -481,7 +512,8 @@
     ],
     "createdAt": "1720505252921",
     "updatedAt": "1720505252921",
-    "id": 32
+    "id": 32,
+    "mode": "built-in"
   },
   {
     "idx": 17,
@@ -497,7 +529,8 @@
     "id": 33,
     "parentIds": [
       31
-    ]
+    ],
+    "mode": "built-in"
   },
   {
     "idx": 18,
@@ -510,7 +543,8 @@
     ],
     "createdAt": "1720582694776",
     "updatedAt": "1720583210384",
-    "id": 34
+    "id": 34,
+    "mode": "built-in"
   },
   {
     "idx": 30,
@@ -523,7 +557,8 @@
     ],
     "createdAt": "1720679705546",
     "updatedAt": "1720679705546",
-    "id": 35
+    "id": 35,
+    "mode": "built-in"
   },
   {
     "idx": 35,
@@ -535,7 +570,8 @@
     ],
     "createdAt": "1721477934711",
     "updatedAt": "1721477934711",
-    "id": 36
+    "id": 36,
+    "mode": "built-in"
   },
   {
     "idx": 37,
@@ -548,7 +584,8 @@
     ],
     "createdAt": "1721919986263",
     "updatedAt": "1721919986263",
-    "id": 37
+    "id": 37,
+    "mode": "built-in"
   },
   {
     "idx": 38,
@@ -561,7 +598,8 @@
     ],
     "createdAt": "1722066669444",
     "updatedAt": "1722066813538",
-    "id": 38
+    "id": 38,
+    "mode": "built-in"
   }
 ]
 

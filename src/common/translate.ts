@@ -347,6 +347,7 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
         switch (query.action.mode) {
             case null:
             case undefined:
+            case 'built-in':
                 if (
                     (query.action.rolePrompt ?? '').includes('${text}') ||
                     (query.action.commandPrompt ?? '').includes('${text}')

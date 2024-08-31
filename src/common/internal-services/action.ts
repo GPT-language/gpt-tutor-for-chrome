@@ -38,6 +38,7 @@ export interface IActionInternalService {
     addParentIdToChildrenActions(parentId: number, childrenIds: number[]): Promise<void>
     deleteParentIdFromChildrenActions(parentId: number, childrenIds: number[]): Promise<void>
     delete(id: number): Promise<void>
+    deleteByMode(mode: string): Promise<void>
     clearOldData(maxId: number): Promise<void>
     list(): Promise<Action[]>
     count(): Promise<number>
@@ -158,6 +159,10 @@ class ActionInternalService implements IActionInternalService {
         } catch (error) {
             console.error('Failed to update parentIds:', error)
         }
+    }
+
+    async deleteByMode(mode: string): Promise<void> {
+        await this.db.action.where('mode').equals(mode).delete()
     }
 
     async clearOldData(maxId: number): Promise<void> {

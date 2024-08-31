@@ -26,17 +26,6 @@ import { InnerSettings } from './Settings'
 import { documentPadding } from '../../browser-extension/content_script/consts'
 import Dropzone from 'react-dropzone'
 import { addNewNote, isConnected } from '../anki/anki-connect'
-import ChineseActionsData from '../services/Chinese.json'
-import EnglishActionData from '../services/English.json'
-import TraditionalChineseActionData from '../services/TraditionalChinese.json'
-import JapaneseActionData from '../services/Japanese.json'
-import RussianActionData from '../services/Russian.json'
-import KoreanActionData from '../services/Korean.json'
-import ThaiActionData from '../services/Thai.json'
-import HindiActionData from '../services/Hindi.json'
-import ArabicActionData from '../services/Arabic.json'
-import FrenchActionData from '../services/French.json'
-import GermanActionData from '../services/German.json'
 import SpeakerMotion from '../components/SpeakerMotion'
 import IpLocationNotification from '../components/IpLocationNotification'
 import { HighlightInTextarea } from '../highlight-in-textarea'
@@ -46,7 +35,7 @@ import { useTheme } from '../hooks/useTheme'
 import { speak } from '../tts'
 import { Tooltip } from './Tooltip'
 import { useSettings } from '../hooks/useSettings'
-import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
+import { Modal, ModalBody, ModalHeader, ModalFooter, ModalButton } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
 import { Action, Translations, ActionOutputRenderingFormat } from '../internal-services/db'
 import { CopyButton } from './CopyButton'
@@ -80,7 +69,18 @@ import MessageCard from './MessageCard'
 import { ReviewManager } from './ReviewSettings'
 import WordBookViewer from './WordBookViewer'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
-
+import { diff } from 'deep-object-diff'
+import ChineseActionsData from '../services/Chinese.json'
+import EnglishActionData from '../services/English.json'
+import TraditionalChineseActionData from '../services/TraditionalChinese.json'
+import JapaneseActionData from '../services/Japanese.json'
+import RussianActionData from '../services/Russian.json'
+import KoreanActionData from '../services/Korean.json'
+import ThaiActionData from '../services/Thai.json'
+import HindiActionData from '../services/Hindi.json'
+import ArabicActionData from '../services/Arabic.json'
+import FrenchActionData from '../services/French.json'
+import GermanActionData from '../services/German.json'
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -596,77 +596,281 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, {})
 
     useEffect(() => {
-        if (!settings?.i18n) {
-            return
-        }
+        if (!settings?.i18n) return
 
-        const loadActions = async () => {
-            const languageCode = settings.i18n
-            console.log('languageCode is ', languageCode)
+        const loadLanguageData = async () => {
+            let languageCode = settings.i18n
+            console.log('Loading language data for:', languageCode)
 
             // 从 localStorage 获取上次加载的语言
             const lastLoadedLanguage = localStorage.getItem('lastLoadedLanguage')
 
             // 检查是否已存在 action 且语言未变化
             const existingAction = await actionService.get(1)
-            if (existingAction && lastLoadedLanguage === languageCode) {
-                console.log('Actions already exist and language unchanged. Skipping bulk put.')
+
+            const githubToken = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN
+            const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default'
+            const headers = {
+                Authorization: `token ${githubToken}`,
+                Accept: 'application/vnd.github.v3.raw',
+            }
+
+            const filename = getFilenameForLanguage(languageCode || 'en')
+
+            try {
+                if (existingAction && lastLoadedLanguage === languageCode) {
+                    console.log('Language data already loaded and up to date')
+                    return
+                }
+
+                // 删除所有 mode 为 'built-in' 的 action，以免重复
+                await actionService.deleteByMode('built-in')
+                console.log('Deleted all built-in actions')
+
+                let remoteData
+                try {
+                    const response = await fetch(`${baseUrl}/${filename}`, { headers })
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`)
+                    }
+                    remoteData = await response.json()
+                } catch (error) {
+                    console.warn('Failed to fetch data from GitHub, using local data instead:', error)
+                    if (!languageCode) {
+                        languageCode = 'en'
+                    }
+                    remoteData = getLocalData(languageCode)
+                }
+
+                // 直接更新数据，不进行比较
+                await actionService.bulkPut(remoteData as Action[])
+
+                // 更新最后加载的语言和时间
+                localStorage.setItem('lastLoadedLanguage', languageCode || 'en')
+                localStorage.setItem(`${languageCode}_last_modified`, new Date().toISOString())
+                console.log('Language data loaded and updated successfully')
+                refreshActions()
+            } catch (error) {
+                console.error('Error loading language data:', error)
+            }
+        }
+
+        loadLanguageData()
+    }, [settings?.i18n])
+
+    // 根据语言代码获取本地数据的函数
+    function getLocalData(languageCode: string): Action[] {
+        switch (languageCode) {
+            case 'zh-Hans':
+                return ChineseActionsData as Action[]
+            case 'zh-Hant':
+                return TraditionalChineseActionData as Action[]
+            case 'en':
+                return EnglishActionData as Action[]
+            case 'ja':
+                return JapaneseActionData as Action[]
+            case 'ko':
+                return KoreanActionData as Action[]
+            case 'ru':
+                return RussianActionData as Action[]
+            case 'th':
+                return ThaiActionData as Action[]
+            case 'ar':
+                return ArabicActionData as Action[]
+            case 'hi':
+                return HindiActionData as Action[]
+            case 'fr':
+                return FrenchActionData as Action[]
+            case 'de':
+                return GermanActionData as Action[]
+            default:
+                console.log('Unsupported language code, falling back to English')
+                return EnglishActionData as Action[]
+        }
+    }
+
+    useEffect(() => {
+        if (!settings?.i18n) return
+        const languageCode = settings.i18n
+        const checkForUpdates = async () => {
+            console.log('Checking for updates. Language code is ', languageCode)
+
+            const lastCheckTime = localStorage.getItem('lastUpdateCheckTime')
+            const currentTime = new Date().getTime()
+
+            // 如果距离上次检查不足一天，则不进行检查
+            if (lastCheckTime && currentTime - parseInt(lastCheckTime) < 24 * 60 * 60 * 1000) {
+                console.log('Less than 24 hours since last update check. Skipping.')
                 return
             }
 
-            let promptsData: Action[] | [] = []
-
-            switch (languageCode) {
-                case 'zh-Hans':
-                    promptsData = ChineseActionsData as Action[]
-                    break
-                case 'zh-Hant':
-                    promptsData = TraditionalChineseActionData as Action[]
-                    break
-                case 'en':
-                    promptsData = EnglishActionData as Action[]
-                    break
-                case 'ja':
-                    promptsData = JapaneseActionData as Action[]
-                    break
-                case 'ko':
-                    promptsData = KoreanActionData as Action[]
-                    break
-                case 'ru':
-                    promptsData = RussianActionData as Action[]
-                    break
-                case 'th':
-                    promptsData = ThaiActionData as Action[]
-                    break
-                case 'ar':
-                    promptsData = ArabicActionData as Action[]
-                    break
-                case 'hi':
-                    promptsData = HindiActionData as Action[]
-                    break
-                case 'fr':
-                    promptsData = FrenchActionData as Action[]
-                    break
-                case 'de':
-                    promptsData = GermanActionData as Action[]
-                    break
-                default:
-                    console.log('Unsupported language code')
-                    promptsData = EnglishActionData as Action[]
-                    break
+            const githubToken = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN
+            const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default'
+            const headers = {
+                Authorization: `token ${githubToken}`,
+                Accept: 'application/vnd.github.v3.raw',
             }
 
-            console.log('Loading new promptsData for language:', languageCode)
-            await actionService.bulkPut(promptsData)
+            const filename = getFilenameForLanguage(languageCode)
 
-            // 更新 localStorage 中的语言记录
-            localStorage.setItem('lastLoadedLanguage', languageCode || 'en')
+            try {
+                const response = await fetch(`${baseUrl}/${filename}`, { headers })
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`)
+                }
+                const remoteData = await response.json()
 
-            refreshActions()
+                const lastModified = response.headers.get('last-modified')
+                const localLastModified = localStorage.getItem(`${languageCode}_last_modified`)
+
+                if (lastModified && (!localLastModified || new Date(lastModified) > new Date(localLastModified))) {
+                    console.log('Updates available, checking differences...')
+                    const localData = await actionService.list()
+                    const updatedActions = findUpdatedActions(localData, remoteData)
+
+                    if (updatedActions.length > 0) {
+                        const differences = updatedActions.reduce((acc, action) => {
+                            if (action.id) {
+                                acc[action.id] = action
+                            }
+                            return acc
+                        }, {} as Record<string, Action>)
+
+                        const formattedDifferences = formatDifferences(differences, localData)
+                        setUpdateContent(formattedDifferences)
+                        setUpdateData(updatedActions)
+                        setShowUpdateModal(true)
+                        // 更新最后检查时间
+                        localStorage.setItem('lastUpdateCheckTime', currentTime.toString())
+                    } else {
+                        console.log('没有重要更新')
+                    }
+                } else {
+                    console.log('No updates available')
+                }
+            } catch (error) {
+                console.error('Error checking for updates:', error)
+            }
         }
 
-        loadActions()
+        // 初始检查
+        checkForUpdates()
+        refreshActions()
+
+        // 设置每隔一天检查一次更新
+        const intervalId = setInterval(checkForUpdates, 24 * 60 * 60 * 1000)
+
+        // 清理函数
+        return () => clearInterval(intervalId)
     }, [settings?.i18n])
+
+    const formatDifferences = (differences: Record<string, any>, localData: Record<string, any>) => {
+        const formatted: Record<string, any> = {}
+        for (const [key, value] of Object.entries(differences)) {
+            if (typeof value === 'object' && value !== null) {
+                if (Array.isArray(value)) {
+                    // 处理数组
+                    formatted[key] = {
+                        before: Array.isArray(localData[key]) ? localData[key] : [],
+                        after: value,
+                    }
+                } else {
+                    // 处理对象
+                    formatted[key] = formatDifferences(value, localData[key] || {})
+                }
+            } else {
+                formatted[key] = {
+                    before: localData && typeof localData === 'object' && key in localData ? localData[key] : 'N/A',
+                    after: value,
+                }
+            }
+        }
+        return formatted
+    }
+
+    const getFilenameForLanguage = (languageCode: string): string => {
+        switch (languageCode) {
+            case 'zh-Hans':
+                return 'Chinese.json'
+            case 'zh-Hant':
+                return 'TraditionalChinese.json'
+            case 'en':
+                return 'English.json'
+            case 'ja':
+                return 'Japanese.json'
+            case 'ko':
+                return 'Korean.json'
+            case 'ru':
+                return 'Russian.json'
+            case 'th':
+                return 'Thai.json'
+            case 'ar':
+                return 'Arabic.json'
+            case 'hi':
+                return 'Hindi.json'
+            case 'fr':
+                return 'French.json'
+            case 'de':
+                return 'German.json'
+            default:
+                console.log('Unsupported language code')
+                return 'English.json'
+        }
+    }
+
+    const findUpdatedActions = (localData: Action[], remoteData: Action[]): Action[] => {
+        return remoteData.filter((remoteAction) => {
+            const localAction = localData.find((local) => local.id === remoteAction.id)
+            if (!localAction) return true // 新增的 Action
+
+            // 比较每个属性
+            return Object.keys(remoteAction).some((key) => {
+                // 忽略 updatedAt 属性的比较
+                if (key === 'updatedAt') return false
+                return (
+                    JSON.stringify(remoteAction[key as keyof Action]) !==
+                    JSON.stringify(localAction[key as keyof Action])
+                )
+            })
+        })
+    }
+
+    const handleUpdate = async () => {
+        if (!settings?.i18n || !updateData.length) return
+        const languageCode = settings.i18n
+
+        try {
+            // 获取当前数据
+            const currentData = await actionService.list()
+
+            for (const action of updateData) {
+                const existingAction = currentData.find((item) => item.id === action.id)
+                if (existingAction) {
+                    // 如果 action 已存在，使用 update 函数
+                    await actionService.update(action, action)
+                } else {
+                    // 如果 action 不存在，使用 create 函数
+                    await actionService.create(action)
+                }
+            }
+
+            if (lastModifiedRef.current) {
+                localStorage.setItem(`${languageCode}_last_modified`, lastModifiedRef.current)
+            }
+            refreshActions()
+            setShowUpdateModal(false)
+        } catch (error) {
+            console.error('更新数据时出错:', error)
+            // 可以在这里添加一些用户反馈，比如显示一个错误消息
+        }
+    }
+
+    const handleSkipUpdate = () => {
+        if (settings?.i18n && lastModifiedRef.current) {
+            localStorage.setItem(`${settings.i18n}_last_modified`, lastModifiedRef.current)
+        }
+        setShowUpdateModal(false)
+    }
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -740,6 +944,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
     const [activeKey, setActiveKey] = useState<Key | null>(null)
     const [parentAction, setParentAction] = useState<Action | undefined>(undefined)
+    const [showUpdateModal, setShowUpdateModal] = useState(false)
+    const [updateContent, setUpdateContent] = useState<Record<string, any>>({})
+    const [updateData, setUpdateData] = useState<Action[]>([])
+    const lastModifiedRef = useRef<string | null>(null)
 
     const handleAccordionChange = (expanded: Array<React.Key>) => {
         setActiveKey(expanded.length > 0 ? expanded[0] : null)
@@ -1166,8 +1374,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                         [actionName]: {
                                             text: newTranslatedText,
                                             format: activateAction?.outputRenderingFormat || 'markdown',
-                                        }
-                                    });
+                                        },
+                                    })
                                 }
 
                                 return newTranslatedText
@@ -1187,8 +1395,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                         [activateAction.name]: {
                                             text: translatedText,
                                             format: activateAction?.outputRenderingFormat || 'markdown',
-                                        }
-                                    });
+                                        },
+                                    })
                                     // 使用 Promise.all 来并行执行异步操作
                                     Promise.all([updateTranslationText(translatedText, activateAction.name, finalText)])
                                         .then(() => {
@@ -2228,6 +2436,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 <ModalBody>
                     <ActionManager draggable={props.showSettings} />
                 </ModalBody>
+            </Modal>
+            <Modal onClose={() => setShowUpdateModal(false)} isOpen={showUpdateModal}>
+                <ModalHeader>更新可用</ModalHeader>
+                <ModalBody>
+                    <p>检测到新的更新。以下是变更内容：</p>
+                    <pre style={{ maxHeight: '300px', overflow: 'auto' }}>{JSON.stringify(updateContent, null, 2)}</pre>
+                </ModalBody>
+                <ModalFooter>
+                    <ModalButton kind='tertiary' onClick={handleSkipUpdate}>
+                        跳过此次更新
+                    </ModalButton>
+                    <ModalButton onClick={() => setShowUpdateModal(false)}>取消</ModalButton>
+                    <ModalButton onClick={handleUpdate}>更新</ModalButton>
+                </ModalFooter>
             </Modal>
             <Modal
                 isOpen={isShowMessageCard}
