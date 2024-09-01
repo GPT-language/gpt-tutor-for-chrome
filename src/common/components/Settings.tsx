@@ -1104,7 +1104,16 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 <img width='22' src={icon} alt='logo' />
                 <h2>
                     GPT Tutor
-                    {AppConfig?.version ? ` ${AppConfig.version}` : null}
+                    {AppConfig?.version ? (
+                            <a
+                                href='https://github.com/GPT-language/gpt-tutor-for-chrome'
+                                target='_blank'
+                                rel='noreferrer'
+                                style={linkStyle}
+                            >
+                                {AppConfig.version}
+                            </a>
+                        ) : null}
                 </h2>
                 <div
                     style={{
