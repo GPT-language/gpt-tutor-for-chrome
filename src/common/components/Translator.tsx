@@ -2,7 +2,7 @@ import React, { Key, useCallback, useEffect, useLayoutEffect, useMemo, useReduce
 import { useTranslation } from 'react-i18next'
 import toast, { Toaster } from 'react-hot-toast'
 import { Client as Styletron } from 'styletron-engine-atomic'
-import { Provider as StyletronProvider } from 'styletron-react'
+import { Provider as StyletronProvider, useStyletron } from 'styletron-react'
 import { BaseProvider } from 'baseui-sd'
 import { Textarea } from 'baseui-sd/textarea'
 import { createUseStyles } from 'react-jss'
@@ -69,18 +69,11 @@ import MessageCard from './MessageCard'
 import { ReviewManager } from './ReviewSettings'
 import WordBookViewer from './WordBookViewer'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
-import { diff } from 'deep-object-diff'
-import ChineseActionsData from '../services/Chinese.json'
-import EnglishActionData from '../services/English.json'
-import TraditionalChineseActionData from '../services/TraditionalChinese.json'
-import JapaneseActionData from '../services/Japanese.json'
-import RussianActionData from '../services/Russian.json'
-import KoreanActionData from '../services/Korean.json'
-import ThaiActionData from '../services/Thai.json'
-import HindiActionData from '../services/Hindi.json'
-import ArabicActionData from '../services/Arabic.json'
-import FrenchActionData from '../services/French.json'
-import GermanActionData from '../services/German.json'
+import { Octokit } from '@octokit/rest'
+import { checkForUpdates, getFilenameForLanguage, getLocalData, updateLastCheckedSha } from '../services/github'
+import { parseDiff, Diff, Hunk } from 'react-diff-view'
+import 'react-diff-view/style/index.css'
+
 const cache = new LRUCache({
     max: 500,
     maxSize: 5000,
@@ -595,6 +588,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return groups
     }, {})
 
+    const octokit = new Octokit({ auth: import.meta.env.VITE_REACT_APP_GITHUB_TOKEN })
+
     useEffect(() => {
         if (!settings?.i18n) return
 
@@ -658,219 +653,104 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         loadLanguageData()
     }, [settings?.i18n])
 
-    // 根据语言代码获取本地数据的函数
-    function getLocalData(languageCode: string): Action[] {
-        switch (languageCode) {
-            case 'zh-Hans':
-                return ChineseActionsData as Action[]
-            case 'zh-Hant':
-                return TraditionalChineseActionData as Action[]
-            case 'en':
-                return EnglishActionData as Action[]
-            case 'ja':
-                return JapaneseActionData as Action[]
-            case 'ko':
-                return KoreanActionData as Action[]
-            case 'ru':
-                return RussianActionData as Action[]
-            case 'th':
-                return ThaiActionData as Action[]
-            case 'ar':
-                return ArabicActionData as Action[]
-            case 'hi':
-                return HindiActionData as Action[]
-            case 'fr':
-                return FrenchActionData as Action[]
-            case 'de':
-                return GermanActionData as Action[]
-            default:
-                console.log('Unsupported language code, falling back to English')
-                return EnglishActionData as Action[]
+    
+// 检查功能更新
+
+const handleCheckForUpdates = async () => {
+    if (!settings?.i18n) return;
+
+    const now = Date.now();
+    const lastCheckTime = parseInt(localStorage.getItem(`${settings.i18n}_last_check_time`) || '0', 10);
+    const timeSinceLastCheck = now - lastCheckTime;
+    const checkInterval = 24 * 60 * 60 * 1000; // 24小时，以毫秒为单位
+
+    if (timeSinceLastCheck < checkInterval) {
+        console.log("Too soon to check for updates");
+        return;
+    }
+
+    const lastCheckedSha = localStorage.getItem(`${settings.i18n}_last_checked_sha`);
+
+    const result = await checkForUpdates(settings.i18n);
+    if (result && result.latestSha !== lastCheckedSha) {
+        setUpdateContent(result.updatedContent);
+        setLatestCommitSha(result.latestSha);
+        setShowUpdateModal(true);
+    } else {
+        console.log("No new updates available");
+        // 即使没有更新，也更新最后检查时间
+        updateLastCheckedSha(settings.i18n, lastCheckedSha || '');
+    }
+}
+
+
+const handleUpdate = async () => {
+    if (!settings?.i18n) {
+        console.log('未找到i18n设置，更新过程已终止。');
+        return;
+    }
+
+    try {
+        const languageCode = settings.i18n;
+        const filename = getFilenameForLanguage(languageCode);
+        const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default';
+        const headers = {
+            Authorization: `token ${import.meta.env.VITE_REACT_APP_GITHUB_TOKEN}`,
+            Accept: 'application/vnd.github.v3.raw',
+        };
+
+        toast(t('Updating...'))
+
+        let remoteData: Action[];
+        try {
+            const response = await fetch(`${baseUrl}/${filename}`, { headers });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            remoteData = await response.json();
+        } catch (error) {
+            console.warn('从GitHub获取数据失败，使用本地数据代替:', error);
+            remoteData = getLocalData(languageCode);
         }
+
+
+
+        // 删除所有 mode 为 'built-in' 的 action，以免重复
+        await actionService.deleteByMode('built-in')
+        // 使用 bulkPut 更新所有数据
+        await actionService.bulkPut(remoteData);
+
+        if (latestCommitSha) {
+            updateLastCheckedSha(languageCode, latestCommitSha);
+        }
+
+        refreshActions();
+        setShowUpdateModal(false);
+        toast.success(t('Update Success'));
+    } catch (error) {
+        toast(t('Update Failed'));
+        console.error('更新数据时出错:', error);
+        // setErrorMessage('更新失败，请稍后重试');
+    }
+}
+
+                
+    const handleSkipUpdate = () => {
+        if (settings?.i18n && latestCommitSha) {
+            updateLastCheckedSha(settings.i18n, latestCommitSha)
+        }
+        setShowUpdateModal(false)
     }
 
     useEffect(() => {
         if (!settings?.i18n) return
-        const languageCode = settings.i18n
-        const checkForUpdates = async () => {
-            console.log('Checking for updates. Language code is ', languageCode)
+        
+        handleCheckForUpdates()
+        
+        const checkForUpdatesInterval = setInterval(handleCheckForUpdates, 24 * 60 * 60 * 1000) // 每24小时检查一次
 
-            const lastCheckTime = localStorage.getItem('lastUpdateCheckTime')
-            const currentTime = new Date().getTime()
-
-            // 如果距离上次检查不足一天，则不进行检查
-            if (lastCheckTime && currentTime - parseInt(lastCheckTime) < 24 * 60 * 60 * 1000) {
-                console.log('Less than 24 hours since last update check. Skipping.')
-                return
-            }
-
-            const githubToken = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN
-            const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default'
-            const headers = {
-                Authorization: `token ${githubToken}`,
-                Accept: 'application/vnd.github.v3.raw',
-            }
-
-            const filename = getFilenameForLanguage(languageCode)
-
-            try {
-                const response = await fetch(`${baseUrl}/${filename}`, { headers })
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`)
-                }
-                const remoteData = await response.json()
-
-                const lastModified = response.headers.get('last-modified')
-                const localLastModified = localStorage.getItem(`${languageCode}_last_modified`)
-
-                if (lastModified && (!localLastModified || new Date(lastModified) > new Date(localLastModified))) {
-                    console.log('Updates available, checking differences...')
-                    const localData = await actionService.list()
-                    const updatedActions = findUpdatedActions(localData, remoteData)
-
-                    if (updatedActions.length > 0) {
-                        const differences = updatedActions.reduce((acc, action) => {
-                            if (action.id) {
-                                acc[action.id] = action
-                            }
-                            return acc
-                        }, {} as Record<string, Action>)
-
-                        const formattedDifferences = formatDifferences(differences, localData)
-                        setUpdateContent(formattedDifferences)
-                        setUpdateData(updatedActions)
-                        setShowUpdateModal(true)
-                        // 更新最后检查时间
-                        localStorage.setItem('lastUpdateCheckTime', currentTime.toString())
-                    } else {
-                        console.log('没有重要更新')
-                    }
-                } else {
-                    console.log('No updates available')
-                }
-            } catch (error) {
-                console.error('Error checking for updates:', error)
-            }
-        }
-
-        // 初始检查
-        checkForUpdates()
-        refreshActions()
-
-        // 设置每隔一天检查一次更新
-        const intervalId = setInterval(checkForUpdates, 24 * 60 * 60 * 1000)
-
-        // 清理函数
-        return () => clearInterval(intervalId)
+        return () => clearInterval(checkForUpdatesInterval)
     }, [settings?.i18n])
-
-    const formatDifferences = (differences: Record<string, any>, localData: Record<string, any>) => {
-        const formatted: Record<string, any> = {}
-        for (const [key, value] of Object.entries(differences)) {
-            if (typeof value === 'object' && value !== null) {
-                if (Array.isArray(value)) {
-                    // 处理数组
-                    formatted[key] = {
-                        before: Array.isArray(localData[key]) ? localData[key] : [],
-                        after: value,
-                    }
-                } else {
-                    // 处理对象
-                    formatted[key] = formatDifferences(value, localData[key] || {})
-                }
-            } else {
-                formatted[key] = {
-                    before: localData && typeof localData === 'object' && key in localData ? localData[key] : 'N/A',
-                    after: value,
-                }
-            }
-        }
-        return formatted
-    }
-
-    const getFilenameForLanguage = (languageCode: string): string => {
-        switch (languageCode) {
-            case 'zh-Hans':
-                return 'Chinese.json'
-            case 'zh-Hant':
-                return 'TraditionalChinese.json'
-            case 'en':
-                return 'English.json'
-            case 'ja':
-                return 'Japanese.json'
-            case 'ko':
-                return 'Korean.json'
-            case 'ru':
-                return 'Russian.json'
-            case 'th':
-                return 'Thai.json'
-            case 'ar':
-                return 'Arabic.json'
-            case 'hi':
-                return 'Hindi.json'
-            case 'fr':
-                return 'French.json'
-            case 'de':
-                return 'German.json'
-            default:
-                console.log('Unsupported language code')
-                return 'English.json'
-        }
-    }
-
-    const findUpdatedActions = (localData: Action[], remoteData: Action[]): Action[] => {
-        return remoteData.filter((remoteAction) => {
-            const localAction = localData.find((local) => local.id === remoteAction.id)
-            if (!localAction) return true // 新增的 Action
-
-            // 比较每个属性
-            return Object.keys(remoteAction).some((key) => {
-                // 忽略 updatedAt 属性的比较
-                if (key === 'updatedAt') return false
-                return (
-                    JSON.stringify(remoteAction[key as keyof Action]) !==
-                    JSON.stringify(localAction[key as keyof Action])
-                )
-            })
-        })
-    }
-
-    const handleUpdate = async () => {
-        if (!settings?.i18n || !updateData.length) return
-        const languageCode = settings.i18n
-
-        try {
-            // 获取当前数据
-            const currentData = await actionService.list()
-
-            for (const action of updateData) {
-                const existingAction = currentData.find((item) => item.id === action.id)
-                if (existingAction) {
-                    // 如果 action 已存在，使用 update 函数
-                    await actionService.update(action, action)
-                } else {
-                    // 如果 action 不存在，使用 create 函数
-                    await actionService.create(action)
-                }
-            }
-
-            if (lastModifiedRef.current) {
-                localStorage.setItem(`${languageCode}_last_modified`, lastModifiedRef.current)
-            }
-            refreshActions()
-            setShowUpdateModal(false)
-        } catch (error) {
-            console.error('更新数据时出错:', error)
-            // 可以在这里添加一些用户反馈，比如显示一个错误消息
-        }
-    }
-
-    const handleSkipUpdate = () => {
-        if (settings?.i18n && lastModifiedRef.current) {
-            localStorage.setItem(`${settings.i18n}_last_modified`, lastModifiedRef.current)
-        }
-        setShowUpdateModal(false)
-    }
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -882,7 +762,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
 
         const filteredActions = actions.filter((action) => {
-            return action.groups.includes(selectedGroup)
+            if (action.groups && action.groups.length > 0) {
+                return action.groups.includes(selectedGroup)
+            }
+            return []
         })
 
         setActions(filteredActions)
@@ -945,8 +828,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [activeKey, setActiveKey] = useState<Key | null>(null)
     const [parentAction, setParentAction] = useState<Action | undefined>(undefined)
     const [showUpdateModal, setShowUpdateModal] = useState(false)
+    const [latestCommitSha, setLatestCommitSha] = useState<string | null>(null)
     const [updateContent, setUpdateContent] = useState<Record<string, any>>({})
-    const [updateData, setUpdateData] = useState<Action[]>([])
     const lastModifiedRef = useRef<string | null>(null)
 
     const handleAccordionChange = (expanded: Array<React.Key>) => {
@@ -1367,7 +1250,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     : translatedText + message.content
 
                                 const actionName = useChatStore.getState().activateAction?.name
-                                console.log('Current activateAction:', actionName)
                                 if (actionName) {
                                     setTranslations({
                                         ...translations,
@@ -1650,6 +1532,53 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         })
         translatedStopSpeakRef.current = stopSpeak
     }
+
+    function formatPatchForParseDiff(filename: string, patch: string): string {
+        const header = `diff --git a/${filename} b/${filename}\n--- a/${filename}\n+++ b/${filename}\n`;
+        return header + patch;
+      }
+      
+      const DiffView: React.FC<{ filename: string, patch: string }> = ({ filename, patch }) => {
+        const [css] = useStyletron();
+        let files;
+      
+        try {
+          const formattedPatch = formatPatchForParseDiff(filename, patch);
+          files = parseDiff(formattedPatch);
+        } catch (error) {
+          console.error('Error parsing diff:', error);
+          return <div>Error parsing diff. Please check the console for details.</div>;
+        }
+      
+        if (!files || files.length === 0) {
+          return <div>No changes detected in the diff.</div>;
+        }
+      
+        return (
+          <div className={css({
+            fontSize: '12px',
+            fontFamily: 'monospace',
+            backgroundColor: '#f0f0f0',
+            padding: '10px',
+            borderRadius: '4px',
+          })}>
+            {files.map((file) => (
+              <Diff
+                key={file.oldPath + file.newPath}
+                viewType="unified"
+                diffType={file.type}
+                hunks={file.hunks}
+              >
+                {(hunks) =>
+                  hunks.map((hunk) => (
+                    <Hunk key={hunk.content} hunk={hunk} />
+                  ))
+                }
+              </Diff>
+            ))}
+          </div>
+        );
+      }
 
     return (
         <div
@@ -2438,19 +2367,29 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 </ModalBody>
             </Modal>
             <Modal onClose={() => setShowUpdateModal(false)} isOpen={showUpdateModal}>
-                <ModalHeader>更新可用</ModalHeader>
-                <ModalBody>
-                    <p>检测到新的更新。以下是变更内容：</p>
-                    <pre style={{ maxHeight: '300px', overflow: 'auto' }}>{JSON.stringify(updateContent, null, 2)}</pre>
-                </ModalBody>
-                <ModalFooter>
-                    <ModalButton kind='tertiary' onClick={handleSkipUpdate}>
-                        跳过此次更新
-                    </ModalButton>
-                    <ModalButton onClick={() => setShowUpdateModal(false)}>取消</ModalButton>
-                    <ModalButton onClick={handleUpdate}>更新</ModalButton>
-                </ModalFooter>
-            </Modal>
+      <ModalHeader>更新可用</ModalHeader>
+      <ModalBody>
+        <p>{t('There is a new update available. Please check the changes below.')}</p>
+        <div style={{ maxHeight: '300px', overflow: 'auto' }}>
+          {Object.entries(updateContent).map(([filename, content]) => (
+            <div key={filename}>
+              <h4>{filename}</h4>
+              {content && content.patch ? (
+          <DiffView filename={filename} patch={content.patch} />
+        ) : (
+          <p>{t('Unable to display the update content for this file')}</p>
+        )}
+            </div>
+          ))}
+        </div>
+      </ModalBody>
+      <ModalFooter>
+        <ModalButton kind='tertiary' onClick={handleSkipUpdate}>
+          {t('Skip this update')}
+        </ModalButton>
+        <ModalButton onClick={handleUpdate}>{t('Update')}</ModalButton>
+      </ModalFooter>
+    </Modal>
             <Modal
                 isOpen={isShowMessageCard}
                 onClose={() => {
