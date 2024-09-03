@@ -1470,6 +1470,9 @@ const handleUpdate = async () => {
         if (!props.defaultShowSettings) {
             return
         }
+        if (settings && (settings.provider === 'ChatGLM' || settings.provider === 'Kimi')) {
+            return
+        }
         if (
             settings &&
             ((settings.provider === 'ChatGPT' && !settings.apiModel) ||
@@ -2387,7 +2390,17 @@ const handleUpdate = async () => {
             <Modal onClose={() => setShowUpdateModal(false)} isOpen={showUpdateModal}>
       <ModalHeader>更新可用</ModalHeader>
       <ModalBody>
-        <p>{t('There is a new update available. Please check the changes below.')}</p>
+        <h3>{t('There is a new update available. Please check the changes below.')}</h3>
+        <h4 style={{
+        color: 'red',
+        fontWeight: 'bold',
+        backgroundColor: '#ffe6e6',
+        padding: '10px',
+        borderRadius: '5px',
+        border: '1px solid red',
+        marginBottom: '20px'}}>
+    ⚠️ {t('Attention: Before updating, please export and save your current actions.')}
+        </h4>
         <div style={{ maxHeight: '300px', overflow: 'auto' }}>
           {Object.entries(updateContent).map(([filename, content]) => (
             <div key={filename}>
