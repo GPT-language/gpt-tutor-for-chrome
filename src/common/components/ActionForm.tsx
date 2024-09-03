@@ -12,7 +12,6 @@ import { IThemedStyleProps } from '../types'
 import { useTheme } from '../hooks/useTheme'
 import { IconPicker } from './IconPicker'
 import { RenderingFormatSelector } from './RenderingFormatSelector'
-import ActionSelect from './ActionSelect'
 import ModelSelect from './ModelSelect'
 import GroupSelect from './GroupSelect'
 
@@ -179,9 +178,6 @@ export function ActionForm(props: IActionFormProps) {
             </FormItem>
             <FormItem required name='commandPrompt' label={t('Command Prompt')} caption={commandPromptCaption}>
                 <Textarea size='compact' />
-            </FormItem>
-            <FormItem name='childrenIds' label={t('Assistant Actions')}>
-                <ActionSelect initialActions={actions} updatingAction={props.action}></ActionSelect>
             </FormItem>
             <FormItem name='model' label={t('API Model')}>
                 <ModelSelect></ModelSelect>
