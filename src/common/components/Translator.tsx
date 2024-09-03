@@ -591,66 +591,76 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const octokit = new Octokit({ auth: import.meta.env.VITE_REACT_APP_GITHUB_TOKEN })
 
     useEffect(() => {
-        if (!settings?.i18n) return
-
+        if (!settings?.i18n) return;
+    
         const loadLanguageData = async () => {
-            let languageCode = settings.i18n
-            console.log('Loading language data for:', languageCode)
-
-            // 从 localStorage 获取上次加载的语言
-            const lastLoadedLanguage = localStorage.getItem('lastLoadedLanguage')
-
-            // 检查是否已存在 action 且语言未变化
-            const existingAction = await actionService.get(1)
-
-            const githubToken = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN
-            const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default'
+            let languageCode = settings.i18n;
+            console.log('Loading language data for:', languageCode);
+    
+            const lastLoadedLanguage = localStorage.getItem('lastLoadedLanguage');
+    
+            const githubToken = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN;
+            const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default';
             const headers = {
                 Authorization: `token ${githubToken}`,
                 Accept: 'application/vnd.github.v3.raw',
-            }
-
-            const filename = getFilenameForLanguage(languageCode || 'en')
-
+            };
+    
+            const filename = getFilenameForLanguage(languageCode || 'en');
+    
             try {
-                if (existingAction && lastLoadedLanguage === languageCode) {
-                    console.log('Language data already loaded and up to date')
-                    return
+                if (lastLoadedLanguage === languageCode) {
+                    console.log('Language data already loaded');
+                    return;
                 }
-
+    
                 // 删除所有 mode 为 'built-in' 的 action，以免重复
-                await actionService.deleteByMode('built-in')
-                console.log('Deleted all built-in actions')
-
-                let remoteData
+                await actionService.deleteByMode('built-in');
+                console.log('Deleted all built-in actions');
+    
+                let remoteData;
+                let latestSha;
                 try {
-                    const response = await fetch(`${baseUrl}/${filename}`, { headers })
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`)
+                    // 获取文件内容
+                    const contentResponse = await fetch(`${baseUrl}/${filename}`, { headers });
+                    if (!contentResponse.ok) {
+                        throw new Error(`HTTP error! status: ${contentResponse.status}`);
                     }
-                    remoteData = await response.json()
+                    remoteData = await contentResponse.json();
+    
+                    // 获取最新的 commit SHA
+                    const commitsResponse = await fetch(`https://api.github.com/repos/GPT-language/gpt-tutor-resources/commits?path=default/${filename}&per_page=1`, { headers });
+                    if (!commitsResponse.ok) {
+                        throw new Error(`HTTP error! status: ${commitsResponse.status}`);
+                    }
+                    const commits = await commitsResponse.json();
+                    latestSha = commits[0].sha;
                 } catch (error) {
-                    console.warn('Failed to fetch data from GitHub, using local data instead:', error)
+                    console.warn('Failed to fetch data from GitHub, using local data instead:', error);
                     if (!languageCode) {
-                        languageCode = 'en'
+                        languageCode = 'en';
                     }
-                    remoteData = getLocalData(languageCode)
+                    remoteData = getLocalData(languageCode);
                 }
-
-                // 直接更新数据，不进行比较
-                await actionService.bulkPut(remoteData as Action[])
-
-                // 更新最后加载的语言和时间
-                localStorage.setItem('lastLoadedLanguage', languageCode || 'en')
-                localStorage.setItem(`${languageCode}_last_modified`, new Date().toISOString())
-                console.log('Language data loaded and updated successfully')
-                refreshActions()
+    
+                // 更新数据
+                await actionService.bulkPut(remoteData as Action[]);
+    
+                // 更新最后加载的语言、时间和 SHA
+                localStorage.setItem('lastLoadedLanguage', languageCode || 'en');
+                localStorage.setItem(`${languageCode}_last_check_time`, Date.now().toString());
+                if (latestSha && languageCode) {
+                    updateLastCheckedSha(languageCode, latestSha);
+                }
+    
+                console.log('Language data loaded and updated successfully');
+                refreshActions();
             } catch (error) {
-                console.error('Error loading language data:', error)
+                console.error('Error loading language data:', error);
             }
-        }
-
-        loadLanguageData()
+        };
+    
+        loadLanguageData();
     }, [settings?.i18n])
 
     
@@ -658,6 +668,15 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
 const handleCheckForUpdates = async () => {
     if (!settings?.i18n) return;
+    const languageCode = settings.i18n;
+    const lastCheckedSha = localStorage.getItem(`${languageCode}_last_checked_sha`);
+
+    // 如果没有存储 SHA，说明是初次加载，直接返回
+    if (!lastCheckedSha) {
+        console.log("Initial load, skipping update check");
+        return;
+    }
+    
 
     const now = Date.now();
     const lastCheckTime = parseInt(localStorage.getItem(`${settings.i18n}_last_check_time`) || '0', 10);
@@ -669,7 +688,6 @@ const handleCheckForUpdates = async () => {
         return;
     }
 
-    const lastCheckedSha = localStorage.getItem(`${settings.i18n}_last_checked_sha`);
 
     const result = await checkForUpdates(settings.i18n);
     if (result && result.latestSha !== lastCheckedSha) {
@@ -2373,7 +2391,6 @@ const handleUpdate = async () => {
         <div style={{ maxHeight: '300px', overflow: 'auto' }}>
           {Object.entries(updateContent).map(([filename, content]) => (
             <div key={filename}>
-              <h4>{filename}</h4>
               {content && content.patch ? (
           <DiffView filename={filename} patch={content.patch} />
         ) : (
