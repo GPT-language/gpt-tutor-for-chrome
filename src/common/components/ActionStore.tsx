@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { Select } from 'baseui-sd/select'
 import { Button } from 'baseui-sd/button'
 import { Spinner } from 'baseui-sd/spinner'
-import { Card, StyledBody } from 'baseui-sd/card'
+import { StyledBody } from 'baseui-sd/card'
 import { Tabs, Tab } from 'baseui-sd/tabs-motion'
 import { useChatStore } from '@/store/file/store'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
+import { useStyletron } from 'baseui-sd'
+import { useTheme } from '../hooks/useTheme'
+import { actionService } from '../services/action'
 
 const GITHUB_TOKEN = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN
 
@@ -34,8 +37,11 @@ const GitHubRepo = {
     branch: 'main',
 }
 
-const WordBookViewer: React.FC = () => {
-    const { addFile, selectedCategory, setShowWordBookManager } = useChatStore()
+
+
+// ... 其他导入和常量定义保持不变
+
+const ActionStore: React.FC = () => {
     const [activeTab, setActiveTab] = useState<string>('language')
     const [languages, setLanguages] = useState<string[]>([])
     const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null)
@@ -47,6 +53,10 @@ const WordBookViewer: React.FC = () => {
     const [selectedWordBook, setSelectedWordBook] = useState<WordBook | null>(null)
     const [loading, setLoading] = useState<boolean>(false)
     const { t } = useTranslation()
+
+    const [css, theme] = useStyletron();
+    const { themeType } = useTheme();
+    const styles = useStyles({ theme, themeType });
 
     useEffect(() => {
         const fetchLanguages = async () => {
@@ -116,9 +126,9 @@ const WordBookViewer: React.FC = () => {
                     )
                     const data = await response.json()
                     const books = data
-                        .filter((item: any) => item.name.endsWith('.csv'))
+                        .filter((item: any) => item.name.endsWith('.json'))
                         .map((item: any) => ({
-                            name: item.name.replace('.csv', ''),
+                            name: item.name.replace('.json', ''),
                             path: item.path,
                             language: selectedLanguage,
                             category: category,
@@ -141,19 +151,17 @@ const WordBookViewer: React.FC = () => {
                 const response = await fetchWithAuth(
                     `https://raw.githubusercontent.com/${GitHubRepo.owner}/${GitHubRepo.repo}/${GitHubRepo.branch}/${selectedWordBook.path}`
                 )
-                const data = await response.text()
+                const data = await response.json() // 改为 .json()
 
-                const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' })
-                const file = new File([blob], selectedWordBook.name + '.csv', { type: 'text/csv' })
+                // 使用 actionService.bulkPut 加载数据
+                await actionService.bulkPut(data)
 
-                await addFile(file, selectedCategory)
-                toast.success(t('Download Successfully!'))
+                toast.success(t('Actions loaded successfully!'))
                 // 等待1s
                 await new Promise((resolve) => setTimeout(resolve, 1000))
-                setShowWordBookManager(false)
             } catch (error) {
-                console.error(t('Error downloading word book:'), error)
-                toast.error(t('Failed to download'))
+                console.error(t('Error loading actions:'), error)
+                toast.error(t('Failed to load actions'))
             } finally {
                 setLoading(false)
             }
@@ -161,8 +169,7 @@ const WordBookViewer: React.FC = () => {
     }
 
     return (
-        <Card>
-            <h2>{t('Word Book Manager')}</h2>
+        <div className={styles.actionList}>
             <StyledBody>
                 <Tabs activeKey={activeTab} onChange={({ activeKey }) => setActiveTab(activeKey as string)}>
                     <Tab title={t('Language')} key='language'>
@@ -199,7 +206,7 @@ const WordBookViewer: React.FC = () => {
                         </Tab>
                     )}
                     {selectedLanguage && category && (
-                        <Tab title={t('Vocabulary Type')} key='fileType'>
+                        <Tab title={t('Action Group Type')} key='fileType'>
                             <Select
                                 options={fileTypes.map((type) => ({ label: type, id: type }))}
                                 onChange={(params) => {
@@ -210,12 +217,12 @@ const WordBookViewer: React.FC = () => {
                                     if (selectedType) setActiveTab('wordbook')
                                 }}
                                 value={fileType ? [{ label: fileType, id: fileType }] : []}
-                                placeholder={t('Select a Vocabulary type')}
+                                placeholder={t('Select a Action Group type')}
                             />
                         </Tab>
                     )}
                     {selectedLanguage && category && fileType && (
-                        <Tab title={t('Word Book')} key='wordbook'>
+                        <Tab title={t('Action Group')} key='wordbook'>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <div style={{ flex: 1 }}>
                                     <Select
@@ -230,7 +237,7 @@ const WordBookViewer: React.FC = () => {
                                                 ? [{ label: selectedWordBook.name, id: selectedWordBook.path }]
                                                 : []
                                         }
-                                        placeholder={t('Select a word book')}
+                                        placeholder={t('Select a Action Group')}
                                     />
                                 </div>
                                 {selectedWordBook && (
@@ -243,8 +250,17 @@ const WordBookViewer: React.FC = () => {
                     )}
                 </Tabs>
             </StyledBody>
-        </Card>
+        </div>
     )
 }
 
-export default WordBookViewer
+const useStyles = ({ theme, themeType }: { theme: any; themeType: string }) => ({
+    actionList: {
+        width: '100%',
+        padding: '20px',
+        backgroundColor: themeType === 'dark' ? theme.colors.backgroundSecondary : theme.colors.backgroundPrimary,
+        borderRadius: theme.borders.radius300,
+    },
+})
+
+export default ActionStore

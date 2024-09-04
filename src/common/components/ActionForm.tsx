@@ -14,6 +14,8 @@ import { IconPicker } from './IconPicker'
 import { RenderingFormatSelector } from './RenderingFormatSelector'
 import ModelSelect from './ModelSelect'
 import GroupSelect from './GroupSelect'
+import { useIsAdmin } from '@/utils/auth'
+import { StatefulTooltip } from 'baseui-sd/tooltip'
 
 const useStyles = createUseStyles({
     placeholder: (props: IThemedStyleProps) => ({
@@ -50,6 +52,7 @@ export function ActionForm(props: IActionFormProps) {
     const { t } = useTranslation()
     const [loading, setLoading] = useState(false)
     const [actionGroups, setActionGroups] = useState<string[]>([])
+    const isAdmin = useIsAdmin()
 
     const onSubmit = useCallback(
         async (values: ICreateActionOption) => {
@@ -93,6 +96,13 @@ export function ActionForm(props: IActionFormProps) {
 
         fetchGroups()
     }, [actions])
+
+    const handleFeedbackClick = () => {
+        window.open(
+            'https://github.com/GPT-language/gpt-tutor-resources/discussions/categories/prompt-related',
+            '_blank'
+        )
+    }
 
     const actionGroupsPlaceholderCaption = (
         <ul className={styles.placeholderCaptionContainer}>
@@ -193,14 +203,36 @@ export function ActionForm(props: IActionFormProps) {
                     gap: 10,
                 }}
             >
+                <StatefulTooltip content={t('Submit feedback or suggestions for this action')}>
+                    <Button onClick={handleFeedbackClick} size='compact'>
+                        {t('Feedback')}
+                    </Button>
+                </StatefulTooltip>
                 <div
                     style={{
                         marginRight: 'auto',
                     }}
                 />
-                <Button isLoading={loading} size='compact'>
-                    {t('Submit')}
-                </Button>
+                <StatefulTooltip
+                    content={
+                        props.action?.mode === 'built-in' && !isAdmin
+                            ? t('Built-in actions cannot be modified')
+                            : t('Save changes to this action')
+                    }
+                    placement='top'
+                >
+                    <span>
+                        {' '}
+                        {/* 使用 span 包裹 Button，因为 Tooltip 不能直接包裹 disabled 的元素 */}
+                        <Button
+                            isLoading={loading}
+                            size='compact'
+                            disabled={props.action?.mode === 'built-in' && !isAdmin}
+                        >
+                            {t('Save')}
+                        </Button>
+                    </span>
+                </StatefulTooltip>
             </div>
         </Form>
     )

@@ -27,7 +27,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         setAction,
         currentPage,
         setCurrentPage,
-        markWordAsLearned,
         translations,
     } = useChatStore()
     const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
@@ -113,7 +112,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             return
         }
         await markWordAsForgotten(selectedWord)
-        toast.success(t('You have marked this word as forgotten'))
+        toast.error(t('You have marked this word as forgotten'))
     }
 
     const handleSelectAndExecuteAction = (selectedIdx: number | string | undefined) => {
@@ -154,29 +153,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         if (!selectedIdx || !assistantActionText) return
         const action = assistantActions.find((a) => a.idx === selectedIdx)
         if (action) onActionClick(action, assistantActionText)
-    }
-
-    const handleContinueClick = () => {
-        if (!activateAction) {
-            return
-        }
-        let nextAction: Action | undefined
-        nextAction = actions.find((action) => action.idx === activateAction?.idx + 1)
-
-        if (nextAction) {
-            onActionClick(nextAction)
-        } else {
-            nextAction = actions.find((action) => action.idx === 0)
-            setAction(nextAction)
-            toast.success(t('You have finished the review of this word'))
-            handleNextWordClick()
-        }
-    }
-
-    const handleMarkWordAsLearned = (word: Word, reviewFileName: string) => {
-        markWordAsLearned(word, reviewFileName)
-        handleNextWordClick()
-        toast.success(t('You have marked this word as learned'))
     }
 
     useEffect(() => {
@@ -250,17 +226,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                             width: '50%',
                             marginTop: '8px',
                         }}
-                    >
-                        <Button
-                            size={SIZE.compact}
-                            shape={SHAPE.default}
-                            kind={KIND.tertiary}
-                            onClick={() => handleMarkWordAsLearned(selectedWord, reviewFileName)}
-                            style={{ width: '100%' }}
-                        >
-                            <u>{t('Mark as learned')}</u>
-                        </Button>
-                    </div>
+                    ></div>
                 </div>
             )
         }
@@ -298,72 +264,8 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                 typeof selectedWord.translations === 'object' &&
                 Object.keys(selectedWord.translations).length > 0) ||
             translations
-
-        const showMarkAsLearned = selectedWord
         const buttons = []
 
-        const halfWidthButtons = []
-
-        if (showMarkAsLearned && !showAddToReview) {
-            halfWidthButtons.push(
-                <Button
-                    key='markAsLearned'
-                    size={SIZE.compact}
-                    shape={SHAPE.default}
-                    kind={KIND.tertiary}
-                    onClick={() => handleMarkWordAsLearned(selectedWord, reviewFileName)}
-                    style={{ width: '50%', marginRight: '8px' }}
-                >
-                    <u>{t('Mark as learned')}</u>
-                </Button>
-            )
-            halfWidthButtons.push(
-                <Button
-                    key='startToLearn'
-                    size={SIZE.compact}
-                    shape={SHAPE.default}
-                    kind={KIND.tertiary}
-                    onClick={handleStartToLearnClick}
-                    style={{ width: '50%' }}
-                >
-                    <u>{t('Start to learn new item')}</u>
-                </Button>
-            )
-        }
-
-        if (showAddToReview) {
-            // 如果回答已经完成，则显示继续按钮
-            halfWidthButtons.push(
-                <Button
-                    key='markAsLearned'
-                    size={SIZE.compact}
-                    shape={SHAPE.default}
-                    kind={KIND.tertiary}
-                    onClick={handleNextWordClick}
-                    style={{ width: '50%', marginRight: '8px' }}
-                >
-                    <u>{t('Next item')}</u>
-                </Button>
-            )
-            halfWidthButtons.push(
-                <Button
-                    key='continue'
-                    size={SIZE.compact}
-                    shape={SHAPE.default}
-                    kind={KIND.tertiary}
-                    onClick={handleContinueClick}
-                    style={{ width: '50%' }}
-                >
-                    <u>{t('Continue')}</u>
-                </Button>
-            )
-        }
-
-        buttons.push(
-            <div key='halfWidthButtons' style={{ display: 'flex', width: '100%', marginBottom: '8px' }}>
-                {halfWidthButtons}
-            </div>
-        )
 
         if (showAddToReview || isCompleted) {
             buttons.push(

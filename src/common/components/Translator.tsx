@@ -82,19 +82,6 @@ const cache = new LRUCache({
     },
 })
 
-function genLangOptions(langs: [LangCode, string][]): Value {
-    return langs.reduce((acc, [id, label]) => {
-        return [
-            ...acc,
-            {
-                id,
-                label,
-            } as Option,
-        ]
-    }, [] as Value)
-}
-const sourceLangOptions = genLangOptions(sourceLanguages)
-const targetLangOptions = genLangOptions(targetLanguages)
 
 const useStyles = createUseStyles({
     'popupCard': {
@@ -1638,7 +1625,7 @@ const handleUpdate = async () => {
                             cursor: isDesktopApp() ? 'default' : 'move',
                         }}
                     >
-                        <Tooltip content={t('选择使用场景')} placement='bottom'>
+                        <Tooltip content={t('Select a Action Group')} placement='bottom'>
                             <Select
                                 size='mini'
                                 options={[...Object.keys(actionGroups || {}).map((key) => ({ id: key, label: key }))]}
