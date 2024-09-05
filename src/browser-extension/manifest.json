@@ -53,8 +53,6 @@
     "background": {
         "service_worker": "/src/browser-extension/background/index.ts"
     },
-    
-
     "permissions": ["storage", "contextMenus", "sidePanel","webRequest", "cookies", "declarativeNetRequestWithHostAccess"],
 
     "commands": {
@@ -74,7 +72,6 @@
         "https://*.openai.azure.com/",
         "https://*.ingest.sentry.io/",
         "*://speech.platform.bing.com/",
-        "https://*.google-analytics.com/",
         "https://chatgpt.com/",
         "https://*.chatglm.cn/",
         "https://*.moonshot.cn/",

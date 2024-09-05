@@ -893,9 +893,9 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
     const options = utils.isDesktopApp()
         ? ([
               { label: 'OpenAI', id: 'OpenAI' },
-              { label: `Kimi (${t('Free')})`, id: 'Kimi' },
-              { label: `${t('ChatGLM')} (${t('Free')})`, id: 'ChatGLM' },
-              { label: `Ollama (${t('Local Model')})`, id: 'Ollama' },
+              { label: `Kimi`, id: 'Kimi' },
+              { label: `ChatGLM`, id: 'ChatGLM' },
+              { label: `Ollama`, id: 'Ollama' },
               { label: 'Gemini', id: 'Gemini' },
               // { label: 'ChatGPT (Web)', id: 'ChatGPT' },
               { label: 'Azure', id: 'Azure' },
@@ -910,9 +910,9 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
           }[])
         : ([
               { label: 'OpenAI', id: 'OpenAI' },
-              { label: `Kimi (${t('Free')})`, id: 'Kimi' },
-              { label: `${t('ChatGLM')} (${t('Free')})`, id: 'ChatGLM' },
-              { label: 'ChatGPT (Web)', id: 'ChatGPT' },
+              { label: `Kimi`, id: 'Kimi' },
+              { label: `ChatGLM`, id: 'ChatGLM' },
+              { label: 'ChatGPT', id: 'ChatGPT' },
               { label: 'Gemini', id: 'Gemini' },
               { label: 'Azure', id: 'Azure' },
               { label: 'MiniMax', id: 'MiniMax' },
@@ -1420,7 +1420,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     <FormItem
                         required={values.provider === 'ChatGLM' && utils.isDesktopApp()}
                         name='chatglmRefreshToken'
-                        label={`${t('ChatGLM')} Refresh Token`}
+                        label={`ChatGLM Refresh Token`}
                         caption={
                             <div>
                                 {t('Go to the')}{' '}
@@ -1445,7 +1445,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     <FormItem
                         required={values.provider === 'ChatGLM' && utils.isDesktopApp()}
                         name='chatglmAccessToken'
-                        label={`${t('ChatGLM')} Token`}
+                        label={`ChatGLM Token`} 
                         caption={
                             <div>
                                 {t('Go to the')}{' '}
