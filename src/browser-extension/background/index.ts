@@ -24,7 +24,6 @@ browser.contextMenus?.create(
     }
 )
 
-
 browser.contextMenus?.onClicked.addListener(async function (info) {
     const [tab] = await chrome.tabs.query({ active: true })
     tab.id &&

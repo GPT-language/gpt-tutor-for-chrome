@@ -19,7 +19,7 @@ export function RenderingFormatSelector({ value, onChange, ...props }: IRenderin
         {
             id: 'latex',
             label: 'LaTeX',
-        }
+        },
     ] as {
         id: ActionOutputRenderingFormat
         label: React.ReactNode

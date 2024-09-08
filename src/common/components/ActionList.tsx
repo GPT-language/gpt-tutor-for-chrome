@@ -266,7 +266,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             translations
         const buttons = []
 
-
         if (showAddToReview || isCompleted) {
             buttons.push(
                 <Button

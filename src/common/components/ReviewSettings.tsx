@@ -327,7 +327,6 @@ export const ReviewManager = () => {
         setSliderValues(selectedStrategy.array.map(calculateSliderPosition))
     }, [selectedStrategy])
 
-
     return (
         <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '300px', width: '100%' }}>

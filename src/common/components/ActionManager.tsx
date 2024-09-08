@@ -202,16 +202,16 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
             overrides={{
                 Root: {
                     style: {
-                        marginRight: '10px',
-                        cursor: 'pointer',
-                        borderRadius: '16px',
-                        padding: '6px 12px',
-                        fontSize: '14px',
-                        fontWeight: activeType === type ? 'bold' : 'normal',
-                        border: `2px solid ${activeType === type ? theme.colors.primary : theme.colors.borderOpaque}`,
-                        backgroundColor:
+                        'marginRight': '10px',
+                        'cursor': 'pointer',
+                        'borderRadius': '16px',
+                        'padding': '6px 12px',
+                        'fontSize': '14px',
+                        'fontWeight': activeType === type ? 'bold' : 'normal',
+                        'border': `2px solid ${activeType === type ? theme.colors.primary : theme.colors.borderOpaque}`,
+                        'backgroundColor':
                             activeType === type ? theme.colors.primary : theme.colors.backgroundSecondary,
-                        color: activeType === type ? theme.colors.white : theme.colors.contentPrimary,
+                        'color': activeType === type ? theme.colors.white : theme.colors.contentPrimary,
                         ':hover': {
                             backgroundColor:
                                 activeType === type ? theme.colors.primary700 : theme.colors.backgroundTertiary,
@@ -340,7 +340,13 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                         <div className={styles.actionList}>
                             {Object.keys(actionGroups).map((group) => (
                                 <div key={group}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                        }}
+                                    >
                                         <h3
                                             style={{ cursor: 'pointer' }}
                                             onClick={() => {
@@ -387,9 +393,12 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                     <div className={styles.actionContent}>
                                                         <div className={styles.name}>
                                                             {action.icon &&
-                                                                createElement((mdIcons as Record<string, IconType>)[action.icon], {
-                                                                    size: 16,
-                                                                })}
+                                                                createElement(
+                                                                    (mdIcons as Record<string, IconType>)[action.icon],
+                                                                    {
+                                                                        size: 16,
+                                                                    }
+                                                                )}
                                                             {action.mode ? t(action.name) : action.name}
                                                             {action.mode && (
                                                                 <div
@@ -422,7 +431,11 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                                     onClick={async (e) => {
                                                                         e.preventDefault()
                                                                         e.stopPropagation()
-                                                                        const newActions = arrayMove(actions, idx, idx - 1)
+                                                                        const newActions = arrayMove(
+                                                                            actions,
+                                                                            idx,
+                                                                            idx - 1
+                                                                        )
                                                                         await actionService.bulkPut(
                                                                             newActions.map((a, idx) => {
                                                                                 return {
@@ -445,7 +458,11 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                                     onClick={async (e) => {
                                                                         e.preventDefault()
                                                                         e.stopPropagation()
-                                                                        const newActions = arrayMove(actions, idx, idx + 1)
+                                                                        const newActions = arrayMove(
+                                                                            actions,
+                                                                            idx,
+                                                                            idx + 1
+                                                                        )
                                                                         await actionService.bulkPut(
                                                                             newActions.map((a, idx) => {
                                                                                 return {
@@ -563,7 +580,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                         {t('Ok')}
                                     </ModalButton>
                                 </ModalFooter>
-                                            </Modal>
+                            </Modal>
                         </div>
                     </>
                 )}

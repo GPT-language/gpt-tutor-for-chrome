@@ -27,7 +27,6 @@ interface WordBook {
     type: string
 }
 
-
 const GitHubRepo = {
     owner: 'GPT-language',
     repo: 'gpt-tutor-resources',

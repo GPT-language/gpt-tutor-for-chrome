@@ -16,8 +16,6 @@ export interface ChatFileAction {
     addFile: (file: File, category: string) => Promise<number>
     selectFile: (fileId: number) => void
     deleteFile: (fileId: number) => Promise<void>
-    addCategory: (category: string) => void
-    deleteCategory: (category: string) => void
     deleteSelectedWord: () => void
     searchWord: (searchTerm: string) => void
     selectWord: (word: Word) => void
@@ -28,7 +26,6 @@ export interface ChatFileAction {
     setCurrentFileId: (fileId: number) => void
     setCurrentPage: (page: number) => void
     setFiles: (files: SavedFile[]) => void
-    setSelectedCategory: (category: string) => void
     addWordToReviewFile: (word: Word, fileName: string) => Promise<void>
     updateReviewStatus: (word: Word) => Promise<void>
     markWordAsLearned: (word: Word, fileName: string) => Promise<void>
@@ -38,6 +35,7 @@ export interface ChatFileAction {
     initializeReviewFiles(): Promise<void>
     updateTranslationText: (translationText: string, actionName: string, wordContent?: string) => void
     setTranslations: (translations: Translations) => void
+    setSelectedGroup: (group: string) => void
 }
 
 export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatFileAction> = (set, get) => ({
@@ -76,7 +74,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     async checkIfInitialized() {
-        const files = await fileService.fetchFilesByCategory(i18n.t('学习'))
+        const files = await fileService.fetchFilesByCategory('学习')
         if (files.length > 0) {
             return true
         }
@@ -435,22 +433,10 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         }
     },
 
-    setSelectedCategory(category: string) {
-        set({ selectedCategory: category, currentFileId: null, selectedWord: null })
+    setSelectedGroup(category: string) {
+        set({ selectedGroup: category, currentFileId: null, selectedWord: null })
     },
-    addCategory: (category) => {
-        const { categories } = get()
-        set((state) => ({ categories: [...state.categories, category] }))
-        localStorage.setItem('categories', JSON.stringify([...categories, category]))
-    },
-    deleteCategory: (category) => {
-        const { categories } = get()
-        set((state) => ({
-            categories: state.categories.filter((c) => c !== category),
-            // Reset category if the current one is deleted
-        }))
-        localStorage.setItem('categories', JSON.stringify(categories.filter((c) => c !== category)))
-    },
+
     searchWord: (searchTerm) => {
         const { words } = get()
         const foundWord = words.find((word) => word.text.includes(searchTerm))
@@ -514,20 +500,20 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             const files = await fileService.fetchFilesByCategory(category)
             const file = files.find((file) => file.category === category && file.name === formattedDate)
             const wordInFile = file?.words.find((w) => w.text === wordContent)
-    
+
             set(
                 produce((draft) => {
                     // 更新全局 translations 状态
                     if (!draft.translations) {
                         draft.translations = {}
                     }
-    
+
                     if (!draft.translations[actionName]) {
                         draft.translations[actionName] = { text: newText, format: 'markdown' }
                     } else {
                         draft.translations[actionName].text = newText
                     }
-    
+
                     // 如果 selectedWord 存在，也更新它的 translations
                     if (draft.selectedWord) {
                         if (!draft.selectedWord.translations) {
@@ -535,35 +521,34 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                         }
                         draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' }
                     }
-    
+
                     // 验证 word 是否存在于 words 数组中
                     const wordInWords = draft.words.find((word: Word) => word.text === wordContent)
-    
+
                     if (!wordInWords) {
                         console.log('word is not in words')
                         if (wordInFile) {
-                            draft.selectedWord = { 
+                            draft.selectedWord = {
                                 ...wordInFile,
-                                translations: { ...draft.translations }
+                                translations: { ...draft.translations },
                             }
                         } else if (wordContent) {
                             draft.selectedWord = {
                                 text: wordContent,
-                                translations: { ...draft.translations }
+                                translations: { ...draft.translations },
                             }
                         }
                     } else {
                         // 更新 words 数组中的 word 的 translations
                         wordInWords.translations = { ...draft.translations }
                     }
-    
+
                     console.log('Updated translations:', draft.translations)
                 })
             )
-    
+
             // 如果需要，这里可以添加将更新后的数据保存到数据库的逻辑
             // await fileService.updateWordInFile(...)
-    
         } catch (error) {
             console.error('更新翻译文本时出错:', error)
             // 可以在这里添加错误处理逻辑，如显示错误提示等

@@ -556,8 +556,8 @@ function Ii18nSelector({ value, onChange, onBlur }: Ii18nSelectorProps) {
         { label: '繁體中文', id: 'zh-Hant' },
         { label: '日本語', id: 'ja' },
         { label: 'ไทย', id: 'th' },
-        { label: 'عربي', id: 'ar'},
-        { label: 'हिन्दी', id: 'hi'},
+        { label: 'عربي', id: 'ar' },
+        { label: 'हिन्दी', id: 'hi' },
         { label: '한국어', id: 'ko' },
         { label: 'Русский', id: 'ru' },
         { label: 'Deutsch', id: 'de' },
@@ -1105,15 +1105,15 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 <h2>
                     GPT Tutor
                     {AppConfig?.version ? (
-                            <a
-                                href='https://github.com/GPT-language/gpt-tutor-for-chrome'
-                                target='_blank'
-                                rel='noreferrer'
-                                style={linkStyle}
-                            >
-                                {AppConfig.version}
-                            </a>
-                        ) : null}
+                        <a
+                            href='https://github.com/GPT-language/gpt-tutor-for-chrome'
+                            target='_blank'
+                            rel='noreferrer'
+                            style={linkStyle}
+                        >
+                            {AppConfig.version}
+                        </a>
+                    ) : null}
                 </h2>
                 <div
                     style={{
@@ -1445,7 +1445,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     <FormItem
                         required={values.provider === 'ChatGLM' && utils.isDesktopApp()}
                         name='chatglmAccessToken'
-                        label={`ChatGLM Token`} 
+                        label={`ChatGLM Token`}
                         caption={
                             <div>
                                 {t('Go to the')}{' '}

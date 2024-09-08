@@ -15,7 +15,7 @@ const WordListUploader = () => {
         selectedWord,
         currentFileId,
         selectedWords,
-        selectedCategory,
+        selectedGroup,
         searchWord,
         selectWord,
         loadWords,
@@ -152,8 +152,8 @@ const WordListUploader = () => {
     }, [currentFileId, IsInitialized])
 
     useEffect(() => {
-        loadFiles(selectedCategory)
-    }, [selectedCategory, loadFiles])
+        loadFiles(selectedGroup)
+    }, [selectedGroup, loadFiles])
 
     useEffect(() => {
         if (!currentFileId) {
@@ -181,7 +181,7 @@ const WordListUploader = () => {
                     duration: 5000,
                 })
             }
-            if (selectedCategory === 'Review') {
+            if (selectedGroup === 'Review') {
                 // 计算最新的需要复习的单词，即nextReview大于当前时间且最接近当前时间的单词
                 if (words.length === 0) {
                     let closest: Word | null = null
@@ -223,7 +223,7 @@ const WordListUploader = () => {
             }
         }
         updateReviewStatus()
-    }, [words, currentPage, selectedCategory, currentFileId, setActionStr, t, hasShownReviewNotificationRef])
+    }, [words, currentPage, selectedGroup, currentFileId, setActionStr, t, hasShownReviewNotificationRef])
 
     useEffect(() => {
         if (reviewWordsCountRef.current === 0) {
@@ -251,7 +251,7 @@ const WordListUploader = () => {
     }, [t])
 
     useEffect(() => {
-        if (selectedCategory !== 'Review' || !currentFileId) {
+        if (selectedGroup !== 'Review' || !currentFileId) {
             return
         }
         if (words.length !== 0) {
@@ -263,7 +263,7 @@ const WordListUploader = () => {
         } else {
             setActionStr(t('All reviewed'))
         }
-    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedCategory, setActionStr, t, words.length])
+    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedGroup, setActionStr, t, words.length])
 
     useEffect(() => {
         const intervalId = setInterval(() => {

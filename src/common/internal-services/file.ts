@@ -297,7 +297,6 @@ export class FileService {
 
     // 根据上次复习时间和复习次数计算下次复习时间
     getNextReviewDate(lastReviewed: Date, reviewCount: number, intervals: number[]): Date | undefined {
-
         // 如果复习次数超过了间隔数组的长度，返回 undefined 表示复习完成
         if (reviewCount >= intervals.length) {
             return undefined

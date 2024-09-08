@@ -25,7 +25,7 @@ export interface ParsedPatch {
 export function parsePatch(patch: string): ParsedPatch {
     const lines = patch.split('\n')
     const changes: ParsedChange[] = []
-    let fileName = ''
+    const fileName = ''
 
     lines.forEach((line) => {
         if (line.startsWith('@@')) {

@@ -1,24 +1,24 @@
 import { SavedFile, Translations, Word } from '@/common/internal-services/db'
-import i18n from '@/common/i18n'
 export interface ChatFileState {
     words: Word[]
     currentFileId: number | null
     currentPage: number
     translations: Translations
     files: SavedFile[]
-    categories: string[]
-    selectedCategory: string
+    selectedGroup: string
     selectedWord: Word | null
     selectedWords: { [fileId: number]: Word | null }
 }
 
 function getFromStorage(key: string, defaultValue: unknown) {
     const item = localStorage.getItem(key)
+    if (item === null) return defaultValue
+    if (typeof defaultValue === 'string') return item
     try {
-        return item ? JSON.parse(item) : defaultValue
+        return JSON.parse(item)
     } catch (error) {
         console.error('Error parsing JSON from localStorage for key:', key, error)
-        return defaultValue // 返回默认值或执行其他错误处理
+        return defaultValue
     }
 }
 
@@ -66,15 +66,7 @@ function getObjectFromChromeStorage<T>(key: string, defaultValue: T): Promise<T>
 
 export const getInitialFileState = async (): Promise<ChatFileState> => {
     const currentFileId = getNumberFromStorage('currentFileId', 0)
-    const categories = await getFromStorage('categories', [
-        'Vocabulary',
-        'Expression',
-        'Grammar',
-        'Writing',
-        'Review',
-        'History',
-    ])
-    const selectedCategory = await getFromStorage('currentCategory', i18n.t('Vocabulary'))
+    const selectedGroup = getFromStorage('selectedGroup', 'Word Learning')
     const selectedWord = await getFromChromeStorage('selectedWord', { idx: 1, text: '', reviewCount: 0 })
     const selectedWords = await getObjectFromChromeStorage('selectedWords', {})
 
@@ -84,10 +76,9 @@ export const getInitialFileState = async (): Promise<ChatFileState> => {
         currentFileId,
         currentPage: 1,
         files: [],
-        categories,
-        selectedCategory,
         selectedWord,
         selectedWords,
+        selectedGroup,
     }
 }
 
@@ -97,8 +88,7 @@ export const initialFileState: ChatFileState = {
     currentFileId: getNumberFromStorage('currentFileId', 0),
     currentPage: 1,
     files: [],
-    categories: getFromStorage('categories', ['词汇', '表达', '语法', '复习', '历史记录']),
-    selectedCategory: getFromStorage('currentCategory', '默认'),
     selectedWord: { idx: 1, text: '', reviewCount: 0 },
     selectedWords: {}, // 每个文件的选中单词
+    selectedGroup: getFromStorage('selectedGroup', 'Word Learning'),
 }

@@ -30,14 +30,11 @@ interface WordBook {
     type: string
 }
 
-
 const GitHubRepo = {
     owner: 'GPT-language',
     repo: 'gpt-tutor-resources',
     branch: 'main',
 }
-
-
 
 // ... 其他导入和常量定义保持不变
 
@@ -54,9 +51,9 @@ const ActionStore: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(false)
     const { t } = useTranslation()
 
-    const [css, theme] = useStyletron();
-    const { themeType } = useTheme();
-    const styles = useStyles({ theme, themeType });
+    const [css, theme] = useStyletron()
+    const { themeType } = useTheme()
+    const styles = useStyles({ theme, themeType })
 
     useEffect(() => {
         const fetchLanguages = async () => {

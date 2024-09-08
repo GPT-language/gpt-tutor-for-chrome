@@ -9,4 +9,3 @@ export function useIsSubscriber() {
     const { user } = useUser()
     return user?.publicMetadata?.role === 'subscriber' ?? false
 }
-
