@@ -8,6 +8,8 @@ import { Search } from 'baseui-sd/icon'
 import { rgb } from 'polished'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
+import { Tabs, Tab } from 'baseui-sd/tabs'
+import { BsList, BsGrid, BsClockHistory, BsJournalText, BsArrowRepeat } from 'react-icons/bs'
 
 const WordListUploader = () => {
     const {
@@ -15,7 +17,7 @@ const WordListUploader = () => {
         selectedWord,
         currentFileId,
         selectedWords,
-        selectedGroup,
+        selectedCategory,
         searchWord,
         selectWord,
         loadWords,
@@ -38,6 +40,8 @@ const WordListUploader = () => {
     const reminderIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const reviewWordsCountRef = useRef(0)
     const hasShownReviewNotificationRef = useRef(false)
+    const [currentView, setCurrentView] = useState<'normal' | 'history' | 'review'>('normal')
+    const [isGridView, setIsGridView] = useState(false)
 
     const handleSearchSubmit = () => {
         searchWord(searchTerm)
@@ -152,8 +156,8 @@ const WordListUploader = () => {
     }, [currentFileId, IsInitialized])
 
     useEffect(() => {
-        loadFiles(selectedGroup)
-    }, [selectedGroup, loadFiles])
+        loadFiles(selectedCategory)
+    }, [selectedCategory, loadFiles])
 
     useEffect(() => {
         if (!currentFileId) {
@@ -181,7 +185,7 @@ const WordListUploader = () => {
                     duration: 5000,
                 })
             }
-            if (selectedGroup === 'Review') {
+            if (selectedCategory === 'Review') {
                 // 计算最新的需要复习的单词，即nextReview大于当前时间且最接近当前时间的单词
                 if (words.length === 0) {
                     let closest: Word | null = null
@@ -223,7 +227,7 @@ const WordListUploader = () => {
             }
         }
         updateReviewStatus()
-    }, [words, currentPage, selectedGroup, currentFileId, setActionStr, t, hasShownReviewNotificationRef])
+    }, [words, currentPage, selectedCategory, currentFileId, setActionStr, t, hasShownReviewNotificationRef])
 
     useEffect(() => {
         if (reviewWordsCountRef.current === 0) {
@@ -251,7 +255,7 @@ const WordListUploader = () => {
     }, [t])
 
     useEffect(() => {
-        if (selectedGroup !== 'Review' || !currentFileId) {
+        if (selectedCategory !== 'Review' || !currentFileId) {
             return
         }
         if (words.length !== 0) {
@@ -263,7 +267,7 @@ const WordListUploader = () => {
         } else {
             setActionStr(t('All reviewed'))
         }
-    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedGroup, setActionStr, t, words.length])
+    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedCategory, setActionStr, t, words.length])
 
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -273,41 +277,132 @@ const WordListUploader = () => {
         return () => clearInterval(intervalId) // 清理定时器
     }, []) // 空依赖数组，确保只在组件挂载时设置定时器
 
+    const renderViewTabs = () => (
+        <div style={{ display: 'flex', gap: '8px' }}>
+            <Button
+                onClick={() => setCurrentView('normal')}
+                kind={currentView === 'normal' ? KIND.primary : KIND.tertiary}
+                size={SIZE.compact}
+            >
+                <BsJournalText />
+            </Button>
+            <Button
+                onClick={() => setCurrentView('history')}
+                kind={currentView === 'history' ? KIND.primary : KIND.tertiary}
+                size={SIZE.compact}
+            >
+                <BsClockHistory />
+            </Button>
+            <Button
+                onClick={() => setCurrentView('review')}
+                kind={currentView === 'review' ? KIND.primary : KIND.tertiary}
+                size={SIZE.compact}
+            >
+                <BsArrowRepeat />
+            </Button>
+        </div>
+    )
+
+    const renderLayoutToggle = () => (
+        <Button onClick={() => setIsGridView(!isGridView)} kind={KIND.tertiary} size={SIZE.compact}>
+            {isGridView ? <BsList /> : <BsGrid />}
+        </Button>
+    )
+
+    const GridView = ({
+        words,
+        selectedWord,
+        onWordClick,
+    }: {
+        words: Word[]
+        selectedWord: Word
+        onWordClick: (word: Word) => void
+    }) => {
+        const containerRef = useRef(null)
+        const [itemsPerRow, setItemsPerRow] = useState(2)
+
+        useEffect(() => {
+            const updateItemsPerRow = () => {
+                if (containerRef.current) {
+                    const containerWidth = containerRef.current.offsetWidth
+                    const itemWidth = 100 // 假设每个单词项的最小宽度为150px
+                    const newItemsPerRow = Math.max(2, Math.floor(containerWidth / itemWidth))
+                    setItemsPerRow(newItemsPerRow)
+                }
+            }
+
+            updateItemsPerRow()
+            window.addEventListener('resize', updateItemsPerRow)
+            return () => window.removeEventListener('resize', updateItemsPerRow)
+        }, [])
+
+        return (
+            <div ref={containerRef} style={{ display: 'flex', flexWrap: 'wrap' }}>
+                {words.map((word, index) => (
+                    <div
+                        key={index}
+                        style={{
+                            width: `${100 / itemsPerRow}%`,
+                            padding: '10px',
+                            boxSizing: 'border-box',
+                            cursor: 'pointer',
+                            backgroundColor:
+                                selectedWord && word.text === selectedWord.text ? rgb(255, 255, 0) : 'transparent',
+                        }}
+                        onClick={() => onWordClick(word)}
+                    >
+                        {word.text}
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
     return (
         <div style={{ height: '100%', overflow: 'auto', width: 'auto' }}>
+            <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}
+            >
+                {renderViewTabs()}
+                {renderLayoutToggle()}
+            </div>
             <div style={{ minHeight: '160px' }}>
-                <ol start={(currentPage - 1) * itemsPerPage + 1}>
-                    {displayWords.map((entry, index) => {
-                        // 检查 entry 和 entry.text 是否存在
-                        if (!entry || typeof entry.text !== 'string') {
-                            return null // 如果 entry 或 entry.text 无效，则不渲染这个项
-                        }
+                {isGridView ? (
+                    <GridView words={displayWords} selectedWord={selectedWord}  onWordClick={handleWordClick} />
+                ) : (
+                    <ol start={(currentPage - 1) * itemsPerPage + 1}>
+                        {displayWords.map((entry, index) => {
+                            // 检查 entry 和 entry.text 是否存在
+                            if (!entry || typeof entry.text !== 'string') {
+                                return null // 如果 entry 或 entry.text 无效，则不渲染这个项
+                            }
 
-                        const displayText = entry.text.includes(' ')
-                            ? entry.text.split(' ').length > 15
-                                ? entry.text.split(' ').slice(0, 10).join(' ') + '...'
+                            const displayText = entry.text.includes(' ')
+                                ? entry.text.split(' ').length > 15
+                                    ? entry.text.split(' ').slice(0, 10).join(' ') + '...'
+                                    : entry.text
+                                : entry.text.length > 12
+                                ? entry.text.substring(0, 10) + '...'
                                 : entry.text
-                            : entry.text.length > 12
-                            ? entry.text.substring(0, 10) + '...'
-                            : entry.text
 
-                        return (
-                            <li
-                                key={index}
-                                style={{
-                                    cursor: 'pointer',
-                                    backgroundColor:
-                                        selectedWord && entry.text === selectedWord.text
-                                            ? rgb(255, 255, 0)
-                                            : 'transparent',
-                                }}
-                                onClick={() => handleWordClick(entry)}
-                            >
-                                {displayText}
-                            </li>
-                        )
-                    })}
-                </ol>
+                            return (
+                                <li
+                                    key={index}
+                                    style={{
+                                        cursor: 'pointer',
+                                        backgroundColor:
+                                            selectedWord && entry.text === selectedWord.text
+                                                ? rgb(255, 255, 0)
+                                                : 'transparent',
+                                    }}
+                                    onClick={() => handleWordClick(entry)}
+                                >
+                                    {displayText}
+                                </li>
+                            )
+                        })}
+                    </ol>
+                )}
             </div>
             <div
                 style={{

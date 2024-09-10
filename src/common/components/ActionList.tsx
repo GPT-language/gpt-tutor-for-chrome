@@ -10,7 +10,6 @@ import toast from 'react-hot-toast'
 
 interface ActionListProps {
     onActionClick: (action: Action | undefined, assistantActionText?: string) => void // 从父组件传入的处理函数
-    performAll: (actions: Action[]) => void
 }
 
 const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll }) => {
@@ -18,7 +17,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
         words,
         selectedWord,
         selectWord,
-        selectedCategory,
+        selectedGroup,
         addWordToReviewFile,
         updateReviewStatus,
         markWordAsForgotten,
@@ -38,12 +37,9 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     const { t } = useTranslation()
     const [isShowAssistantList, setIsShowAssistantList] = useState(false)
     const [value, setValue] = useState<Value>([])
-    const reviewFileName = t('To review') + t(selectedCategory)
+    const reviewFileName = t('To review') + t(selectedGroup)
     const [assistantActionText, setAssistantActionText] = useState('')
 
-    const handlePerformAllClick = () => {
-        performAll(actions)
-    }
 
     const handleAddWordClick = async () => {
         setNextAction(undefined)
@@ -79,7 +75,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             selectWord(nextWord)
             setIsSelectedNextWord(true)
         } else {
-            if (selectedCategory === 'Review') {
+            if (selectedGroup === 'Review') {
                 return
             }
             setCurrentPage(currentPage + 1)
@@ -183,7 +179,7 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             return null
         }
 
-        if (selectedCategory === 'Review') {
+        if (selectedGroup === 'Review') {
             return (
                 <div
                     style={{

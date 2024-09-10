@@ -73,6 +73,9 @@ import { Octokit } from '@octokit/rest'
 import { checkForUpdates, getFilenameForLanguage, getLocalData, updateLastCheckedSha } from '../services/github'
 import { parseDiff, Diff, Hunk } from 'react-diff-view'
 import 'react-diff-view/style/index.css'
+import SelectWithInput from './SelectWithInput'
+import AutocompleteTextarea from './TextArea'
+import { debounce } from 'lodash-es'
 
 const cache = new LRUCache({
     max: 500,
@@ -81,7 +84,6 @@ const cache = new LRUCache({
         return 1
     },
 })
-
 
 const useStyles = createUseStyles({
     'popupCard': {
@@ -117,7 +119,7 @@ const useStyles = createUseStyles({
             ? {
                   'position': 'fixed',
                   'backdropFilter': 'blur(10px)',
-                  'zIndex': 1,
+                  'zIndex': 1000,
                   'left': 0,
                   'top': 0,
                   'width': '100%',
@@ -429,6 +431,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowReviewManager,
         translations,
         setTranslations,
+        selectedGroup,
+        setSelectedGroup,
+        editableText,
+        setEditableText,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -440,7 +446,22 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const { t, i18n } = useTranslation()
     const { settings } = useSettings()
     const settingsRef = useRef(settings)
-    const [finalText, setFinalText] = useState(props.text)
+    const [finalText, setFinalText] = useState('')
+    const [debouncedText, setDebouncedText] = useState('')
+    const [selectedActions, setSelectedActions] = useState<Action[]>([])
+
+    const debouncedSetSpeakText = useMemo(
+        () =>
+            debounce((text: string) => {
+                setDebouncedText(text)
+            }, 500), // 500ms 延迟
+        []
+    )
+
+    // 当 speakText 变化时，调用防抖函数
+    useCallback(() => {
+        debouncedSetSpeakText(debouncedText)
+    }, [debouncedText, debouncedSetSpeakText])
 
     useEffect(() => {
         settingsRef.current = settings
@@ -556,190 +577,178 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [hasActivateAction, headerWidth, languagesSelectorWidth, headerActionButtonsWidth])
 
     const actions = useLiveQuery(() => actionService.list(), [refreshActionsFlag])
-    const [selectedGroup, setSelectedGroup] = useState(localStorage.getItem('selectedGroup') || 'English Learning')
     const [displayedActions, setDisplayedActions] = useState<Action[]>([])
     const [hiddenActions, setHiddenActions] = useState<Action[]>([])
     const [displayedActionsMaxCount, setDisplayedActionsMaxCount] = useState(6)
-    const actionGroups = actions?.reduce((groups: { [key: string]: Action[] }, action) => {
-        if (!action.groups) {
-            console.log('no groups', action)
-            return groups
-        }
-        // 每个 action 可能属于多个 group
-        action.groups.forEach((group) => {
-            if (!groups[group]) {
-                groups[group] = []
-            }
-            groups[group].push(action)
-        })
-        return groups
-    }, {})
-
-    const octokit = new Octokit({ auth: import.meta.env.VITE_REACT_APP_GITHUB_TOKEN })
 
     useEffect(() => {
-        if (!settings?.i18n) return;
-    
+        refreshActions()
+    }, [])
+
+    useEffect(() => {
+        console.log('refreshActionsFlag changed:', refreshActionsFlag)
+    }, [refreshActionsFlag])
+
+    useEffect(() => {
+        if (!settings?.i18n) return
+
         const loadLanguageData = async () => {
-            let languageCode = settings.i18n;
-            console.log('Loading language data for:', languageCode);
-    
-            const lastLoadedLanguage = localStorage.getItem('lastLoadedLanguage');
-    
-            const githubToken = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN;
-            const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default';
+            let languageCode = settings.i18n
+            console.log('Loading language data for:', languageCode)
+
+            const lastLoadedLanguage = localStorage.getItem('lastLoadedLanguage')
+
+            const githubToken = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN
+            const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default'
             const headers = {
                 Authorization: `token ${githubToken}`,
                 Accept: 'application/vnd.github.v3.raw',
-            };
-    
-            const filename = getFilenameForLanguage(languageCode || 'en');
-    
+            }
+            const isActionExist = (await actionService.get(2)) ? true : false
+
+            const filename = getFilenameForLanguage(languageCode || 'en')
+
             try {
-                if (lastLoadedLanguage === languageCode) {
-                    console.log('Language data already loaded');
-                    return;
+                if (lastLoadedLanguage === languageCode && isActionExist) {
+                    console.log('Language data already loaded')
+                    return
                 }
-    
+
                 // 删除所有 mode 为 'built-in' 的 action，以免重复
-                await actionService.deleteByMode('built-in');
-                console.log('Deleted all built-in actions');
-    
-                let remoteData;
-                let latestSha;
+                await actionService.deleteByMode('built-in')
+                console.log('Deleted all built-in actions')
+
+                let remoteData
+                let latestSha
                 try {
                     // 获取文件内容
-                    const contentResponse = await fetch(`${baseUrl}/${filename}`, { headers });
+                    const contentResponse = await fetch(`${baseUrl}/${filename}`, { headers })
                     if (!contentResponse.ok) {
-                        throw new Error(`HTTP error! status: ${contentResponse.status}`);
+                        throw new Error(`HTTP error! status: ${contentResponse.status}`)
                     }
-                    remoteData = await contentResponse.json();
-    
+                    remoteData = await contentResponse.json()
+
                     // 获取最新的 commit SHA
-                    const commitsResponse = await fetch(`https://api.github.com/repos/GPT-language/gpt-tutor-resources/commits?path=default/${filename}&per_page=1`, { headers });
+                    const commitsResponse = await fetch(
+                        `https://api.github.com/repos/GPT-language/gpt-tutor-resources/commits?path=default/${filename}&per_page=1`,
+                        { headers }
+                    )
                     if (!commitsResponse.ok) {
-                        throw new Error(`HTTP error! status: ${commitsResponse.status}`);
+                        throw new Error(`HTTP error! status: ${commitsResponse.status}`)
                     }
-                    const commits = await commitsResponse.json();
-                    latestSha = commits[0].sha;
+                    const commits = await commitsResponse.json()
+                    latestSha = commits[0].sha
                 } catch (error) {
-                    console.warn('Failed to fetch data from GitHub, using local data instead:', error);
+                    console.warn('Failed to fetch data from GitHub, using local data instead:', error)
                     if (!languageCode) {
-                        languageCode = 'en';
+                        languageCode = 'en'
                     }
-                    remoteData = getLocalData(languageCode);
+                    remoteData = getLocalData(languageCode)
                 }
-    
+
                 // 更新数据
-                await actionService.bulkPut(remoteData as Action[]);
-    
+                await actionService.bulkPut(remoteData as Action[])
+
                 // 更新最后加载的语言、时间和 SHA
-                localStorage.setItem('lastLoadedLanguage', languageCode || 'en');
-                localStorage.setItem(`${languageCode}_last_check_time`, Date.now().toString());
+                localStorage.setItem('lastLoadedLanguage', languageCode || 'en')
+                localStorage.setItem(`${languageCode}_last_check_time`, Date.now().toString())
                 if (latestSha && languageCode) {
-                    updateLastCheckedSha(languageCode, latestSha);
+                    updateLastCheckedSha(languageCode, latestSha)
                 }
-    
-                console.log('Language data loaded and updated successfully');
-                refreshActions();
+
+                console.log('Language data loaded and updated successfully')
+                refreshActions()
             } catch (error) {
-                console.error('Error loading language data:', error);
+                console.error('Error loading language data:', error)
             }
-        };
-    
-        loadLanguageData();
+        }
+
+        loadLanguageData()
     }, [settings?.i18n])
 
-    
-// 检查功能更新
+    // 检查功能更新
 
-const handleCheckForUpdates = async () => {
-    if (!settings?.i18n) return;
-    const languageCode = settings.i18n;
-    const lastCheckedSha = localStorage.getItem(`${languageCode}_last_checked_sha`);
+    const handleCheckForUpdates = async () => {
+        if (!settings?.i18n) return
+        const languageCode = settings.i18n
+        const lastCheckedSha = localStorage.getItem(`${languageCode}_last_checked_sha`)
 
-    // 如果没有存储 SHA，说明是初次加载，直接返回
-    if (!lastCheckedSha) {
-        console.log("Initial load, skipping update check");
-        return;
-    }
-    
+        // 如果没有存储 SHA，说明是初次加载，直接返回
+        if (!lastCheckedSha) {
+            console.log('Initial load, skipping update check')
+            return
+        }
 
-    const now = Date.now();
-    const lastCheckTime = parseInt(localStorage.getItem(`${settings.i18n}_last_check_time`) || '0', 10);
-    const timeSinceLastCheck = now - lastCheckTime;
-    const checkInterval = 24 * 60 * 60 * 1000; // 24小时，以毫秒为单位
+        const now = Date.now()
+        const lastCheckTime = parseInt(localStorage.getItem(`${settings.i18n}_last_check_time`) || '0', 10)
+        const timeSinceLastCheck = now - lastCheckTime
+        const checkInterval = 24 * 60 * 60 * 1000 // 24小时，以毫秒为单位
 
-    if (timeSinceLastCheck < checkInterval) {
-        console.log("Too soon to check for updates");
-        return;
-    }
+        if (timeSinceLastCheck < checkInterval) {
+            console.log('Too soon to check for updates')
+            return
+        }
 
-
-    const result = await checkForUpdates(settings.i18n);
-    if (result && result.latestSha !== lastCheckedSha) {
-        setUpdateContent(result.updatedContent);
-        setLatestCommitSha(result.latestSha);
-        setShowUpdateModal(true);
-    } else {
-        console.log("No new updates available");
-        // 即使没有更新，也更新最后检查时间
-        updateLastCheckedSha(settings.i18n, lastCheckedSha || '');
-    }
-}
-
-
-const handleUpdate = async () => {
-    if (!settings?.i18n) {
-        console.log('未找到i18n设置，更新过程已终止。');
-        return;
+        const result = await checkForUpdates(settings.i18n)
+        if (result && result.latestSha !== lastCheckedSha) {
+            setUpdateContent(result.updatedContent)
+            setLatestCommitSha(result.latestSha)
+            setShowUpdateModal(true)
+        } else {
+            console.log('No new updates available')
+            // 即使没有更新，也更新最后检查时间
+            updateLastCheckedSha(settings.i18n, lastCheckedSha || '')
+        }
     }
 
-    try {
-        const languageCode = settings.i18n;
-        const filename = getFilenameForLanguage(languageCode);
-        const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default';
-        const headers = {
-            Authorization: `token ${import.meta.env.VITE_REACT_APP_GITHUB_TOKEN}`,
-            Accept: 'application/vnd.github.v3.raw',
-        };
+    const handleUpdate = async () => {
+        if (!settings?.i18n) {
+            console.log('未找到i18n设置，更新过程已终止。')
+            return
+        }
 
-        toast(t('Updating...'))
-
-        let remoteData: Action[];
         try {
-            const response = await fetch(`${baseUrl}/${filename}`, { headers });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const languageCode = settings.i18n
+            const filename = getFilenameForLanguage(languageCode)
+            const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default'
+            const headers = {
+                Authorization: `token ${import.meta.env.VITE_REACT_APP_GITHUB_TOKEN}`,
+                Accept: 'application/vnd.github.v3.raw',
             }
-            remoteData = await response.json();
+
+            toast(t('Updating...'))
+
+            let remoteData: Action[]
+            try {
+                const response = await fetch(`${baseUrl}/${filename}`, { headers })
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`)
+                }
+                remoteData = await response.json()
+            } catch (error) {
+                console.warn('从GitHub获取数据失败，使用本地数据代替:', error)
+                remoteData = getLocalData(languageCode)
+            }
+
+            // 删除所有 mode 为 'built-in' 的 action，以免重复
+            await actionService.deleteByMode('built-in')
+            // 使用 bulkPut 更新所有数据
+            await actionService.bulkPut(remoteData)
+
+            if (latestCommitSha) {
+                updateLastCheckedSha(languageCode, latestCommitSha)
+            }
+
+            refreshActions()
+            setShowUpdateModal(false)
+            toast.success(t('Update Success'))
         } catch (error) {
-            console.warn('从GitHub获取数据失败，使用本地数据代替:', error);
-            remoteData = getLocalData(languageCode);
+            toast(t('Update Failed'))
+            console.error('更新数据时出错:', error)
+            // setErrorMessage('更新失败，请稍后重试');
         }
-
-
-
-        // 删除所有 mode 为 'built-in' 的 action，以免重复
-        await actionService.deleteByMode('built-in')
-        // 使用 bulkPut 更新所有数据
-        await actionService.bulkPut(remoteData);
-
-        if (latestCommitSha) {
-            updateLastCheckedSha(languageCode, latestCommitSha);
-        }
-
-        refreshActions();
-        setShowUpdateModal(false);
-        toast.success(t('Update Success'));
-    } catch (error) {
-        toast(t('Update Failed'));
-        console.error('更新数据时出错:', error);
-        // setErrorMessage('更新失败，请稍后重试');
     }
-}
 
-                
     const handleSkipUpdate = () => {
         if (settings?.i18n && latestCommitSha) {
             updateLastCheckedSha(settings.i18n, latestCommitSha)
@@ -749,20 +758,36 @@ const handleUpdate = async () => {
 
     useEffect(() => {
         if (!settings?.i18n) return
-        
+
         handleCheckForUpdates()
-        
+
         const checkForUpdatesInterval = setInterval(handleCheckForUpdates, 24 * 60 * 60 * 1000) // 每24小时检查一次
 
         return () => clearInterval(checkForUpdatesInterval)
     }, [settings?.i18n])
 
     useEffect(() => {
+        console.log('actions is exist？', actions)
+        if (actions) {
+            console.log('actions', actions)
+            setActions(actions)
+        }
+    }, [actions, setActions])
+
+    useEffect(() => {
+        const loadActions = async () => {
+            const result = await actionService.list()
+            setActions(result)
+        }
+        loadActions()
+    }, [])
+
+    useEffect(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         if (!actions) {
+            console.log('no actions')
             setDisplayedActions([])
             setHiddenActions([])
-            refreshActions()
             return
         }
 
@@ -773,7 +798,7 @@ const handleUpdate = async () => {
             return []
         })
 
-        setActions(filteredActions)
+        setSelectedActions(filteredActions)
 
         let displayedActions = filteredActions.slice(0, displayedActionsMaxCount)
         let hiddenActions = filteredActions.slice(displayedActionsMaxCount)
@@ -791,8 +816,7 @@ const handleUpdate = async () => {
         }
         setDisplayedActions(displayedActions)
         setHiddenActions(hiddenActions)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [actions, selectedGroup, activateAction, displayedActionsMaxCount, refreshActionsFlag])
+    }, [actions, selectedGroup, activateAction, displayedActionsMaxCount, refreshActionsFlag, setActions])
 
     const isTranslate = currentTranslateMode === 'translate'
 
@@ -807,7 +831,7 @@ const handleUpdate = async () => {
                     deleteSelectedWord()
                 }
                 const text = message.text
-                setEditableText(text)
+                setFinalText(text)
             }
         }
 
@@ -824,7 +848,6 @@ const handleUpdate = async () => {
     const [isLoading, setIsLoading] = useState(false)
     const [newYouGlish, setNewYouGlish] = useState(false)
     const [showYouGlish, setShowYouGlish] = useState(false)
-    const [editableText, setEditableText] = useState(props.text)
     const [selectWordIdx, setSelectWordIdx] = useState(0)
     const [isSpeakingEditableText, setIsSpeakingEditableText] = useState(false)
     const [translatedText, setTranslatedText] = useState('')
@@ -854,14 +877,11 @@ const handleUpdate = async () => {
         if (!action) {
             return
         }
-        if (assistantActionText) {
-            setFinalText(assistantActionText)
+
+        if (!selectedWord) {
+            setFinalText(editableText)
         } else {
-            if (!selectedWord) {
-                setFinalText(editableText)
-            } else {
-                setFinalText(selectedWord.text)
-            }
+            setFinalText(selectedWord.text)
         }
 
         // 保存当前状态
@@ -876,6 +896,22 @@ const handleUpdate = async () => {
         }
         forceTranslate() // 执行操作
     }
+
+    const handleSubmit = useCallback(
+        async (e?: React.FormEvent) => {
+            if (e) {
+                e.preventDefault()
+                e.stopPropagation()
+            }
+            console.log('submit is working')
+            if (!activateAction) {
+                console.debug('activateAction is null')
+                return
+            }
+            forceTranslate()
+        },
+        [activateAction, forceTranslate]
+    )
 
     // 只有在selectedWord存在且idx改变时触发
     useEffect(() => {
@@ -1138,14 +1174,10 @@ const handleUpdate = async () => {
     }, [activateAction])
 
     useEffect(() => {
-        if (!activateAction?.parentIds) {
-            if (!selectedWord) {
-                setFinalText(editableText)
-            } else {
-                setFinalText(selectedWord.text)
-            }
-        }
-    }, [activateAction?.parentIds, editableText, selectedWord])
+        const newText = editableText || selectedWord?.text || ''
+        console.log('Setting finalText to:', newText)
+        setFinalText(newText)
+    }, [editableText, selectedWord])
 
     const finalTextRef = useRef(finalText)
 
@@ -1164,7 +1196,6 @@ const handleUpdate = async () => {
             }
             console.log('translateText before', text)
 
-            text = finalTextRef.current
             console.log('translateText', text)
             console.log('finalText', finalText)
             console.log('editText', editableText)
@@ -1376,35 +1407,6 @@ const handleUpdate = async () => {
             }
         }
     }
-
-    const performActionsTranslations = useCallback(
-        async (actions: Action[]) => {
-            const originalAction = activateActionRef.current // 保存原始action以便之后恢复
-            const controller = new AbortController()
-            const { signal } = controller
-            for (let i = 0; i < actions.length; i++) {
-                const action = actions[i]
-                console.log(`处理动作 ${action.name}`)
-
-                // 更新当前激活的动作
-                setAction(action) // 假设这是更新当前action的方法
-
-                // 等待更新状态，然后调用翻译函数
-                await new Promise((r) => setTimeout(r, 0)) // 确保状态更新完成
-
-                await translateText(editableText, signal, action.name) // 使用更新后的action执行翻译
-
-                // 可能需要处理更多逻辑，比如检查是否有错误，是否需要停止等
-            }
-
-            // 恢复原始action
-            setAction(originalAction as Action)
-            return () => {
-                controller.abort()
-            }
-        },
-        [editableText, setAction, translateText]
-    )
     useEffect(() => {
         if (translations[t('Sentence analysis')]) {
             setShowTextParser(true)
@@ -1420,20 +1422,6 @@ const handleUpdate = async () => {
             setjsonText('')
         }
     }, [translatedText, t, activateAction?.name, translations, selectedWord])
-
-    useEffect(() => {
-        console.log('showTextParser', showTextParser)
-    }, [showTextParser])
-
-    useEffect(() => {
-        if (!finalText) {
-            setFinalText(editableText)
-        }
-    }, [editableText, finalText])
-
-    useEffect(() => {
-        console.log('Translations updated:', translations)
-    }, [translations])
 
     useEffect(() => {
         const controller = new AbortController()
@@ -1542,51 +1530,44 @@ const handleUpdate = async () => {
     }
 
     function formatPatchForParseDiff(filename: string, patch: string): string {
-        const header = `diff --git a/${filename} b/${filename}\n--- a/${filename}\n+++ b/${filename}\n`;
-        return header + patch;
-      }
-      
-      const DiffView: React.FC<{ filename: string, patch: string }> = ({ filename, patch }) => {
-        const [css] = useStyletron();
-        let files;
-      
+        const header = `diff --git a/${filename} b/${filename}\n--- a/${filename}\n+++ b/${filename}\n`
+        return header + patch
+    }
+
+    const DiffView: React.FC<{ filename: string; patch: string }> = ({ filename, patch }) => {
+        const [css] = useStyletron()
+        let files
+
         try {
-          const formattedPatch = formatPatchForParseDiff(filename, patch);
-          files = parseDiff(formattedPatch);
+            const formattedPatch = formatPatchForParseDiff(filename, patch)
+            files = parseDiff(formattedPatch)
         } catch (error) {
-          console.error('Error parsing diff:', error);
-          return <div>Error parsing diff. Please check the console for details.</div>;
+            console.error('Error parsing diff:', error)
+            return <div>Error parsing diff. Please check the console for details.</div>
         }
-      
+
         if (!files || files.length === 0) {
-          return <div>No changes detected in the diff.</div>;
+            return <div>No changes detected in the diff.</div>
         }
-      
+
         return (
-          <div className={css({
-            fontSize: '12px',
-            fontFamily: 'monospace',
-            backgroundColor: '#f0f0f0',
-            padding: '10px',
-            borderRadius: '4px',
-          })}>
-            {files.map((file) => (
-              <Diff
-                key={file.oldPath + file.newPath}
-                viewType="unified"
-                diffType={file.type}
-                hunks={file.hunks}
-              >
-                {(hunks) =>
-                  hunks.map((hunk) => (
-                    <Hunk key={hunk.content} hunk={hunk} />
-                  ))
-                }
-              </Diff>
-            ))}
-          </div>
-        );
-      }
+            <div
+                className={css({
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    backgroundColor: '#f0f0f0',
+                    padding: '10px',
+                    borderRadius: '4px',
+                })}
+            >
+                {files.map((file) => (
+                    <Diff key={file.oldPath + file.newPath} viewType='unified' diffType={file.type} hunks={file.hunks}>
+                        {(hunks) => hunks.map((hunk) => <Hunk key={hunk.content} hunk={hunk} />)}
+                    </Diff>
+                ))}
+            </div>
+        )
+    }
 
     return (
         <div
@@ -1617,237 +1598,7 @@ const handleUpdate = async () => {
                 }}
             >
                 <div style={props.containerStyle}>
-                    <div
-                        ref={headerRef}
-                        className={styles.popupCardHeaderContainer}
-                        data-tauri-drag-region
-                        style={{
-                            cursor: isDesktopApp() ? 'default' : 'move',
-                        }}
-                    >
-                        <Tooltip content={t('Select a Action Group')} placement='bottom'>
-                            <Select
-                                size='mini'
-                                options={[...Object.keys(actionGroups || {}).map((key) => ({ id: key, label: key }))]}
-                                value={[{ id: selectedGroup }]}
-                                overrides={{
-                                    Root: {
-                                        style: {
-                                            minWidth: '100px',
-                                            width: '30%',
-                                        },
-                                    },
-                                }}
-                                onChange={({ value }) => {
-                                    // 如果 actionGroups 是 undefined，则使用空对象作为默认值
-                                    const groupId = value.length > 0 ? value[0].id : Object.keys(actionGroups || {})[0]
-
-                                    if (groupId === 'unlock_features') {
-                                        window.open('https://chatgpt-tutor.vercel.app/docs/purchase', '_blank') // 打开新网页
-                                    } else {
-                                        setSelectedGroup(groupId as string)
-                                    }
-                                }}
-                            />
-                        </Tooltip>
-                        <div className={styles.popupCardHeaderButtonGroup} ref={headerActionButtonsRef}>
-                            {displayedActions?.map((action) => {
-                                return (
-                                    <Tooltip
-                                        key={action.id}
-                                        content={action.mode ? t(action.name) : action.name}
-                                        placement={isDesktopApp() ? 'bottom' : 'top'}
-                                    >
-                                        <Button
-                                            size='mini'
-                                            kind={action.id === activateAction?.id ? 'primary' : 'secondary'}
-                                            className={
-                                                action.id === activateAction?.id
-                                                    ? '__yetone-activate-action'
-                                                    : undefined
-                                            }
-                                            overrides={{
-                                                Root: {
-                                                    style: {
-                                                        height: '27px',
-                                                        display: 'flex',
-                                                        flexDirection: 'row',
-                                                        alignItems: 'center',
-                                                        gap: '4px',
-                                                    },
-                                                },
-                                            }}
-                                            onClick={() => {
-                                                setTranslatedText('')
-                                                setAction(action)
-                                                if (action) {
-                                                    localStorage.setItem('savedAction', JSON.stringify(action))
-                                                } else {
-                                                    localStorage.removeItem('savedAction')
-                                                }
-                                            }}
-                                        >
-                                            {action.icon &&
-                                                React.createElement(mdIcons[action.icon as keyof typeof mdIcons], {
-                                                    size: 15,
-                                                })}
-                                            {action.id === activateAction?.id && (
-                                                <div
-                                                    style={{
-                                                        maxWidth: 200,
-                                                        whiteSpace: 'nowrap',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                    }}
-                                                >
-                                                    {action.mode ? t(action.name) : action.name}
-                                                </div>
-                                            )}
-                                        </Button>
-                                    </Tooltip>
-                                )
-                            })}
-                        </div>
-                        <div className={styles.popupCardHeaderMoreActionsContainer}>
-                            <StatefulPopover
-                                autoFocus={false}
-                                triggerType='hover'
-                                showArrow
-                                placement='bottom'
-                                content={
-                                    <StatefulMenu
-                                        initialState={{
-                                            highlightedIndex: hiddenActions.findIndex(
-                                                (action) => action.id === activateAction?.id
-                                            ),
-                                        }}
-                                        onItemSelect={async ({ item }) => {
-                                            const actionID = item.id
-                                            if (actionID === '__manager__') {
-                                                if (isTauri()) {
-                                                    const { invoke } = await import('@tauri-apps/api')
-                                                    if (!navigator.userAgent.includes('Windows')) {
-                                                        await invoke('show_action_manager_window')
-                                                    } else {
-                                                        const { LogicalSize, WebviewWindow } = await import(
-                                                            '@tauri-apps/api/window'
-                                                        )
-                                                        const windowLabel = 'action_manager'
-                                                        let window = WebviewWindow.getByLabel(windowLabel)
-                                                        if (!window) {
-                                                            window = new WebviewWindow(windowLabel, {
-                                                                url: 'src/tauri/action_manager.html',
-                                                                decorations: false,
-                                                                visible: true,
-                                                                focus: true,
-                                                            })
-                                                        }
-                                                        await window.setDecorations(false)
-                                                        await window.setSize(new LogicalSize(600, 770))
-                                                        await window.center()
-                                                        await window.show()
-                                                    }
-                                                } else {
-                                                    setShowActionManager(true)
-                                                }
-                                                return
-                                            }
-                                            if (actionID === '__review__') {
-                                                setShowReviewManager(true)
-                                            }
-                                            if (actionID === '__wordbook__') {
-                                                setShowWordBookManager(true)
-                                            }
-                                            setAction(actions?.find((a) => a.id === (actionID as number)))
-                                        }}
-                                        items={[
-                                            ...hiddenActions.map((action) => {
-                                                return {
-                                                    id: action.id,
-                                                    label: (
-                                                        <div
-                                                            style={{
-                                                                display: 'flex',
-                                                                flexDirection: 'row',
-                                                                alignItems: 'center',
-                                                                gap: 6,
-                                                            }}
-                                                        >
-                                                            {action.icon
-                                                                ? React.createElement(
-                                                                      (mdIcons as Record<string, IconType>)[
-                                                                          action.icon
-                                                                      ],
-                                                                      { size: 15 }
-                                                                  )
-                                                                : undefined}
-                                                            {action.mode ? t(action.name) : action.name}
-                                                        </div>
-                                                    ),
-                                                }
-                                            }),
-                                            { divider: true },
-                                            {
-                                                id: '__manager__',
-                                                label: (
-                                                    <div
-                                                        style={{
-                                                            display: 'flex',
-                                                            flexDirection: 'row',
-                                                            alignItems: 'center',
-                                                            gap: 6,
-                                                            fontWeight: 500,
-                                                        }}
-                                                    >
-                                                        <GiPlatform />
-                                                        {t('Action Manager')}
-                                                    </div>
-                                                ),
-                                            },
-                                            {
-                                                id: '__review__',
-                                                label: (
-                                                    <div
-                                                        style={{
-                                                            display: 'flex',
-                                                            flexDirection: 'row',
-                                                            alignItems: 'center',
-                                                            gap: 6,
-                                                            fontWeight: 500,
-                                                        }}
-                                                    >
-                                                        <GiPlatform />
-                                                        {t('Review Manager')}
-                                                    </div>
-                                                ),
-                                            },
-                                            {
-                                                id: '__wordbook__',
-                                                label: (
-                                                    <div
-                                                        style={{
-                                                            display: 'flex',
-                                                            flexDirection: 'row',
-                                                            alignItems: 'center',
-                                                            gap: 6,
-                                                            fontWeight: 500,
-                                                        }}
-                                                    >
-                                                        <GiBookshelf />
-                                                        {t('Word Book Manager')}
-                                                    </div>
-                                                ),
-                                            },
-                                        ]}
-                                    />
-                                }
-                            >
-                                <div className={styles.popupCardHeaderMoreActionsBtn}>
-                                    <GrMoreVertical />
-                                </div>
-                            </StatefulPopover>
-                        </div>
-                    </div>
+                    <CategorySelector />
                     <div className={styles.popupCardContentContainer}>
                         {settings?.apiURL === defaultAPIURL && (
                             <div>
@@ -1855,147 +1606,12 @@ const handleUpdate = async () => {
                             </div>
                         )}
                         <div ref={editorContainerRef} className={styles.popupCardEditorContainer}>
-                            <div
-                                style={{
-                                    height: 0,
-                                    overflow: 'hidden',
-                                }}
-                            >
-                                {editableText}
-                            </div>
-                            <CategorySelector />
-                            <div style={{ display: 'flex', flexDirection: 'row', width: '100%' }}>
-                                <Dropzone noClick={true}>
-                                    {({ getRootProps }) => (
-                                        <div
-                                            {...getRootProps()}
-                                            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-                                        >
-                                            <Textarea
-                                                inputRef={editorRef}
-                                                autoFocus={autoFocus}
-                                                overrides={{
-                                                    Root: {
-                                                        style: {
-                                                            fontSize: '15px',
-                                                            width: '100%',
-                                                            height: '100%',
-                                                            borderRadius: '0px',
-                                                            minHeight: '220px',
-                                                        },
-                                                    },
-                                                    Input: {
-                                                        style: {
-                                                            height: '100%',
-                                                            fontSize: '15px',
-                                                            padding: '4px 8px',
-                                                            color:
-                                                                themeType === 'dark'
-                                                                    ? theme.colors.contentSecondary
-                                                                    : theme.colors.contentPrimary,
-                                                            fontFamily:
-                                                                currentTranslateMode === 'explain-code'
-                                                                    ? 'monospace'
-                                                                    : 'inherit',
-                                                            textalign: 'start',
-                                                        },
-                                                    },
-                                                }}
-                                                value={editableText}
-                                                size='mini'
-                                                resize='vertical'
-                                                onChange={(e) => handlesetEditableText(e.target.value)}
-                                                onKeyPress={async (e) => {
-                                                    if (e.key === 'Enter') {
-                                                        forceTranslate()
-                                                        if (!e.shiftKey) {
-                                                            e.preventDefault()
-                                                            e.stopPropagation()
-                                                            if (activateAction) {
-                                                                setAction(activateAction)
-                                                            }
-                                                        }
-                                                    }
-                                                }}
-                                            />
-                                            <div
-                                                style={{
-                                                    display: 'flex',
-                                                    flexDirection: 'row',
-                                                    alignItems: 'center',
-                                                    paddingTop: 8,
-                                                    transition: 'all 0.3s linear',
-                                                    overflow: 'visible',
-                                                }}
-                                            >
-                                                <div
-                                                    style={{
-                                                        marginRight: 'auto',
-                                                    }}
-                                                />
-                                                <div
-                                                    style={{
-                                                        display: 'flex',
-                                                        flexDirection: 'row',
-                                                        alignItems: 'center',
-                                                        gap: 10,
-                                                    }}
-                                                >
-                                                    <div
-                                                        style={{
-                                                            color: '#999',
-                                                            fontSize: '12px',
-                                                            transform: 'scale(0.9)',
-                                                            marginRight: '5px',
-                                                        }}
-                                                    >
-                                                        {
-                                                            'Please press <Enter> to submit. Press <Shift+Enter> to start a new line.'
-                                                        }
-                                                    </div>
-                                                    <Button
-                                                        size='mini'
-                                                        kind='secondary'
-                                                        onClick={async (e) => {
-                                                            console.log('submit is working')
-                                                            e.preventDefault()
-                                                            e.stopPropagation()
-                                                            if (!activateAction) {
-                                                                console.debug('activateAction is null')
-                                                                return
-                                                            }
-                                                            forceTranslate()
-                                                        }}
-                                                        startEnhancer={<IoIosRocket size={13} />}
-                                                        overrides={{
-                                                            StartEnhancer: {
-                                                                style: {
-                                                                    marginRight: '6px',
-                                                                },
-                                                            },
-                                                            BaseButton: {
-                                                                style: {
-                                                                    fontWeight: 'normal',
-                                                                    fontSize: '12px',
-                                                                    padding: '4px 8px',
-                                                                    cursor: 'pointer',
-                                                                },
-                                                            },
-                                                        }}
-                                                    >
-                                                        {t('Submit')}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </Dropzone>
-                                <div style={{ flex: 1, display: 'flex' }}>
-                                    {' '}
-                                    {/* WordListUploader部分占比1/3 */}
-                                    <WordListUploader />
-                                </div>
-                            </div>
+                            <AutocompleteTextarea
+                                selectedActions={selectedActions}
+                                onActionSelect={setAction}
+                                onChange={handlesetEditableText}
+                                onSubmit={handleSubmit}
+                            />
                             <div className={styles.actionButtonsContainer}>
                                 <StatefulTooltip content={t('Sign out')} showArrow placement='top'>
                                     <div className={styles.actionButton} onClick={() => clerk.signOut()}>
@@ -2263,11 +1879,33 @@ const handleUpdate = async () => {
                                             </div>
                                         </div>
                                         <div>
-                                            <ActionList
-                                                onActionClick={handleActionClick}
-                                                performAll={performActionsTranslations}
-                                            />
+                                            <ActionList onActionClick={handleActionClick} />
                                         </div>
+                                        <Dropzone noClick={true}>
+                                            {({ getRootProps }) => (
+                                                <div
+                                                    {...getRootProps()}
+                                                    style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            display: 'flex',
+                                                            flexDirection: 'row',
+                                                            alignItems: 'center',
+                                                            paddingTop: 8,
+                                                            transition: 'all 0.3s linear',
+                                                            overflow: 'visible',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                marginRight: 'auto',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </Dropzone>
                                     </div>
                                 )}
                                 {isNotLogin && settings?.provider === 'ChatGPT' && (
@@ -2375,38 +2013,41 @@ const handleUpdate = async () => {
                 </ModalBody>
             </Modal>
             <Modal onClose={() => setShowUpdateModal(false)} isOpen={showUpdateModal}>
-      <ModalHeader>更新可用</ModalHeader>
-      <ModalBody>
-        <h3>{t('There is a new update available. Please check the changes below.')}</h3>
-        <h4 style={{
-        color: 'red',
-        fontWeight: 'bold',
-        backgroundColor: '#ffe6e6',
-        padding: '10px',
-        borderRadius: '5px',
-        border: '1px solid red',
-        marginBottom: '20px'}}>
-    ⚠️ {t('Attention: Before updating, please export and save your current actions.')}
-        </h4>
-        <div style={{ maxHeight: '300px', overflow: 'auto' }}>
-          {Object.entries(updateContent).map(([filename, content]) => (
-            <div key={filename}>
-              {content && content.patch ? (
-          <DiffView filename={filename} patch={content.patch} />
-        ) : (
-          <p>{t('Unable to display the update content for this file')}</p>
-        )}
-            </div>
-          ))}
-        </div>
-      </ModalBody>
-      <ModalFooter>
-        <ModalButton kind='tertiary' onClick={handleSkipUpdate}>
-          {t('Skip this update')}
-        </ModalButton>
-        <ModalButton onClick={handleUpdate}>{t('Update')}</ModalButton>
-      </ModalFooter>
-    </Modal>
+                <ModalHeader>更新可用</ModalHeader>
+                <ModalBody>
+                    <h3>{t('There is a new update available. Please check the changes below.')}</h3>
+                    <h4
+                        style={{
+                            color: 'red',
+                            fontWeight: 'bold',
+                            backgroundColor: '#ffe6e6',
+                            padding: '10px',
+                            borderRadius: '5px',
+                            border: '1px solid red',
+                            marginBottom: '20px',
+                        }}
+                    >
+                        ⚠️ {t('Attention: Before updating, please export and save your current actions.')}
+                    </h4>
+                    <div style={{ maxHeight: '300px', overflow: 'auto' }}>
+                        {Object.entries(updateContent).map(([filename, content]) => (
+                            <div key={filename}>
+                                {content && content.patch ? (
+                                    <DiffView filename={filename} patch={content.patch} />
+                                ) : (
+                                    <p>{t('Unable to display the update content for this file')}</p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </ModalBody>
+                <ModalFooter>
+                    <ModalButton kind='tertiary' onClick={handleSkipUpdate}>
+                        {t('Skip this update')}
+                    </ModalButton>
+                    <ModalButton onClick={handleUpdate}>{t('Update')}</ModalButton>
+                </ModalFooter>
+            </Modal>
             <Modal
                 isOpen={isShowMessageCard}
                 onClose={() => {
@@ -2476,7 +2117,7 @@ const handleUpdate = async () => {
             <Toaster />
             <div style={{ display: showYouGlish ? 'block' : 'none' }}>
                 <YouGlishComponent
-                    query={editableText}
+                    query={debouncedText}
                     triggerYouGlish={showYouGlish}
                     language={LANG_CONFIGS[youglishLang]?.nameEn || 'English'}
                     accent={LANG_CONFIGS[youglishLang]?.accent || 'us'}

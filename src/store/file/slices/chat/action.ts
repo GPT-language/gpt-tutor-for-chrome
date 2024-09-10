@@ -5,9 +5,8 @@ import { produce } from 'immer'
 import { Action } from '@/common/internal-services/db'
 
 export interface ChatAction {
+    setEditableText: (text: string) => void
     setConversationId: (id: string) => void
-    setAssistantActionSessionId: (id: string) => void
-    setAssistantActionText: (text: string) => void
     setMessageId: (id: string) => void
     setActivatedActionName: (name: string) => void
     setActivatedModel: (model: string) => void
@@ -20,6 +19,7 @@ export interface ChatAction {
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set) => ({
+    setEditableText: (text) => set({ editableText: text }),
     setConversationId: (id) =>
         set(
             produce((draft: ChatState) => {
@@ -28,15 +28,6 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
                 }
             })
         ),
-    setAssistantActionSessionId: (id) =>
-        set(
-            produce((draft: ChatState) => {
-                if (draft.assistantActionSessionId !== id) {
-                    draft.assistantActionSessionId = id
-                }
-            })
-        ),
-    setAssistantActionText: (text) => set({ assistantActionText: text }),
     setMessageId: (id) =>
         set(
             produce((draft: ChatState) => {

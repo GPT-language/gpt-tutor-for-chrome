@@ -1,8 +1,6 @@
 import { Action } from '@/common/internal-services/db'
 export interface ChatState {
-    assistantActionText: string
-    sessionId: string
-    assistantActionSessionId: string
+    editableText: string
     isLoading: boolean
     ttsProvider: string
     conversationId: string
@@ -30,9 +28,7 @@ function getFromStorage(key: string, defaultValue: unknown) {
 }
 
 export const initialChatState: ChatState = {
-    assistantActionText: '',
-    sessionId: '',
-    assistantActionSessionId: '',
+    editableText: '',
     isLoading: false,
     actions: [],
     ttsProvider: '',

@@ -22,7 +22,7 @@ export interface ChatFileAction {
     selectWordNotInCurrentFile: (text: string) => void
     deleteWords: () => void
     loadWords: (fileId: number, pageNumber: number) => Promise<boolean>
-    loadFiles: (selectedCategory: string) => Promise<void>
+    loadFiles: (selectedGroup: string) => Promise<void>
     setCurrentFileId: (fileId: number) => void
     setCurrentPage: (page: number) => void
     setFiles: (files: SavedFile[]) => void
@@ -126,7 +126,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     async addWordToReviewFile(word, fileName) {
-        const { currentFileId, selectedCategory } = get()
+        const { currentFileId, selectedGroup } = get()
         const reviewCategory = 'Review'
 
         // 检查单词是否已经存在于复习文件中
@@ -145,7 +145,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         const currentDate = new Date()
         let fileLength
         let reviewSettings: ReviewSettings | undefined
-        if (selectedCategory !== 'Review') {
+        if (selectedGroup !== 'Review') {
             fileLength = await fileService.getFileLengthByName(reviewCategory, fileName)
         } else {
             fileLength = await fileService.getFileLengthById(currentFileId)
@@ -234,7 +234,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     async markWordAsLearned(word: Word, fileName: string) {
-        const { currentFileId, selectedCategory } = get()
+        const { currentFileId, selectedGroup } = get()
         const reviewCategory = 'Review'
 
         // 检查单词是否已经存在于复习文件中
@@ -252,7 +252,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
         let fileLength
         let reviewSettings: ReviewSettings | undefined
-        if (selectedCategory !== 'Review') {
+        if (selectedGroup !== 'Review') {
             fileLength = await fileService.getFileLengthByName(reviewCategory, fileName)
         } else {
             fileLength = await fileService.getFileLengthById(currentFileId)
@@ -345,7 +345,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         if (fileId === 0) {
             return false
         }
-        const currentCategory = get().selectedCategory
+        const currentCategory = get().selectedGroup
         try {
             if (currentCategory === 'Review') {
                 const reviewWords = await fileService.getWordsToReviewByFileId(fileId)
@@ -377,8 +377,8 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         }
     },
 
-    loadFiles: async (selectedCategory) => {
-        const files = await fileService.fetchFilesByCategory(selectedCategory)
+    loadFiles: async (selectedGroup) => {
+        const files = await fileService.fetchFilesByCategory(selectedGroup)
         set({ files })
     },
 
@@ -412,7 +412,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         localStorage.setItem('currentFileId', fileId.toString())
     },
     deleteFile: async (fileId) => {
-        const { selectedCategory, loadFiles, currentFileId, setCurrentFileId } = get()
+        const { selectedGroup, loadFiles, currentFileId, setCurrentFileId } = get()
         await fileService.deleteFile(fileId)
         set(
             produce((draft) => {
@@ -421,7 +421,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 draft.currentFileId = 0 // 先重置为0
             })
         )
-        await loadFiles(selectedCategory) // 等待文件列表加载完毕
+        await loadFiles(selectedGroup) // 等待文件列表加载完毕
         const files = get().files
         if (files.length > 0) {
             setCurrentFileId(files[0].id || 0) // 设置为新的有效ID
