@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Tabs, Tab, FILL } from 'baseui-sd/tabs-motion'
 import { StatefulPopover, PLACEMENT } from 'baseui-sd/popover'
 import { StatefulMenu } from 'baseui-sd/menu'
-import { useStyletron } from 'baseui-sd'
+import { styled, useStyletron } from 'baseui-sd'
 import { AiOutlineDown } from 'react-icons/ai'
 import { useChatStore } from '@/store/file/store'
 import { useTranslation } from 'react-i18next'
 import { Action } from '../internal-services/db'
 import debounce from 'lodash-es/debounce'
+import { Button, KIND, SIZE } from 'baseui-sd/button'
+import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 
 const MAX_TAB_WIDTH = 120
 const MORE_TAB_WIDTH = 80
@@ -23,6 +25,8 @@ const CategorySelector = () => {
         setShowActionManager,
         setShowReviewManager,
         setShowWordBookManager,
+        setShowSidebar,
+        showSidebar,
     } = useChatStore()
     const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
@@ -40,6 +44,23 @@ const CategorySelector = () => {
 
     const [visibleTabs, setVisibleTabs] = useState<string[]>([])
     const [hiddenTabs, setHiddenTabs] = useState<string[]>([])
+
+    const toggleSidebar = () => {
+        setShowSidebar(!showSidebar)
+    }
+
+    const renderToggleButton = () => (
+        <>
+            <Button
+                onClick={toggleSidebar}
+                kind={KIND.tertiary}
+                size={SIZE.compact}
+                style={{ backgroundColor: 'white' }}
+            >
+                {showSidebar ? <BiFirstPage /> : <BiLastPage />}
+            </Button>
+        </>
+    )
 
     const updateVisibleTabs = useCallback(() => {
         if (!containerRef.current || !actionGroups) return
@@ -104,7 +125,7 @@ const CategorySelector = () => {
                 className={css({
                     width: '100%',
                     borderBottom: '1px solid #e0e0e0',
-                    backgroundColor: '#f8f8f8',
+                    backgroundColor: 'white',
                     boxSizing: 'border-box',
                     display: 'flex',
                     alignItems: 'center',
@@ -112,6 +133,7 @@ const CategorySelector = () => {
                     padding: 0,
                 })}
             >
+                {renderToggleButton()}
                 <Tabs
                     activeKey={selectedGroup}
                     onChange={handleTabChange}
@@ -132,6 +154,29 @@ const CategorySelector = () => {
                         },
                     }}
                 >
+                    {showSidebar && (
+                        <Tab
+                            key='History'
+                            title={t('History')}
+                            overrides={{
+                                TabPanel: {
+                                    style: { display: 'none' }, // 隐藏 TabPanel
+                                },
+                            }}
+                        />
+                    )}
+
+                    {showSidebar && (
+                        <Tab
+                            key='Review'
+                            title={t('Review')}
+                            overrides={{
+                                TabPanel: {
+                                    style: { display: 'none' }, // 隐藏 TabPanel
+                                },
+                            }}
+                        />
+                    )}
                     {visibleTabs.map((tab) => (
                         <Tab
                             key={tab}

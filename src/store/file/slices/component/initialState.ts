@@ -7,6 +7,7 @@ export interface ComponentState {
     showYouGlish: boolean
     showTextParser: boolean
     showBuyMeACoffee: boolean
+    showSidebar: boolean
     isShowMessageCard: boolean
     isShowActionList: boolean
 }
@@ -22,4 +23,5 @@ export const initialComponentState: ComponentState = {
     showBuyMeACoffee: false,
     isShowMessageCard: false,
     isShowActionList: false,
+    showSidebar: false,
 }

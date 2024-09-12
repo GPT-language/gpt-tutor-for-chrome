@@ -21,7 +21,7 @@ export interface ChatFileAction {
     selectWord: (word: Word) => void
     selectWordNotInCurrentFile: (text: string) => void
     deleteWords: () => void
-    loadWords: (fileId: number, pageNumber: number) => Promise<boolean>
+    loadWords: (fileId: number, pageNumber: number, pageSize: number) => Promise<boolean>
     loadFiles: (selectedGroup: string) => Promise<void>
     setCurrentFileId: (fileId: number) => void
     setCurrentPage: (page: number) => void
@@ -341,7 +341,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         }
     },
 
-    loadWords: async (fileId, pageNumber) => {
+    loadWords: async (fileId, pageNumber, pageSize) => {
         if (fileId === 0) {
             return false
         }
@@ -360,7 +360,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 }
                 return false
             } else {
-                const words = await fileService.loadWordsByPage(fileId, pageNumber)
+                const words = await fileService.loadWordsByPage(fileId, pageNumber, pageSize)
                 if (words) {
                     set(
                         produce((draft) => {

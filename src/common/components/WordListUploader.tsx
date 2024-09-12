@@ -1,53 +1,110 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, ChangeEvent } from 'react'
 import { useChatStore } from '@/store/file/store'
 import { Word } from '../internal-services/db'
 import { fileService } from '../internal-services/file'
 import { Button, KIND, SIZE } from 'baseui-sd/button'
 import { BiFirstPage, BiLastPage } from 'react-icons/bi'
-import { Search } from 'baseui-sd/icon'
 import { rgb } from 'polished'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
-import { Tabs, Tab } from 'baseui-sd/tabs'
-import { BsList, BsGrid, BsClockHistory, BsJournalText, BsArrowRepeat } from 'react-icons/bs'
+import { BsClockHistory, BsJournalText, BsArrowRepeat } from 'react-icons/bs'
+import { styled } from 'styletron-react'
+import { AiOutlineDelete, AiOutlineUpload } from 'react-icons/ai'
+import { Select } from 'baseui-sd/select'
+
+const SidebarContainer = styled('div', ({ $showSidebar }: { $showSidebar: boolean }) => ({
+    width: $showSidebar ? '250px' : '0px',
+    height: '100%',
+    backgroundColor: '#f5f5f5',
+    transition: 'width 0.3s ease',
+    overflow: 'hidden',
+    boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
+    position: 'relative',
+}))
+
+const ContentContainer = styled('div', {
+    padding: '10px',
+    overflowY: 'auto',
+    height: '100%',
+})
 
 const WordListUploader = () => {
     const {
         words,
+        files,
         selectedWord,
         currentFileId,
         selectedWords,
-        selectedCategory,
-        searchWord,
+        selectedGroup,
         selectWord,
+        addFile,
         loadWords,
         loadFiles,
         getInitialFile,
         setIsShowActionList,
+        setShowWordBookManager,
+        selectFile,
+        deleteFile,
         currentPage,
         setCurrentPage,
         setActionStr,
+        showSidebar,
+        setSelectedGroup,
     } = useChatStore()
     const itemsPerPage = 10
     const { t } = useTranslation()
-    const [searchTerm, setSearchTerm] = useState<string>('')
     const [numPages, setNumPages] = useState<number>(1)
     const [IsInitialized, setIsInitialized] = useState<boolean>(false)
-    const [isHovering, setIsHovering] = useState(false)
     const [displayWords, setDisplayWords] = useState<Word[]>(words)
     const [currentTime, setCurrentTime] = useState<Date>(new Date())
     const [latestNextWordNeedToReview, setLatestNextWordNeedToReview] = useState<Date | null>(null)
     const reminderIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const reviewWordsCountRef = useRef(0)
     const hasShownReviewNotificationRef = useRef(false)
-    const [currentView, setCurrentView] = useState<'normal' | 'history' | 'review'>('normal')
     const [isGridView, setIsGridView] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
-    const handleSearchSubmit = () => {
-        searchWord(searchTerm)
-        setIsHovering(false)
+    const options = [
+        ...files.map((file) => ({
+            id: file.id,
+            label: file.name,
+        })),
+        { id: 0, label: t('Download') },
+        { id: -1, label: t('Upload') },
+    ]
+
+    const handleSliderChange = (value: number | number[]) => {
+        if (Array.isArray(value)) {
+            selectFile(value[0])
+        } else {
+            selectFile(value)
+        }
     }
 
+    const onChange = (params: { value: { id: number; label: string }[] }) => {
+        const { value } = params
+        if (value.length > 0) {
+            if (value[0].id === 0) {
+                setShowWordBookManager(true)
+            } else if (value[0].id === -1) {
+                // 新增的逻辑
+                fileInputRef.current?.click()
+            } else {
+                selectFile(value[0].id)
+            }
+        }
+    }
+
+    const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files ? event.target.files[0] : null
+        if (file && selectedGroup) {
+            addFile(file, selectedGroup)
+        }
+    }
+    // 在渲染前检查 currentFileId 和 files 是否有效
+    const validValue = files.some((file) => file.id === currentFileId)
+        ? options.filter((option) => option.id === currentFileId)
+        : []
     const handleWordClick = (word: Word) => {
         selectWord(word)
         setIsShowActionList(false)
@@ -57,7 +114,7 @@ const WordListUploader = () => {
         if (!currentFileId) {
             return
         }
-        const success = await loadWords(currentFileId, newPageNumber)
+        const success = await loadWords(currentFileId, newPageNumber, itemsPerPage)
         if (success) {
             setCurrentPage(newPageNumber)
         } else {
@@ -132,7 +189,7 @@ const WordListUploader = () => {
 
         if (!selectedWords[currentFileId]) {
             console.log('No selected word for current file, loading first page')
-            loadWords(currentFileId, 1)
+            loadWords(currentFileId, 1, itemsPerPage)
             setCurrentPage(1)
             selectWord(words[0])
         } else {
@@ -143,11 +200,11 @@ const WordListUploader = () => {
                 selectWord(saveWord)
                 const page = Math.floor((saveWord.idx - 1) / itemsPerPage) + 1
                 console.log('Calculated page:', page)
-                loadWords(currentFileId, page)
+                loadWords(currentFileId, page, itemsPerPage)
                 setCurrentPage(page)
             } else {
                 console.log('No valid selected word, loading first page')
-                loadWords(currentFileId, 1)
+                loadWords(currentFileId, 1, itemsPerPage)
                 setCurrentPage(1)
                 selectWord(words[0])
             }
@@ -156,15 +213,15 @@ const WordListUploader = () => {
     }, [currentFileId, IsInitialized])
 
     useEffect(() => {
-        loadFiles(selectedCategory)
-    }, [selectedCategory, loadFiles])
+        loadFiles(selectedGroup)
+    }, [selectedGroup, loadFiles])
 
     useEffect(() => {
         if (!currentFileId) {
             return
         }
-        loadWords(currentFileId, currentPage)
-    }, [currentFileId, currentPage, loadWords])
+        loadWords(currentFileId, currentPage, itemsPerPage)
+    }, [currentFileId, currentPage, loadWords, itemsPerPage])
 
     useEffect(() => {
         const current = new Date()
@@ -185,7 +242,7 @@ const WordListUploader = () => {
                     duration: 5000,
                 })
             }
-            if (selectedCategory === 'Review') {
+            if (selectedGroup === 'Review') {
                 // 计算最新的需要复习的单词，即nextReview大于当前时间且最接近当前时间的单词
                 if (words.length === 0) {
                     let closest: Word | null = null
@@ -213,6 +270,8 @@ const WordListUploader = () => {
                     // 根据当前页码计算起始索引和终止索引
                     const startIndex = (currentPage - 1) * itemsPerPage
                     const endIndex = startIndex + itemsPerPage
+                    console.log('startIndex', startIndex)
+                    console.log('endIndex', endIndex)
                     // 切割数组以只包含当前页的单词
                     setDisplayWords(reviewWords.slice(startIndex, endIndex))
                 } else {
@@ -227,7 +286,7 @@ const WordListUploader = () => {
             }
         }
         updateReviewStatus()
-    }, [words, currentPage, selectedCategory, currentFileId, setActionStr, t, hasShownReviewNotificationRef])
+    }, [words, currentPage, selectedGroup, currentFileId, setActionStr, t, hasShownReviewNotificationRef])
 
     useEffect(() => {
         if (reviewWordsCountRef.current === 0) {
@@ -255,7 +314,7 @@ const WordListUploader = () => {
     }, [t])
 
     useEffect(() => {
-        if (selectedCategory !== 'Review' || !currentFileId) {
+        if (selectedGroup !== 'Review' || !currentFileId) {
             return
         }
         if (words.length !== 0) {
@@ -267,7 +326,7 @@ const WordListUploader = () => {
         } else {
             setActionStr(t('All reviewed'))
         }
-    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedCategory, setActionStr, t, words.length])
+    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedGroup, setActionStr, t, words.length])
 
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -278,35 +337,24 @@ const WordListUploader = () => {
     }, []) // 空依赖数组，确保只在组件挂载时设置定时器
 
     const renderViewTabs = () => (
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
             <Button
-                onClick={() => setCurrentView('normal')}
-                kind={currentView === 'normal' ? KIND.primary : KIND.tertiary}
+                onClick={() => setSelectedGroup('History')}
+                kind={KIND.tertiary}
                 size={SIZE.compact}
-            >
-                <BsJournalText />
-            </Button>
-            <Button
-                onClick={() => setCurrentView('history')}
-                kind={currentView === 'history' ? KIND.primary : KIND.tertiary}
-                size={SIZE.compact}
+                style={selectedGroup === 'History' ? { backgroundColor: 'lightgray' } : {}}
             >
                 <BsClockHistory />
             </Button>
             <Button
-                onClick={() => setCurrentView('review')}
-                kind={currentView === 'review' ? KIND.primary : KIND.tertiary}
+                onClick={() => setSelectedGroup('Review')}
+                kind={KIND.tertiary}
                 size={SIZE.compact}
+                style={selectedGroup === 'Review' ? { backgroundColor: 'lightgray' } : {}}
             >
                 <BsArrowRepeat />
             </Button>
         </div>
-    )
-
-    const renderLayoutToggle = () => (
-        <Button onClick={() => setIsGridView(!isGridView)} kind={KIND.tertiary} size={SIZE.compact}>
-            {isGridView ? <BsList /> : <BsGrid />}
-        </Button>
     )
 
     const GridView = ({
@@ -337,7 +385,7 @@ const WordListUploader = () => {
         }, [])
 
         return (
-            <div ref={containerRef} style={{ display: 'flex', flexWrap: 'wrap' }}>
+            <div ref={containerRef} style={{ display: 'flex', flexWrap: 'wrap', flexBasis: '30%', maxWidth: '250px' }}>
                 {words.map((word, index) => (
                     <div
                         key={index}
@@ -359,107 +407,159 @@ const WordListUploader = () => {
     }
 
     return (
-        <div style={{ height: '100%', overflow: 'auto', width: 'auto' }}>
-            <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}
-            >
-                {renderViewTabs()}
-                {renderLayoutToggle()}
-            </div>
-            <div style={{ minHeight: '160px' }}>
-                {isGridView ? (
-                    <GridView words={displayWords} selectedWord={selectedWord}  onWordClick={handleWordClick} />
-                ) : (
-                    <ol start={(currentPage - 1) * itemsPerPage + 1}>
-                        {displayWords.map((entry, index) => {
-                            // 检查 entry 和 entry.text 是否存在
-                            if (!entry || typeof entry.text !== 'string') {
-                                return null // 如果 entry 或 entry.text 无效，则不渲染这个项
-                            }
-
-                            const displayText = entry.text.includes(' ')
-                                ? entry.text.split(' ').length > 15
-                                    ? entry.text.split(' ').slice(0, 10).join(' ') + '...'
-                                    : entry.text
-                                : entry.text.length > 12
-                                ? entry.text.substring(0, 10) + '...'
-                                : entry.text
-
-                            return (
-                                <li
-                                    key={index}
-                                    style={{
-                                        cursor: 'pointer',
-                                        backgroundColor:
-                                            selectedWord && entry.text === selectedWord.text
-                                                ? rgb(255, 255, 0)
-                                                : 'transparent',
-                                    }}
-                                    onClick={() => handleWordClick(entry)}
-                                >
-                                    {displayText}
-                                </li>
-                            )
-                        })}
-                    </ol>
-                )}
-            </div>
+        <SidebarContainer $showSidebar={showSidebar}>
             <div
                 style={{
                     display: 'flex',
-                    justifyContent: 'center',
-                    gap: '20px',
-                    width: '100%',
-                    alignItems: 'center',
+                    flexDirection: 'row',
+                    width: '70%',
+                    marginBottom: '20px',
+                    padding: '0 10px',
                 }}
             >
-                <Button size={SIZE.mini} kind='secondary' onClick={prevPageHandler} disabled={currentPage === 1}>
-                    <BiFirstPage size={16} />
-                </Button>
-                <span>{currentPage}</span>
-                <Button size={SIZE.mini} kind='secondary' onClick={nextPageHandler} disabled={currentPage === numPages}>
-                    <BiLastPage size={16} />
-                </Button>
+                <Select
+                    size={SIZE.compact}
+                    options={options}
+                    labelKey='label'
+                    valueKey='id'
+                    onChange={onChange}
+                    value={validValue}
+                    placeholder={t('Select a file') ?? 'Select a file'}
+                    overrides={{
+                        Root: {
+                            style: () => ({
+                                flexGrow: 1,
+                                flexShrink: 1,
+                                flexBasis: '0%', // 允许Select缩减至极小的宽度
+                            }),
+                        },
+                        ControlContainer: {
+                            style: ({ $theme }) => ({
+                                'fontSize': '14px', // 调整字体大小
+                                'lineHeight': '12px', // 调整行高
+                                'height': '38px',
+                                'maxWidth': '300px',
+                                'backgroundColor': 'rgba(255, 255, 255, 0.5)',
+                                ':hover': {
+                                    borderColor: $theme.colors.borderPositive,
+                                },
+                            }),
+                        },
+                        DropdownListItem: {
+                            style: ({ $theme }) => ({
+                                'maxWidth': '300px',
+                                'backgroundColor': $theme.colors.backgroundSecondary,
+                                ':hover': {
+                                    backgroundColor: $theme.colors.backgroundTertiary,
+                                },
+                                'overflow': 'visible',
+                            }),
+                        },
+                        Placeholder: {
+                            style: ({ $theme }) => ({
+                                color: $theme.colors.contentSecondary,
+                            }),
+                        },
+                        SingleValue: {
+                            style: ({ $theme }) => ({
+                                color: $theme.colors.contentPrimary,
+                            }),
+                        },
+                    }}
+                />
+
+                <AiOutlineDelete
+                    title={t('Delete this file') ?? 'Delete this file'}
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        deleteFile(currentFileId)
+                    }}
+                    style={{
+                        marginLeft: '5px',
+                        marginTop: '10px',
+                        cursor: 'pointer',
+                        color: 'black',
+                        fontSize: '18px',
+                        flexShrink: 0,
+                    }}
+                />
+                <input
+                    ref={fileInputRef}
+                    type='file'
+                    onChange={handleFileChange}
+                    accept='.csv'
+                    style={{ display: 'none' }}
+                />
             </div>
-            <div
-                onMouseEnter={() => setIsHovering(true)}
-                style={{ display: 'flex', marginTop: '10px', marginLeft: '20px', maxHeight: '20px' }}
-            >
-                {isHovering ? (
-                    <input
-                        style={{ width: '120px' }} // 确保输入框的宽度与 div 一致
-                        type='text'
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder={t('Search Word') ?? 'Search Word'}
-                    />
-                ) : (
-                    <div
-                        style={{
-                            width: '120px',
-                            height: '20px', // 指定高度以匹配 input 默认高度，可以根据实际情况调整
-                            background: 'transparent', // 可选，确保背景透明
-                            border: 'none', // 可选，移除边框
-                            display: 'inline-block', // 确保与 input 的显示方式一臀
-                        }}
-                    ></div>
-                )}
-                <div onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
+            <ContentContainer>
+                <div style={{ minHeight: '160px', width: '100%' }}>
+                    {isGridView ? (
+                        <GridView
+                            words={displayWords}
+                            selectedWord={selectedWord ?? words[0]}
+                            onWordClick={handleWordClick}
+                        />
+                    ) : (
+                        <ol start={(currentPage - 1) * itemsPerPage + 1} style={{ paddingLeft: '20px', margin: 0 }}>
+                            {displayWords.map((entry, index) => {
+                                // 检查 entry 和 entry.text 是否存在
+                                if (!entry || typeof entry.text !== 'string') {
+                                    return null // 如果 entry 或 entry.text 无效，则不渲染这个项
+                                }
+
+                                const displayText = entry.text.includes(' ')
+                                    ? entry.text.split(' ').length > 15
+                                        ? entry.text.split(' ').slice(0, 10).join(' ') + '...'
+                                        : entry.text
+                                    : entry.text.length > 12
+                                    ? entry.text.substring(0, 10) + '...'
+                                    : entry.text
+
+                                return (
+                                    <li
+                                        key={index}
+                                        style={{
+                                            marginLeft: '0px',
+                                            paddingLeft: '5px',
+                                            cursor: 'pointer',
+                                            backgroundColor:
+                                                selectedWord && entry.text === selectedWord.text
+                                                    ? rgb(255, 255, 0)
+                                                    : 'transparent',
+                                        }}
+                                        onClick={() => handleWordClick(entry)}
+                                    >
+                                        {displayText}
+                                    </li>
+                                )
+                            })}
+                        </ol>
+                    )}
+                </div>
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: '20px',
+                        width: '100%',
+                        alignItems: 'center',
+                    }}
+                >
+                    <Button size={SIZE.mini} kind='secondary' onClick={prevPageHandler} disabled={currentPage === 1}>
+                        <BiFirstPage size={16} />
+                    </Button>
+                    <span>{currentPage}</span>
                     <Button
-                        kind={KIND.tertiary}
-                        size='mini'
-                        onClick={handleSearchSubmit}
-                        onKeyDown={(e: React.KeyboardEvent) => {
-                            if (e.key === 'Enter') {
-                                handleSearchSubmit()
-                            }
-                        }}
+                        size={SIZE.mini}
+                        kind='secondary'
+                        onClick={nextPageHandler}
+                        disabled={currentPage === numPages}
                     >
-                        <Search size='18px' title='' />
+                        <BiLastPage size={16} />
                     </Button>
                 </div>
-            </div>
-        </div>
+            </ContentContainer>
+        </SidebarContainer>
     )
 }
 

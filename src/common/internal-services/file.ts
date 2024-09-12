@@ -2,7 +2,6 @@ import { ReviewSettings, SavedFile, Translations, Word, getLocalDB, ActionOutput
 
 export class FileService {
     private db = getLocalDB()
-    private pageSize = 10
 
     private async getFileOrThrow(fileId: number): Promise<SavedFile> {
         const file = await this.db.files.get(fileId)
@@ -151,10 +150,10 @@ export class FileService {
     }
 
     // 按页获取文件中的单词
-    async loadWordsByPage(fileId: number, pageNumber: number): Promise<Word[]> {
+    async loadWordsByPage(fileId: number, pageNumber: number, pageSize: number): Promise<Word[]> {
         console.log('loadWordsByPage', fileId, pageNumber)
-        const start = (pageNumber - 1) * this.pageSize
-        const end = start + this.pageSize
+        const start = (pageNumber - 1) * pageSize
+        const end = start + pageSize
         const file = await this.fetchFileDetailsById(fileId)
         return file.words.slice(start, Math.min(end, file.words.length))
     }

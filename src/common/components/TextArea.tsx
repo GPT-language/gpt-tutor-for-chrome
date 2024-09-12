@@ -52,8 +52,7 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                 editorRef.current.innerText = ''
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [editableText])
 
     const getTextWithoutMentions = (text: string) => {
         const functionNames = selectedActions.map((action) => action.name)
@@ -183,6 +182,7 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                         top: '100%',
                         marginTop: '4px',
                         zIndex: 1000,
+                        overflow: 'visible',
                     })}
                 >
                     <StatefulMenu

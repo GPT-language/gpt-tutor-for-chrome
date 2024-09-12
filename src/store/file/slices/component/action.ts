@@ -10,6 +10,7 @@ export interface ComponentAction {
     setShowYouGlish: (isShow: boolean) => void
     setShowTextParser: (isShow: boolean) => void
     setShowBuyMeACoffee: (isShow: boolean) => void
+    setShowSidebar: (isShow: boolean) => void
     toggleMessageCard: () => void
     setIsShowActionList: (isShow: boolean) => void
 }
@@ -25,4 +26,6 @@ export const component: StateCreator<ComponentState, [['zustand/devtools', never
     setShowBuyMeACoffee: (isShow) => set({ showBuyMeACoffee: isShow }),
     toggleMessageCard: () => set((state) => ({ isShowMessageCard: !state.isShowMessageCard })),
     setIsShowActionList: (isShow) => set({ isShowActionList: isShow }),
+    setShowSidebar: (isShow) => set({ showSidebar: isShow }),
 })
+

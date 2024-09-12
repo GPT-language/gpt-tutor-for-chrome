@@ -40,7 +40,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     const reviewFileName = t('To review') + t(selectedGroup)
     const [assistantActionText, setAssistantActionText] = useState('')
 
-
     const handleAddWordClick = async () => {
         setNextAction(undefined)
         if (!selectedWord) {
