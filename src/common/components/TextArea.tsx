@@ -8,6 +8,7 @@ import { IoIosRocket } from 'react-icons/io'
 import { useTranslation } from 'react-i18next'
 import { useChatStore } from '@/store/file/store'
 import { Notification } from 'baseui-sd/notification'
+import toast from 'react-hot-toast'
 
 interface AutocompleteTextareaProps {
     selectedActions: Action[]
@@ -184,9 +185,11 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                 }
             } else {
                 // 如果没有检测到输入@，则设置select默认的action
-                const defaultAction = await actionService.get(36)
+                const defaultAction = selectedActions.find((action) => action.mode === 'Free to ask')
                 if (defaultAction) {
                     handleActionSelect(defaultAction)
+                } else {
+                    toast.error('Please choose a function.')
                 }
             }
         }

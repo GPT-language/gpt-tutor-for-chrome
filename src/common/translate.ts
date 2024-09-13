@@ -12,7 +12,7 @@ import { sha3_512 } from 'js-sha3'
 import { getSettings } from './utils'
 import { IEngine } from './engines/interfaces'
 
-export type TranslateMode = 'built-in' | 'translate' | 'explain-code' | 'Sentence analysis'
+export type TranslateMode = 'built-in' | 'translate' | 'explain-code' | 'Sentence analysis' | 'Free to ask'
 
 export type APIModel =
     | 'gpt-3.5-turbo'

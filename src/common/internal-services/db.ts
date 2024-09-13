@@ -9,7 +9,6 @@ export interface Action {
     mode?: TranslateMode
     name: string
     model?: string
-    description?: string
     groups: string[]
     icon?: string
     rolePrompt?: string

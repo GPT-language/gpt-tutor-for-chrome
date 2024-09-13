@@ -562,7 +562,7 @@
   },
   {
     "idx": 35,
-    "name": "Free Question",
+    "name": "Ask Anything",
     "icon": "MdQuestionMark",
     "commandPrompt": "${text}",
     "groups": [
@@ -571,7 +571,7 @@
     "createdAt": "1721477934711",
     "updatedAt": "1721477934711",
     "id": 36,
-    "mode": "built-in"
+    "mode": "Free to ask"
   },
   {
     "idx": 37,
