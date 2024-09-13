@@ -447,7 +447,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         }
     },
     selectWord: (word: Word | null) => {
-        const { currentFileId } = get()
+        const { currentFileId, editableText } = get()
 
         set(
             produce((draft) => {
@@ -455,6 +455,8 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 if (currentFileId !== null && currentFileId !== undefined) {
                     draft.selectedWords[currentFileId] = word
                 }
+                draft.editableText = word?.text || ''
+                draft.translations = word?.translations || {}
                 chrome.storage.local.set({ selectedWord: JSON.stringify(draft.selectedWord) })
                 chrome.storage.local.set({ selectedWords: JSON.stringify(draft.selectedWords) })
             })

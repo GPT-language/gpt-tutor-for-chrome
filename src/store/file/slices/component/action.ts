@@ -13,6 +13,7 @@ export interface ComponentAction {
     setShowSidebar: (isShow: boolean) => void
     toggleMessageCard: () => void
     setIsShowActionList: (isShow: boolean) => void
+    refreshTextArea: () => void
 }
 
 export const component: StateCreator<ComponentState, [['zustand/devtools', never]], [], ComponentAction> = (set) => ({
@@ -27,5 +28,5 @@ export const component: StateCreator<ComponentState, [['zustand/devtools', never
     toggleMessageCard: () => set((state) => ({ isShowMessageCard: !state.isShowMessageCard })),
     setIsShowActionList: (isShow) => set({ isShowActionList: isShow }),
     setShowSidebar: (isShow) => set({ showSidebar: isShow }),
+    refreshTextArea: () => set((state) => ({ refreshTextAreaFlag: state.refreshTextAreaFlag + 1 })),
 })
-

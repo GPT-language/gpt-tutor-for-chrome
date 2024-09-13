@@ -10,6 +10,7 @@ export interface ComponentState {
     showSidebar: boolean
     isShowMessageCard: boolean
     isShowActionList: boolean
+    refreshTextAreaFlag: number
 }
 
 export const initialComponentState: ComponentState = {
@@ -24,4 +25,5 @@ export const initialComponentState: ComponentState = {
     isShowMessageCard: false,
     isShowActionList: false,
     showSidebar: false,
+    refreshTextAreaFlag: 0,
 }

@@ -14,7 +14,8 @@ import { Select } from 'baseui-sd/select'
 
 const SidebarContainer = styled('div', ({ $showSidebar }: { $showSidebar: boolean }) => ({
     width: $showSidebar ? '250px' : '0px',
-    height: '100%',
+    height: $showSidebar ? '100%' : '0px',
+    marginRight: '10px',
     backgroundColor: '#f5f5f5',
     transition: 'width 0.3s ease',
     overflow: 'hidden',
@@ -50,6 +51,7 @@ const WordListUploader = () => {
         setActionStr,
         showSidebar,
         setSelectedGroup,
+        refreshTextArea,
     } = useChatStore()
     const itemsPerPage = 10
     const { t } = useTranslation()
@@ -107,6 +109,7 @@ const WordListUploader = () => {
         : []
     const handleWordClick = (word: Word) => {
         selectWord(word)
+        refreshTextArea()
         setIsShowActionList(false)
     }
 
@@ -413,7 +416,6 @@ const WordListUploader = () => {
                     display: 'flex',
                     flexDirection: 'row',
                     width: '70%',
-                    marginBottom: '20px',
                     padding: '0 10px',
                 }}
             >

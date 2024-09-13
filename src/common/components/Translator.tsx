@@ -246,7 +246,6 @@ const useStyles = createUseStyles({
         display: 'flex',
         flexDirection: 'row',
         padding: '16px',
-        alignItems: 'stretch',
         gap: '10px',
     },
     'popupCardTranslatedContainer': (props: IThemedStyleProps) => ({
@@ -916,26 +915,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         [activateAction, forceTranslate]
     )
 
-    // 只有在selectedWord存在且idx改变时触发
-    useEffect(() => {
-        if (!selectedWord) {
-            return
-        }
-        if (selectedWord.text && selectedWord.idx) {
-            const selectedWordTranslations = words.find((w) => w.idx === selectedWord.idx)?.translations || {}
-            setEditableText(selectedWord.text)
-            setSelectWordIdx(selectedWord.idx)
-            if (selectedWordTranslations) {
-                setTranslations(selectedWordTranslations)
-                if (translations[t('Sentence Analysis')]) {
-                    setjsonText(translations[t('Sentence Analysis')].text)
-                }
-            }
-        } else {
-            console.debug('word is empty')
-        }
-    }, [selectedWord?.idx, words])
-
     useEffect(() => {
         if (!settingsRef.current) {
             return
@@ -1500,6 +1479,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }
 
     const handlesetEditableText = (text: string) => {
+        // 如果text以@开头，为选择动作而不是输入文本，不修改editableText
+        if (text.includes('@') || text.includes(' ')) {
+            return
+        }
         if (selectedWord) {
             deleteSelectedWord()
         }
@@ -1603,88 +1586,77 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 <div style={props.containerStyle}>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                         <CategorySelector />
-                        <div
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'row',
-                                height: '100%',
-                                marginTop: '10px',
-                                position: 'relative',
-                            }}
-                        >
-                            <WordListUploader />
-                            <div className={styles.popupCardContentContainer}>
-                                {settings?.apiURL === defaultAPIURL && (
-                                    <div>
-                                        <IpLocationNotification showSettings={showSettings} />
-                                    </div>
-                                )}
-                                <div
-                                    ref={editorContainerRef}
-                                    className={styles.popupCardEditorContainer}
-                                    style={{ flex: 2, overflow: 'visible' }}
-                                >
-                                    <div style={{ height: '100%', marginLeft: '10px' }}>
+                        <div className={styles.popupCardContentContainer}>
+                            {settings?.apiURL === defaultAPIURL && (
+                                <div>
+                                    <IpLocationNotification showSettings={showSettings} />
+                                </div>
+                            )}
+                            <div
+                                ref={editorContainerRef}
+                                className={styles.popupCardEditorContainer}
+                                style={{ display: 'block', overflow: 'visible' }}
+                            >
+                                <div style={{ height: '100%' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'row', height: '100%' }}>
+                                        <WordListUploader />
                                         <AutocompleteTextarea
                                             selectedActions={selectedActions}
                                             onActionSelect={setAction}
                                             onChange={handlesetEditableText}
                                             onSubmit={handleSubmit}
                                         />
-                                        <div className={styles.actionButtonsContainer}>
-                                            <StatefulTooltip content={t('Sign out')} showArrow placement='top'>
-                                                <div className={styles.actionButton} onClick={() => clerk.signOut()}>
-                                                    <GoSignOut size={20} />
-                                                </div>
-                                            </StatefulTooltip>
-                                            <div style={{ marginLeft: 'auto' }}></div>
-                                            {!!editableText.length && (
-                                                <>
-                                                    <Tooltip content={t('Speak')} placement='bottom'>
-                                                        <div
-                                                            className={styles.actionButton}
-                                                            onClick={handleEditSpeakAction}
-                                                        >
-                                                            {isSpeakingEditableText ? (
-                                                                <SpeakerMotion />
-                                                            ) : (
-                                                                <RxSpeakerLoud size={15} />
-                                                            )}
-                                                        </div>
-                                                    </Tooltip>
-                                                    <Tooltip content={t('On/Off Youglish')} placement='bottom'>
-                                                        <div
-                                                            className={styles.actionButton}
-                                                            onClick={handleYouglishSpeakAction}
-                                                        >
-                                                            (
-                                                            <RiSpeakerFill size={15} />)
-                                                        </div>
-                                                    </Tooltip>
-                                                    <Tooltip content={t('Copy to clipboard')} placement='bottom'>
+                                    </div>
+                                    <div className={styles.actionButtonsContainer}>
+                                        <StatefulTooltip content={t('Sign out')} showArrow placement='top'>
+                                            <div className={styles.actionButton} onClick={() => clerk.signOut()}>
+                                                <GoSignOut size={20} />
+                                            </div>
+                                        </StatefulTooltip>
+                                        <div style={{ marginLeft: 'auto' }}></div>
+                                        {!!editableText.length && (
+                                            <>
+                                                <Tooltip content={t('Speak')} placement='bottom'>
+                                                    <div
+                                                        className={styles.actionButton}
+                                                        onClick={handleEditSpeakAction}
+                                                    >
+                                                        {isSpeakingEditableText ? (
+                                                            <SpeakerMotion />
+                                                        ) : (
+                                                            <RxSpeakerLoud size={15} />
+                                                        )}
+                                                    </div>
+                                                </Tooltip>
+                                                <Tooltip content={t('On/Off Youglish')} placement='bottom'>
+                                                    <div
+                                                        className={styles.actionButton}
+                                                        onClick={handleYouglishSpeakAction}
+                                                    >
+                                                        (
+                                                        <RiSpeakerFill size={15} />)
+                                                    </div>
+                                                </Tooltip>
+                                                <Tooltip content={t('Copy to clipboard')} placement='bottom'>
+                                                    <div className={styles.actionButton}>
+                                                        <CopyButton text={editableText} styles={styles}></CopyButton>
+                                                    </div>
+                                                </Tooltip>
+                                                <Tooltip content={t('Clear input')} placement='bottom'>
+                                                    <div
+                                                        className={styles.actionButton}
+                                                        onClick={() => {
+                                                            setEditableText('')
+                                                            editorRef.current?.focus()
+                                                        }}
+                                                    >
                                                         <div className={styles.actionButton}>
-                                                            <CopyButton
-                                                                text={editableText}
-                                                                styles={styles}
-                                                            ></CopyButton>
+                                                            <RxEraser size={15} />
                                                         </div>
-                                                    </Tooltip>
-                                                    <Tooltip content={t('Clear input')} placement='bottom'>
-                                                        <div
-                                                            className={styles.actionButton}
-                                                            onClick={() => {
-                                                                setEditableText('')
-                                                                editorRef.current?.focus()
-                                                            }}
-                                                        >
-                                                            <div className={styles.actionButton}>
-                                                                <RxEraser size={15} />
-                                                            </div>
-                                                        </div>
-                                                    </Tooltip>
-                                                </>
-                                            )}
-                                        </div>
+                                                    </div>
+                                                </Tooltip>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 {selectedWord?.text !== '' && (

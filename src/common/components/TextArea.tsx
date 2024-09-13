@@ -23,12 +23,19 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
 }) => {
     const [css] = useStyletron()
     const [showActionMenu, setShowActionMenu] = useState(false)
-    const { editableText } = useChatStore()
+    const { editableText, activateAction, refreshTextAreaFlag } = useChatStore()
     const [searchTerm, setSearchTerm] = useState('')
     const [filteredActions, setFilteredActions] = useState<Action[]>([])
+    const editableTextRef = useRef<string>('')
     const editorRef = useRef<HTMLDivElement>(null)
     const menuRef = useRef<HTMLElement>(null)
     const { t } = useTranslation()
+
+    useEffect(() => {
+        editableTextRef.current = editableText
+        console.log('editableTextRef.current', editableTextRef.current)
+    }, [editableText])
+
     useEffect(() => {
         if (searchTerm) {
             const filtered = selectedActions.filter((action) => action.name.includes(searchTerm))
@@ -38,21 +45,23 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
         }
     }, [searchTerm, selectedActions])
 
-    useEffect(() => {
-        if (showActionMenu && menuRef.current) {
-            menuRef.current.focus()
-        }
-    }, [showActionMenu])
-
+    // 当editorRef.current.innerText存在时，
     useEffect(() => {
         if (editorRef.current) {
-            if (editableText) {
-                editorRef.current.innerText = editableText
+            if (editableText && activateAction) {
+                // 加上之前被@mention的文本
+                editorRef.current.innerText = '@' + activateAction.name + ' ' + editableTextRef.current
+            } else if (editableText) {
+                editorRef.current.innerText = editableTextRef.current
+            } else if (activateAction) {
+                editorRef.current.innerText = '@' + activateAction.name + ' '
             } else {
                 editorRef.current.innerText = ''
             }
         }
-    }, [editableText])
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [refreshTextAreaFlag])
 
     const getTextWithoutMentions = (text: string) => {
         const functionNames = selectedActions.map((action) => action.name)
@@ -88,7 +97,6 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
 
     const handleActionSelect = async (action: Action) => {
         onActionSelect(action)
-        setShowActionMenu(false)
         setSearchTerm('')
         if (editorRef.current) {
             const selection = window.getSelection()
@@ -114,12 +122,40 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                 // 将光标移到插入的@mention之后
                 const newCaretPosition = lastAtIndex + action.name.length + 2
                 const newRange = document.createRange()
-                const textNode = editorRef.current.firstChild
-                if (textNode) {
-                    newRange.setStart(textNode, newCaretPosition)
-                    newRange.setEnd(textNode, newCaretPosition)
-                    selection.removeAllRanges()
-                    selection.addRange(newRange)
+                if (editorRef.current) {
+                    const textContent = editorRef.current.textContent || ''
+                    const finalPosition = Math.min(newCaretPosition, textContent.length)
+
+                    // 使用 TreeWalker 遍历所有文本节点
+                    const treeWalker = document.createTreeWalker(editorRef.current, NodeFilter.SHOW_TEXT)
+                    let currentLength = 0
+                    let currentNode = treeWalker.nextNode()
+
+                    while (currentNode) {
+                        const nodeLength = currentNode.textContent?.length || 0
+                        if (currentLength + nodeLength >= finalPosition) {
+                            const offset = finalPosition - currentLength
+                            newRange.setStart(currentNode, offset)
+                            newRange.setEnd(currentNode, offset)
+                            selection.removeAllRanges()
+                            selection.addRange(newRange)
+                            break
+                        }
+                        currentLength += nodeLength
+                        currentNode = treeWalker.nextNode()
+                    }
+
+                    // 如果没有找到合适的节点（这种情况不应该发生，但为了安全起见）
+                    if (!currentNode) {
+                        // 将光标设置在最后一个文本节点的末尾
+                        const lastTextNode = editorRef.current.lastChild
+                        if (lastTextNode && lastTextNode.nodeType === Node.TEXT_NODE) {
+                            newRange.setStartAfter(lastTextNode)
+                            newRange.setEndAfter(lastTextNode)
+                            selection.removeAllRanges()
+                            selection.addRange(newRange)
+                        }
+                    }
                 }
             } else {
                 // 如果没有检测到输入@，则设置select默认的action
@@ -129,6 +165,7 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                 }
             }
         }
+        setShowActionMenu(false)
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -153,11 +190,31 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                 e.preventDefault()
                 onSubmit()
             }
+        } else if (e.key === 'ArrowDown') {
+            // 如果输入键盘中↓，则设置menuRef.current.focus()
+            e.preventDefault()
+            if (menuRef.current) {
+                menuRef.current.focus()
+            } else {
+                e.preventDefault()
+                const selection = window.getSelection()
+                const range = selection?.getRangeAt(0)
+                if (range) {
+                    const br = document.createElement('br')
+                    range.deleteContents()
+                    range.insertNode(br)
+                    range.setStartAfter(br)
+                    range.setEndAfter(br)
+                    selection?.removeAllRanges()
+                    selection?.addRange(range)
+                    handleInput() // 触发内容更新
+                }
+            }
         }
     }
 
     return (
-        <div className={css({ position: 'relative', width: 'auto', alignItems: 'center' })}>
+        <div className={css({ position: 'relative', width: 'auto', alignItems: 'center', flexGrow: 1 })}>
             <div
                 ref={editorRef}
                 contentEditable
@@ -182,19 +239,26 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                         top: '100%',
                         marginTop: '4px',
                         zIndex: 1000,
-                        overflow: 'visible',
+                        overflowY: 'auto',
+                        maxHeight: '200px',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
                     })}
                 >
                     <StatefulMenu
                         rootRef={menuRef}
-                        initialState={{
-                            highlightedIndex: 0,
-                        }}
                         items={filteredActions.map((action) => ({
                             label: action.name,
                             action: action,
                         }))}
                         onItemSelect={({ item }) => handleActionSelect(item.action)}
+                        overrides={{
+                            List: {
+                                style: {
+                                    maxHeight: 'none', // 移除 StatefulMenu 的默认最大高度
+                                    overflow: 'visible', // 确保内容不被裁剪
+                                },
+                            },
+                        }}
                     />
                 </div>
             )}
@@ -215,8 +279,8 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                         marginRight: '5px',
                     }}
                 >
-                    <li>{t('Input any question or input @ to choose a function.')}</li>
-                    <li>{t('Press <Enter> to submit. Press <Shift+Enter> to start a new line.')}</li>
+                    <li>{t('Input any question or input @ and then press <ArrowDown> to choose a function.')}</li>
+                    <li>{t('Press <Enter> to submit. Press <Shift+Enter> or <ArrowDown> to start a new line.')}</li>
                 </div>
                 <Button
                     size='mini'
