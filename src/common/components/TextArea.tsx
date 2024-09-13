@@ -2,12 +2,10 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useStyletron } from 'baseui-sd'
 import { StatefulMenu } from 'baseui-sd/menu'
 import { Action } from '../internal-services/db'
-import { actionService } from '../services/action'
 import { Button } from 'baseui-sd/button'
 import { IoIosRocket } from 'react-icons/io'
 import { useTranslation } from 'react-i18next'
 import { useChatStore } from '@/store/file/store'
-import { Notification } from 'baseui-sd/notification'
 import toast from 'react-hot-toast'
 
 interface AutocompleteTextareaProps {
@@ -25,37 +23,13 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
 }) => {
     const [css] = useStyletron()
     const [showActionMenu, setShowActionMenu] = useState(false)
-    const { editableText, activateAction, refreshTextAreaFlag } = useChatStore()
+    const { editableText, activateAction, refreshTextAreaFlag, selectedWord } = useChatStore()
     const [searchTerm, setSearchTerm] = useState('')
     const [filteredActions, setFilteredActions] = useState<Action[]>([])
     const editableTextRef = useRef<string>('')
     const editorRef = useRef<HTMLDivElement>(null)
     const menuRef = useRef<HTMLElement>(null)
     const { t } = useTranslation()
-    const [showNotification1, setShowNotification1] = useState(true)
-    const [showNotification2, setShowNotification2] = useState(true)
-
-    useEffect(() => {
-        const hideNotification1 = localStorage.getItem('hideNotification1')
-        const hideNotification2 = localStorage.getItem('hideNotification2')
-
-        if (hideNotification1 === 'true') {
-            setShowNotification1(false)
-        }
-        if (hideNotification2 === 'true') {
-            setShowNotification2(false)
-        }
-    }, [])
-
-    const handleCloseNotification1 = () => {
-        setShowNotification1(false)
-        localStorage.setItem('hideNotification1', 'true')
-    }
-
-    const handleCloseNotification2 = () => {
-        setShowNotification2(false)
-        localStorage.setItem('hideNotification2', 'true')
-    }
 
     useEffect(() => {
         editableTextRef.current = editableText
@@ -81,6 +55,8 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                 editorRef.current.innerText = editableTextRef.current
             } else if (activateAction) {
                 editorRef.current.innerText = '@' + activateAction.name + ' '
+            } else if (selectedWord?.text) {
+                editorRef.current.innerText = selectedWord.text
             } else {
                 editorRef.current.innerText = ''
             }
@@ -245,13 +221,12 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
         <div
             className={css({
                 position: 'relative',
-                alignItems: 'stretch',
                 flexGrow: 1,
+                alignItems: 'stretch',
                 width: '100%',
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                marginBottom: '20px',
             })}
         >
             <div
@@ -264,7 +239,7 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                     border: '1px solid #ccc',
                     minHeight: '100px',
                     padding: '8px',
-                    paddingBottom: '30px',
+                    marginBottom: '20px',
                     whiteSpace: 'pre-wrap',
                     alignItems: 'center',
                     overflow: 'auto', // 当输入内容超过当前宽度时自动切换到下一行
@@ -314,7 +289,7 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                             width: 'auto',
                             position: 'absolute',
                             right: 0,
-                            bottom: '-20px',
+                            bottom: '-10px',
                             fontWeight: 'normal',
                             fontSize: '12px',
                             padding: '4px 8px',
@@ -330,35 +305,6 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
             >
                 {t('Submit')}
             </Button>
-            <div
-                style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 10,
-                    marginTop: '10px',
-                }}
-            >
-                <div
-                    style={{
-                        color: '#999',
-                        fontSize: '12px',
-                        transform: 'scale(0.9)',
-                        marginRight: '5px',
-                    }}
-                >
-                    {showNotification1 && (
-                        <Notification closeable onClose={handleCloseNotification1}>
-                            {t('Input a question or @ to choose a function.')}
-                        </Notification>
-                    )}
-                    {showNotification2 && (
-                        <Notification closeable onClose={handleCloseNotification2}>
-                            {t('Press <Enter> to submit. Press <Shift+Enter> or <↓> to start a new line.')}
-                        </Notification>
-                    )}
-                </div>
-            </div>
         </div>
     )
 }

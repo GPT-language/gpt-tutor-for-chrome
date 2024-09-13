@@ -64,6 +64,7 @@ import { checkForUpdates, getFilenameForLanguage, getLocalData, updateLastChecke
 import { parseDiff, Diff, Hunk } from 'react-diff-view'
 import 'react-diff-view/style/index.css'
 import AutocompleteTextarea from './TextArea'
+import { Notification } from 'baseui-sd/notification'
 
 const cache = new LRUCache({
     max: 500,
@@ -274,7 +275,7 @@ const useStyles = createUseStyles({
     },
     'popupCardTranslatedContentContainer': (props: IThemedStyleProps) => ({
         fontSize: '15px',
-        marginTop: '-14px',
+        marginTop: '-34px',
         display: 'flex',
         overflowY: 'auto',
         color: props.themeType === 'dark' ? props.theme.colors.contentSecondary : props.theme.colors.contentPrimary,
@@ -289,6 +290,7 @@ const useStyles = createUseStyles({
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
+        marginTop: '20px',
         gap: '12px',
     },
     'actionButton': (props: IThemedStyleProps) => ({
@@ -437,6 +439,30 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const settingsRef = useRef(settings)
     const [finalText, setFinalText] = useState('')
     const [selectedActions, setSelectedActions] = useState<Action[]>([])
+    const [showNotification1, setShowNotification1] = useState(true)
+    const [showNotification2, setShowNotification2] = useState(true)
+
+    useEffect(() => {
+        const hideNotification1 = localStorage.getItem('hideNotification1')
+        const hideNotification2 = localStorage.getItem('hideNotification2')
+
+        if (hideNotification1 === 'true') {
+            setShowNotification1(false)
+        }
+        if (hideNotification2 === 'true') {
+            setShowNotification2(false)
+        }
+    }, [])
+
+    const handleCloseNotification1 = () => {
+        setShowNotification1(false)
+        localStorage.setItem('hideNotification1', 'true')
+    }
+
+    const handleCloseNotification2 = () => {
+        setShowNotification2(false)
+        localStorage.setItem('hideNotification2', 'true')
+    }
 
     useEffect(() => {
         settingsRef.current = settings
@@ -1453,10 +1479,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const handlesetEditableText = (text: string) => {
         // 如果text以@开头，为选择动作而不是输入文本，不修改editableText
-        if (text.includes('@') || text.includes(' ')) {
+        if (text.includes('@')) {
+            console.log('Choose action')
             return
         }
-        if (selectedWord) {
+        if (selectedWord && text !== selectedWord.text) {
             deleteSelectedWord()
         }
         setEditableText(text)
@@ -1669,6 +1696,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                         ) : (
                                             <div
                                                 style={{
+                                                    marginTop: '20px',
                                                     width: '100%',
                                                 }}
                                             >
@@ -2160,6 +2188,28 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     />
                 </div>
             )}
+
+            <div
+                style={{
+                        color: '#999',
+                        fontSize: '12px',
+                        transform: 'scale(0.9)',
+                        marginRight: '5px',
+                    }}
+                >
+                    {showNotification1 && (
+                        <Notification closeable onClose={handleCloseNotification1}>
+                            {t('Input a question or @ to choose a function.')}
+                        </Notification>
+                    )}
+                    {showNotification2 && (
+                        <Notification closeable onClose={handleCloseNotification2}>
+                            {t('Press <Enter> to submit. Press <Shift+Enter> or <↓> to start a new line.')}
+                        </Notification>
+                    )}
+            </div>
+
+
         </div>
     )
 }
