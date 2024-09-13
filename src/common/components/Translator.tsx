@@ -443,27 +443,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [translationFlag, forceTranslate] = useReducer((x: number) => x + 1, 0)
 
     const editorRef = useRef<HTMLTextAreaElement>(null)
-    const isCompositing = useRef(false)
     const highlightRef = useRef<HighlightInTextarea | null>(null)
     const { t, i18n } = useTranslation()
     const { settings } = useSettings()
     const settingsRef = useRef(settings)
     const [finalText, setFinalText] = useState('')
-    const [debouncedText, setDebouncedText] = useState('')
     const [selectedActions, setSelectedActions] = useState<Action[]>([])
-
-    const debouncedSetSpeakText = useMemo(
-        () =>
-            debounce((text: string) => {
-                setDebouncedText(text)
-            }, 500), // 500ms 延迟
-        []
-    )
-
-    // 当 speakText 变化时，调用防抖函数
-    useCallback(() => {
-        debouncedSetSpeakText(debouncedText)
-    }, [debouncedText, debouncedSetSpeakText])
 
     useEffect(() => {
         settingsRef.current = settings
@@ -2158,14 +2143,17 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 </ModalBody>
             </Modal>
             <Toaster />
-            <div style={{ display: showYouGlish ? 'block' : 'none' }}>
-                <YouGlishComponent
-                    query={debouncedText}
-                    triggerYouGlish={showYouGlish}
-                    language={LANG_CONFIGS[youglishLang]?.nameEn || 'English'}
-                    accent={LANG_CONFIGS[youglishLang]?.accent || 'us'}
-                />
-            </div>
+
+            {showYouGlish && (
+                <div>
+                    <YouGlishComponent
+                        query={finalText}
+                        triggerYouGlish={showYouGlish}
+                        language={LANG_CONFIGS[youglishLang]?.nameEn || 'English'}
+                        accent={LANG_CONFIGS[youglishLang]?.accent || 'us'}
+                    />
+                </div>
+            )}
         </div>
     )
 }
