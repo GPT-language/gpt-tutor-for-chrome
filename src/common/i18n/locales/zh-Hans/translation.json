@@ -220,8 +220,8 @@
   "Use a better model(gpt-4o or claude-3.5-opus) to get more accurate results": "使用更好的模型（gpt-4o 或 claude-3.5-opus）来获取更准确的结果",
   "Submit Feedback": "提交反馈",
   "Submit your feedback about the current functionality": "提交您对当前功能的反馈",
-  "Input any question or input @ to choose a function.": "输入任何问题或输入 @ 来选择功能。",
-  "Press <Enter> to submit. Press <Shift+Enter> or <ArrowDown> to start a new line.": "按 <Enter> 提交。按 <Shift+Enter> 或 <ArrowDown> 开始新的一行。",
+  "Input a question or @ to choose a function.": "输入问题或 @ 来选择功能。",
+  "Press <Enter> to submit. Press <Shift+Enter> or <↓> to start a new line.": "按 <Enter> 提交。按 <Shift+Enter> 或 <↓> 开始新的一行。",
   "Next function": "下一个功能",
   "More": "更多",
   "Mark as learned": "标记为已掌握"

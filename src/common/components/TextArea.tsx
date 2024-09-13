@@ -31,6 +31,30 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
     const editorRef = useRef<HTMLDivElement>(null)
     const menuRef = useRef<HTMLElement>(null)
     const { t } = useTranslation()
+    const [showNotification1, setShowNotification1] = useState(true)
+    const [showNotification2, setShowNotification2] = useState(true)
+
+    useEffect(() => {
+        const hideNotification1 = localStorage.getItem('hideNotification1')
+        const hideNotification2 = localStorage.getItem('hideNotification2')
+
+        if (hideNotification1 === 'true') {
+            setShowNotification1(false)
+        }
+        if (hideNotification2 === 'true') {
+            setShowNotification2(false)
+        }
+    }, [])
+
+    const handleCloseNotification1 = () => {
+        setShowNotification1(false)
+        localStorage.setItem('hideNotification1', 'true')
+    }
+
+    const handleCloseNotification2 = () => {
+        setShowNotification2(false)
+        localStorage.setItem('hideNotification2', 'true')
+    }
 
     useEffect(() => {
         editableTextRef.current = editableText
@@ -320,10 +344,16 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                         marginRight: '5px',
                     }}
                 >
-                    <Notification closeable>{t('Input any question or input @ to choose a function.')}</Notification>
-                    <Notification closeable>
-                        {t('Press <Enter> to submit. Press <Shift+Enter> or <ArrowDown> to start a new line.')}
-                    </Notification>
+                    {showNotification1 && (
+                        <Notification closeable onClose={handleCloseNotification1}>
+                            {t('Input a question or @ to choose a function.')}
+                        </Notification>
+                    )}
+                    {showNotification2 && (
+                        <Notification closeable onClose={handleCloseNotification2}>
+                            {t('Press <Enter> to submit. Press <Shift+Enter> or <↓> to start a new line.')}
+                        </Notification>
+                    )}
                 </div>
             </div>
         </div>
