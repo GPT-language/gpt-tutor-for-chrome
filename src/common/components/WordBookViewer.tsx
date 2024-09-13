@@ -34,12 +34,12 @@ const GitHubRepo = {
 }
 
 const WordBookViewer: React.FC = () => {
-    const { addFile, selectedCategory, setShowWordBookManager } = useChatStore()
+    const { addFile, selectedGroup, setShowWordBookManager } = useChatStore()
     const [activeTab, setActiveTab] = useState<string>('language')
     const [languages, setLanguages] = useState<string[]>([])
     const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null)
     const [categories, setCategories] = useState<string[]>([])
-    const [category, setSelectedCategory] = useState<string | null>(null)
+    const [category, setselectedGroup] = useState<string | null>(null)
     const [fileTypes, setFileTypes] = useState<string[]>([])
     const [fileType, setSelectedFileType] = useState<string | null>(null)
     const [wordBooks, setWordBooks] = useState<WordBook[]>([])
@@ -145,7 +145,7 @@ const WordBookViewer: React.FC = () => {
                 const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' })
                 const file = new File([blob], selectedWordBook.name + '.csv', { type: 'text/csv' })
 
-                await addFile(file, selectedCategory)
+                await addFile(file, selectedGroup)
                 toast.success(t('Download Successfully!'))
                 // 等待1s
                 await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -171,7 +171,7 @@ const WordBookViewer: React.FC = () => {
                                 const selectedLang = (params.option?.id as string) || null
                                 console.log(t('Selected language:'), selectedLang)
                                 setSelectedLanguage(selectedLang)
-                                setSelectedCategory(null)
+                                setselectedGroup(null)
                                 setSelectedFileType(null)
                                 setSelectedWordBook(null)
                                 if (selectedLang) setActiveTab('category')
@@ -187,7 +187,7 @@ const WordBookViewer: React.FC = () => {
                                 onChange={(params) => {
                                     const selectedCat = (params.option?.id as string) || null
                                     console.log(t('Selected category:'), selectedCat)
-                                    setSelectedCategory(selectedCat)
+                                    setselectedGroup(selectedCat)
                                     setSelectedFileType(null)
                                     setSelectedWordBook(null)
                                     if (selectedCat) setActiveTab('fileType')

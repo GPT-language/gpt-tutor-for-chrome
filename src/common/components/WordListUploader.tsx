@@ -100,7 +100,7 @@ const WordListUploader = () => {
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
         if (file && selectedGroup) {
-            addFile(file, selectedGroup)
+            await addFile(file, selectedGroup)
         }
     }
     // 在渲染前检查 currentFileId 和 files 是否有效
