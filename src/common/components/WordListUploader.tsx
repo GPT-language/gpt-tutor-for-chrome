@@ -7,9 +7,9 @@ import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { rgb } from 'polished'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
-import { BsClockHistory, BsJournalText, BsArrowRepeat } from 'react-icons/bs'
+import { BsClockHistory, BsArrowRepeat } from 'react-icons/bs'
 import { styled } from 'styletron-react'
-import { AiOutlineDelete, AiOutlineUpload } from 'react-icons/ai'
+import { AiOutlineDelete } from 'react-icons/ai'
 import { Select } from 'baseui-sd/select'
 
 const SidebarContainer = styled('div', ({ $showSidebar }: { $showSidebar: boolean }) => ({

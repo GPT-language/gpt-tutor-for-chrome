@@ -1,5 +1,5 @@
 import { memo, useState, useEffect } from 'react'
-import { Action, Word } from '../internal-services/db'
+import { Action } from '../internal-services/db'
 import { useChatStore } from '@/store/file/store'
 import { Button, KIND, SHAPE, SIZE } from 'baseui-sd/button'
 import { useTranslation } from 'react-i18next'
@@ -12,7 +12,7 @@ interface ActionListProps {
     onActionClick: (action: Action | undefined, assistantActionText?: string) => void // 从父组件传入的处理函数
 }
 
-const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll }) => {
+const ActionList: React.FC<ActionListProps> = memo(({ onActionClick }) => {
     const {
         words,
         selectedWord,
@@ -41,16 +41,12 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
     const [assistantActionText, setAssistantActionText] = useState('')
 
     const handleAddWordClick = async () => {
-        setNextAction(undefined)
         if (!selectedWord) {
             return
         }
         try {
             await addWordToReviewFile(selectedWord, reviewFileName)
             toast.success(t('Added to review'))
-            if (!showNext) {
-                setShowNext(true)
-            }
         } catch (error) {
             if (error instanceof Error && error.message === 'This word has already been added to review') {
                 toast.error(t('This word has already been added to review'))
@@ -254,28 +250,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
             )
         }
 
-        const showAddToReview =
-            (selectedWord.translations &&
-                typeof selectedWord.translations === 'object' &&
-                Object.keys(selectedWord.translations).length > 0) ||
-            translations
-        const buttons = []
-
-        if (showAddToReview || isCompleted) {
-            buttons.push(
-                <Button
-                    key='addToReview'
-                    size={SIZE.compact}
-                    shape={SHAPE.default}
-                    kind={KIND.tertiary}
-                    onClick={handleAddWordClick}
-                    style={{ width: '100%', marginBottom: '8px' }}
-                >
-                    <u>{t('Add to the review')}</u>
-                </Button>
-            )
-        }
-
         return (
             <div
                 style={{
@@ -285,16 +259,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick, performAll 
                     width: '100%',
                 }}
             >
-                <div
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        width: '50%',
-                        alignItems: 'center',
-                    }}
-                >
-                    {buttons}
-                </div>
                 {isShowAssistantList && renderAssistantList()}
             </div>
         )

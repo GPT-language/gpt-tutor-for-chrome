@@ -7,6 +7,7 @@ import { Button } from 'baseui-sd/button'
 import { IoIosRocket } from 'react-icons/io'
 import { useTranslation } from 'react-i18next'
 import { useChatStore } from '@/store/file/store'
+import { Notification } from 'baseui-sd/notification'
 
 interface AutocompleteTextareaProps {
     selectedActions: Action[]
@@ -214,16 +215,29 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
     }
 
     return (
-        <div className={css({ position: 'relative', width: 'auto', alignItems: 'center', flexGrow: 1 })}>
+        <div
+            className={css({
+                position: 'relative',
+                alignItems: 'stretch',
+                flexGrow: 1,
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                marginBottom: '20px',
+            })}
+        >
             <div
                 ref={editorRef}
                 contentEditable
                 onInput={handleInput}
                 onKeyDown={handleKeyDown}
                 className={css({
+                    width: 'auto',
                     border: '1px solid #ccc',
                     minHeight: '100px',
                     padding: '8px',
+                    paddingBottom: '30px',
                     whiteSpace: 'pre-wrap',
                     alignItems: 'center',
                     overflow: 'auto', // 当输入内容超过当前宽度时自动切换到下一行
@@ -262,6 +276,33 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                     />
                 </div>
             )}
+            <Button
+                size='mini'
+                kind='secondary'
+                onClick={onSubmit}
+                startEnhancer={<IoIosRocket size={13} />}
+                overrides={{
+                    BaseButton: {
+                        style: {
+                            width: 'auto',
+                            position: 'absolute',
+                            right: 0,
+                            bottom: '-20px',
+                            fontWeight: 'normal',
+                            fontSize: '12px',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                        },
+                    },
+                    StartEnhancer: {
+                        style: {
+                            marginRight: '6px',
+                        },
+                    },
+                }}
+            >
+                {t('Submit')}
+            </Button>
             <div
                 style={{
                     display: 'flex',
@@ -279,32 +320,11 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                         marginRight: '5px',
                     }}
                 >
-                    <li>{t('Input any question or input @ and then press <ArrowDown> to choose a function.')}</li>
-                    <li>{t('Press <Enter> to submit. Press <Shift+Enter> or <ArrowDown> to start a new line.')}</li>
+                    <Notification closeable>{t('Input any question or input @ to choose a function.')}</Notification>
+                    <Notification closeable>
+                        {t('Press <Enter> to submit. Press <Shift+Enter> or <ArrowDown> to start a new line.')}
+                    </Notification>
                 </div>
-                <Button
-                    size='mini'
-                    kind='secondary'
-                    onClick={onSubmit}
-                    startEnhancer={<IoIosRocket size={13} />}
-                    overrides={{
-                        StartEnhancer: {
-                            style: {
-                                marginRight: '6px',
-                            },
-                        },
-                        BaseButton: {
-                            style: {
-                                fontWeight: 'normal',
-                                fontSize: '12px',
-                                padding: '4px 8px',
-                                cursor: 'pointer',
-                            },
-                        },
-                    }}
-                >
-                    {t('Submit')}
-                </Button>
             </div>
         </div>
     )

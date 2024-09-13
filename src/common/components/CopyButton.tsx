@@ -2,7 +2,7 @@ import { Tooltip } from 'baseui-sd/tooltip'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { RxCopy } from 'react-icons/rx'
 import { useTranslation } from 'react-i18next'
-import toast, { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 
 export function CopyButton({ text, styles }: { text: string; styles: { actionButton: string } }) {
     const { t } = useTranslation()

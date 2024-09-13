@@ -2,7 +2,6 @@ import * as React from 'react'
 import { useStyletron } from 'baseui-sd'
 import { Input, StyledInput } from 'baseui-sd/input'
 import { Tag } from 'baseui-sd/tag'
-import { initial } from 'underscore'
 import { useTranslation } from 'react-i18next'
 
 const InputReplacement = React.forwardRef(({ tags, removeTag, ...restProps }: any, ref) => {

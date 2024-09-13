@@ -4,21 +4,18 @@ import toast, { Toaster } from 'react-hot-toast'
 import { Client as Styletron } from 'styletron-engine-atomic'
 import { Provider as StyletronProvider, useStyletron } from 'styletron-react'
 import { BaseProvider } from 'baseui-sd'
-import { Textarea } from 'baseui-sd/textarea'
 import { createUseStyles } from 'react-jss'
-import { AiOutlineTranslation, AiOutlineLock, AiOutlinePlusSquare, AiOutlineQuestionCircle } from 'react-icons/ai'
+import { AiOutlineTranslation, AiOutlinePlusSquare, AiOutlineQuestionCircle, AiOutlineStar } from 'react-icons/ai'
 import { GoSignOut } from 'react-icons/go'
 import { useClerk } from '@clerk/chrome-extension'
 import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
-import { getLangConfig, sourceLanguages, targetLanguages, LangCode } from './lang/lang'
+import { getLangConfig, LangCode } from './lang/lang'
 import { translate } from '../translate'
-import { Select, Value, Option } from 'baseui-sd/select'
 import { RxEraser, RxReload, RxSpeakerLoud } from 'react-icons/rx'
 import { RiSpeakerFill } from 'react-icons/ri'
 import { calculateMaxXY, queryPopupCardElement } from '../../browser-extension/content_script/utils'
 import { clsx } from 'clsx'
-import { Button } from 'baseui-sd/button'
 import { ErrorBoundary } from 'react-error-boundary'
 import { ErrorFallback } from '../components/ErrorFallback'
 import { defaultAPIURL, isDesktopApp, isTauri } from '../utils'
@@ -37,17 +34,11 @@ import { Tooltip } from './Tooltip'
 import { useSettings } from '../hooks/useSettings'
 import { Modal, ModalBody, ModalHeader, ModalFooter, ModalButton } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
-import { Action, Translations, ActionOutputRenderingFormat } from '../internal-services/db'
+import { Action, ActionOutputRenderingFormat } from '../internal-services/db'
 import { CopyButton } from './CopyButton'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { actionService } from '../services/action'
 import { ActionManager } from './ActionManager'
-import { GrMoreVertical } from 'react-icons/gr'
-import { StatefulPopover } from 'baseui-sd/popover'
-import { StatefulMenu } from 'baseui-sd/menu'
-import { IconType } from 'react-icons'
-import { GiBookshelf, GiPlatform } from 'react-icons/gi'
-import { IoIosRocket } from 'react-icons/io'
 import 'katex/dist/katex.min.css'
 import Latex from 'react-latex-next'
 import { Markdown } from './Markdown'
@@ -69,13 +60,10 @@ import MessageCard from './MessageCard'
 import { ReviewManager } from './ReviewSettings'
 import WordBookViewer from './WordBookViewer'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
-import { Octokit } from '@octokit/rest'
 import { checkForUpdates, getFilenameForLanguage, getLocalData, updateLastCheckedSha } from '../services/github'
 import { parseDiff, Diff, Hunk } from 'react-diff-view'
 import 'react-diff-view/style/index.css'
 import AutocompleteTextarea from './TextArea'
-import { debounce } from 'lodash-es'
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa'
 
 const cache = new LRUCache({
     max: 500,
@@ -434,9 +422,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         translations,
         setTranslations,
         selectedGroup,
-        setSelectedGroup,
         editableText,
         setEditableText,
+        addWordToReviewFile,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -1872,6 +1860,37 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                                                             </div>
                                                                                         </Tooltip>
                                                                                         <Tooltip
+                                                                                            content={t('Add to Review')}
+                                                                                            placement='bottom'
+                                                                                        >
+                                                                                            <div
+                                                                                                onClick={() => {
+                                                                                                    if (!selectedWord) {
+                                                                                                        toast.error(
+                                                                                                            t(
+                                                                                                                'Please select a word first'
+                                                                                                            )
+                                                                                                        )
+                                                                                                        return
+                                                                                                    }
+                                                                                                    addWordToReviewFile(
+                                                                                                        selectedWord,
+                                                                                                        t('To review') +
+                                                                                                            t(
+                                                                                                                selectedGroup
+                                                                                                            )
+                                                                                                    )
+                                                                                                }}
+                                                                                                className={
+                                                                                                    styles.actionButton
+                                                                                                }
+                                                                                            >
+                                                                                                <AiOutlineStar
+                                                                                                    size={15}
+                                                                                                />
+                                                                                            </div>
+                                                                                        </Tooltip>
+                                                                                        <Tooltip
                                                                                             content={t(
                                                                                                 'Any question to this answer?'
                                                                                             )}
@@ -2044,19 +2063,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 <ModalHeader>更新可用</ModalHeader>
                 <ModalBody>
                     <h3>{t('There is a new update available. Please check the changes below.')}</h3>
-                    <h4
-                        style={{
-                            color: 'red',
-                            fontWeight: 'bold',
-                            backgroundColor: '#ffe6e6',
-                            padding: '10px',
-                            borderRadius: '5px',
-                            border: '1px solid red',
-                            marginBottom: '20px',
-                        }}
-                    >
-                        ⚠️ {t('Attention: Before updating, please export and save your current actions.')}
-                    </h4>
                     <div style={{ maxHeight: '300px', overflow: 'auto' }}>
                         {Object.entries(updateContent).map(([filename, content]) => (
                             <div key={filename}>

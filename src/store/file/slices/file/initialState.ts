@@ -43,11 +43,6 @@ function getNumberFromStorage(key: string, defaultValue: number) {
     return item ? Number(item) : defaultValue
 }
 
-function getObjectFromStorage(key: string, defaultValue: unknown) {
-    const item = localStorage.getItem(key)
-    return item ? JSON.parse(item) : defaultValue
-}
-
 function getObjectFromChromeStorage<T>(key: string, defaultValue: T): Promise<T> {
     return new Promise((resolve) => {
         chrome.storage.local.get(key, (result) => {

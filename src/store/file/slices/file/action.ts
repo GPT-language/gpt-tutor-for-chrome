@@ -9,6 +9,7 @@ import i18n from '@/common/i18n'
 import { strategyOptions } from '@/common/components/ReviewSettings'
 import toast from 'react-hot-toast'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any
 
 export interface ChatFileAction {
@@ -138,7 +139,8 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
             const wordExists = existingWords.some((w) => w.text === word.text)
 
             if (wordExists) {
-                throw new Error('This word has already been added to review.')
+                toast.error('This word has already been added to review.')
+                return
             }
         }
 
@@ -182,8 +184,10 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
         if (targetFile?.id) {
             await fileService.updateWordInFile(targetFile.id, newWordIdx, updatedWord)
+            toast.success('Added to review')
         } else {
             await fileService.createFile(fileName, reviewCategory, [updatedWord], reviewSettings)
+            toast.success('Added to review')
         }
     },
 
@@ -447,7 +451,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         }
     },
     selectWord: (word: Word | null) => {
-        const { currentFileId, editableText } = get()
+        const { currentFileId } = get()
 
         set(
             produce((draft) => {
