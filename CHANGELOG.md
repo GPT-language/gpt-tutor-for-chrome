@@ -1,59 +1,56 @@
-# 更新日志
+# Change Log
 
-本项目的所有显著变化都将记录在此文件中。
+All notable changes to this project will be documented in this file.
 
-格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
-并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- 设计新的UI，现在将区分单词、句子、写作三部分，每一部分使用不同的UI和功能组。
-- 完成雅思学习的功能组设计。
-- 实现打印功能。
-- 实现配合Infinite craft使用的功能。
-- 实现通过AI快速实现一个功能和功能组的功能。
-- 实现用户学习记录和功能组的远程存储，避免丢失。
+- Designed a new UI, now distinguishing between single words, sentences, and writing, each with different UI and feature sets.
+- Completed the design of the IELTS learning feature set.
+- Implemented printing functionality.
+- Implemented functionality for use with Infinite Craft.
+- Implemented the ability to quickly implement a feature or feature set through AI.
+- Implemented remote storage of user learning records and feature sets to prevent loss.
 
-### 待修复
-- 应该将添加到复习和添加到anki的按钮移动到一个更合适的位置，区分添加整个单词和单词部分内容的功能。
+### To Be Fixed
+- The buttons for adding to review and adding to Anki should be moved to a more suitable location, distinguishing between adding entire words and parts of word content.
 
 ## [1.0.1.3] - 2024-09-14
 
-### 🎉新增
-- 重设了主页面的UI。现在使用起来将更加直观和简洁。
-- 通过选择顶部的Tab来选择功能组，点击右侧的“更多”按钮来查看剩余的功能组和其它设置。
-- 现在通过@符号可以快速呼出GPT-Tutor的相关功能，比如在选择单词的tab后，输入@可以获取单词相关的功能。
-- 历史记录、复习记录和单词列表默认将显示在侧边栏中，通常为隐藏状态，你可以通过点击左上角的|<来打开。
+### 🎉 New Features
+- Redesigned the main page UI for better intuitiveness and simplicity.
+- Functionality selection is now done through top tabs, with the "More" button on the right for accessing additional functionality and settings.
+- The @ symbol can now be used to quickly access GPT-Tutor's related features, such as accessing word-related features after selecting the word tab.
+- History, review records, and word lists are now displayed in the sidebar by default, usually hidden, and can be opened by clicking the |< icon in the top left corner.
 
 ![alt text](8.gif)
 
-- 在功能管理器中，在内置的功能组中新增了一个反馈按钮，你可以在这里提交对某个功能的反馈。
-- 在回答框中新增了一个？按钮，如果你对当前回答有疑问，可以点击它来查看完善方案。
+- A feedback button has been added to the functionality manager for submitting feedback on a specific feature.
+- A ? button has been added to the answer box, allowing users to view improvement plans if they have questions about the current answer.
 
-### 🔄变更
-- 将添加到复习的按钮移动到了答案框中，点击后将该单词的所有内容添加到复习中。
-- 现在非管理员和订阅用户无法修改内置的功能，以免出现不必要的错误。
-- 将上传词书的功能移动到了下拉菜单中。
+### 🔄 Changes
+- The "Add to Review" button has been moved to the answer box, adding all content of the word to the review upon clicking.
+- Non-administrators and subscribers can no longer modify built-in functionality to prevent unnecessary errors.
+- The functionality for uploading dictionaries has been moved to the dropdown menu.
 
-### 🐛修复
-- 修复Youglish组件在隐藏时仍然会触发的问题。
-
-
-
+### 🐛 Bug Fixes
+- Fixed the issue where the Youglish component would still trigger even when hidden.
 
 ## [1.0.1.2] - 2024-09-04
 
-### 🎉新增
-- 所有内置的功能组现在将通过远程仓库获取（之前从本地加载），并且在更新后可以随时获取到最新版本。
-- 在动作管理器（ActionManager）中添加了 商店（Store） 组件，后续你可以在这里上传你的功能组来获得API Key的使用额度，也可以在这里购买和定制功能组 (`src/common/components/ActionStore.tsx`)。
-- 新增反馈功能的设置。当对某个内置的功能存在疑问时，可以在动作管理器中或者点击回答页面中的问号按钮提交反馈。
+### 🎉 New Features
+- All built-in feature sets are now fetched from a remote repository (previously loaded locally), and can be updated to the latest version at any time.
+- The "Store" component has been added to the Action Manager, allowing users to upload their feature sets to obtain API Key usage quotas, as well as purchase and customize feature sets (`src/common/components/ActionStore.tsx`).
+- Feedback settings have been added for built-in features. Users can submit feedback on specific features through the Action Manager or by clicking the question mark button on the answer page.
 
-### 🔄变更
-- 现在区分了用户自己创建的功能和GPT-Tutor内置的功能。为保证功能能够正常使用，用户将无法删除或修改内置的功能（但能够查看）。
-- 重新设置了底部按钮的使用逻辑。删除“继续”和“下一个”按钮，只保留添加到复习的按钮。
-- 删除了动作管理器中辅助动作的设置。
-- 删除了动作管理器中输出格式中的JSON的设置。
+### 🔄 Changes
+- User-created features are now distinguished from GPT-Tutor's built-in features. To ensure functionality, users cannot delete or modify built-in features (but can view them).
+- The logic for using bottom buttons has been reworked, removing the "Continue" and "Next" buttons and only keeping the "Add to Review" button.
+- The setting for auxiliary actions in the Action Manager has been removed.
+- The setting for JSON output format in the Action Manager has been removed.
 
-### 🐛修复
-- 修复了在通过输入来查询（而不是通过选择右侧List中的单词）时，生成的回答没有正确显示的问题。
-- 修复使用ChatGLM或Kimi时，初次打开页面时会跳转到设置页面的问题。
+### 🐛 Bug Fixes
+- Fixed the issue where answers generated through input queries (not selecting words from the right-side list) did not display correctly.
+- Fixed the issue where using ChatGLM or Kimi would redirect to the settings page on the first page load.

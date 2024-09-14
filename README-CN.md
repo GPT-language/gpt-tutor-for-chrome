@@ -7,7 +7,7 @@
 
 ## 更新日志
 
-[更新日志](./CHANGELOG.md)
+[更新日志](./CHANGELOG-CN.md)
 
 
 ## GPT-Tutor是什么
