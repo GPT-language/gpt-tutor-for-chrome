@@ -6,7 +6,6 @@ import { Action } from './internal-services/db'
 import Browser from 'webextension-polyfill'
 import { Provider } from './engines'
 import { IModel } from './engines/interfaces'
-import { listModels } from './engines/chatgpt '
 
 export const defaultAPIURL = 'https://api.openai.com'
 export const defaultAPIURLPath = '/v1/chat/completions'
@@ -171,6 +170,8 @@ const settingKeys: Record<keyof ISettings, number> = {
     chatglmRefreshToken: 1,
     deepSeekAPIKey: 1,
     deepSeekAPIModel: 1,
+    openRouterAPIKey: 1,
+    openRouterAPIModel: 1,
     fontSize: 1,
     uiFontSize: 1,
     iconSize: 1,

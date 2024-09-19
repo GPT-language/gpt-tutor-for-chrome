@@ -1,4 +1,3 @@
-import { ReactNode, useCallback, useEffect, useReducer, useState } from 'react'
 import _ from 'underscore'
 import icon from '../assets/images/icon-large.png'
 import beams from '../assets/images/beams.jpg'
@@ -36,10 +35,9 @@ import { IoRefreshSharp } from 'react-icons/io5'
 import { CUSTOM_MODEL_ID } from '../constants'
 import { TranslateMode, APIModel } from '../translate'
 import { TbDirectionSign } from 'react-icons/tb'
-// eslint-disable-next-line no-duplicate-imports
-import React from 'react'
 import NumberInput from './NumberInput'
 import { useChatStore } from '@/store/file/store'
+import React, { ReactNode, useCallback, useEffect, useReducer, useState } from 'react'
 
 const langOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
     return [
@@ -904,6 +902,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
               { label: 'Groq', id: 'Groq' },
               { label: 'Claude', id: 'Claude' },
               { label: 'DeepSeek', id: 'DeepSeek' },
+              { label: 'OpenRouter', id: 'OpenRouter' },
           ] as {
               label: string
               id: Provider
@@ -920,6 +919,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
               { label: 'Groq', id: 'Groq' },
               { label: 'Claude', id: 'Claude' },
               { label: 'DeepSeek', id: 'DeepSeek' },
+              { label: 'OpenRouter', id: 'OpenRouter' },
           ] as {
               label: string
               id: Provider
@@ -1018,6 +1018,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         geminiAPIURL: '',
         deepSeekAPIKey: '',
         deepSeekAPIModel: '',
+        openRouterAPIKey: '',
+        openRouterAPIModel: '',
     })
     const [prevValues, setPrevValues] = useState<ISettings>(values)
 
@@ -1727,6 +1729,45 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             provider='DeepSeek'
                             currentProvider={values.provider}
                             apiKey={values.deepSeekAPIKey}
+                            onBlur={onBlur}
+                        />
+                    </FormItem>
+                </div>
+                <div
+                    style={{
+                        display: values.provider === 'OpenRouter' ? 'block' : 'none',
+                    }}
+                >
+                    <FormItem
+                        required={values.provider === 'OpenRouter'}
+                        name='openRouterAPIKey'
+                        label='OpenRouter API Key'
+                        caption={
+                            <div>
+                                {t('Go to the')}{' '}
+                                <a
+                                    target='_blank'
+                                    href='https://openrouter.com/api_keys'
+                                    rel='noreferrer'
+                                    style={linkStyle}
+                                >
+                                    OpenRouter Dashboard
+                                </a>{' '}
+                                {t('to get your API Key.')}
+                            </div>
+                        }
+                    >
+                        <Input autoFocus type='password' size='compact' onBlur={onBlur} />
+                    </FormItem>
+                    <FormItem
+                        name='openRouterAPIModel'
+                        label={t('API Model')}
+                        required={values.provider === 'OpenRouter'}
+                    >
+                        <APIModelSelector
+                            provider='OpenRouter'
+                            currentProvider={values.provider}
+                            apiKey={values.openRouterAPIKey}
                             onBlur={onBlur}
                         />
                     </FormItem>
