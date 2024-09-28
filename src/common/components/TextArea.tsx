@@ -3,13 +3,17 @@ import { useStyletron } from 'baseui-sd'
 import { StatefulMenu } from 'baseui-sd/menu'
 import { Action } from '../internal-services/db'
 import { Button } from 'baseui-sd/button'
-import { IoIosRocket } from 'react-icons/io'
+import { IoIosFlash, IoIosRocket } from 'react-icons/io'
 import { useTranslation } from 'react-i18next'
 import { useChatStore } from '@/store/file/store'
-import toast from 'react-hot-toast'
+import { FaLightbulb } from 'react-icons/fa'
+import { Tooltip } from './Tooltip'
+import { IoFlashSharp } from 'react-icons/io5'
 
 interface AutocompleteTextareaProps {
     selectedActions: Action[]
+    credits?: number
+    isSettingComplete: boolean
     onActionSelect: (action: Action) => void
     onChange: (value: string) => void
     onSubmit: () => void
@@ -17,6 +21,8 @@ interface AutocompleteTextareaProps {
 
 const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
     selectedActions,
+    credits,
+    isSettingComplete,
     onActionSelect,
     onChange,
     onSubmit,
@@ -30,7 +36,6 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
     const editorRef = useRef<HTMLDivElement>(null)
     const menuRef = useRef<HTMLElement>(null)
     const { t } = useTranslation()
-
     useEffect(() => {
         editableTextRef.current = editableText
         console.log('editableTextRef.current', editableTextRef.current)
@@ -159,14 +164,6 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                         }
                     }
                 }
-            } else {
-                // 如果没有检测到输入@，则设置select默认的action
-                const defaultAction = selectedActions.find((action) => action.mode === 'Free to ask')
-                if (defaultAction) {
-                    handleActionSelect(defaultAction)
-                } else {
-                    toast.error('Please choose a function.')
-                }
             }
         }
         setShowActionMenu(false)
@@ -278,33 +275,57 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                     />
                 </div>
             )}
-            <Button
-                size='mini'
-                kind='secondary'
-                onClick={onSubmit}
-                startEnhancer={<IoIosRocket size={13} />}
-                overrides={{
-                    BaseButton: {
-                        style: {
-                            width: 'auto',
-                            position: 'absolute',
-                            right: 0,
-                            bottom: '-10px',
-                            fontWeight: 'normal',
-                            fontSize: '12px',
-                            padding: '4px 8px',
-                            cursor: 'pointer',
+            <div style={{ position: 'absolute', right: 0, bottom: '-10px', display: 'flex', alignItems: 'center' }}>
+                {!isSettingComplete && (
+                    <Tooltip content={t('Credit')}>
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                marginRight: '10px',
+                                fontSize: '14px', // 增加字号以提高可读性
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                color: '#6B7280', // 设置字体为浅灰色
+                                fontFamily: 'Arial, sans-serif', // 使用通用字体以提高跨平台兼容性
+                                fontWeight: 'bold', // 加粗字体以提高视觉效果
+                                textShadow: '1px 1px 2px #fff', // 添加文本阴影以提高字体的立体感
+                            }}
+                        >
+                            <IoFlashSharp
+                                size={13}
+                                color={credits === 0 ? '' : '#33ff33'}
+                                style={{ marginRight: '6px' }}
+                            />
+                            {credits}
+                        </div>
+                    </Tooltip>
+                )}
+                <Button
+                    size='mini'
+                    kind='secondary'
+                    onClick={onSubmit}
+                    startEnhancer={<IoIosRocket size={13} />}
+                    overrides={{
+                        BaseButton: {
+                            style: {
+                                width: 'auto',
+                                fontWeight: 'normal',
+                                fontSize: '12px',
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                            },
                         },
-                    },
-                    StartEnhancer: {
-                        style: {
-                            marginRight: '6px',
+                        StartEnhancer: {
+                            style: {
+                                marginRight: '6px',
+                            },
                         },
-                    },
-                }}
-            >
-                {t('Submit')}
-            </Button>
+                    }}
+                >
+                    {t('Submit')}
+                </Button>
+            </div>
         </div>
     )
 }

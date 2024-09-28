@@ -52,6 +52,7 @@ const WordListUploader = () => {
         showSidebar,
         setSelectedGroup,
         refreshTextArea,
+        userId,
     } = useChatStore()
     const itemsPerPage = 10
     const { t } = useTranslation()
@@ -75,14 +76,6 @@ const WordListUploader = () => {
         { id: -1, label: t('Upload') },
     ]
 
-    const handleSliderChange = (value: number | number[]) => {
-        if (Array.isArray(value)) {
-            selectFile(value[0])
-        } else {
-            selectFile(value)
-        }
-    }
-
     const onChange = (params: { value: { id: number; label: string }[] }) => {
         const { value } = params
         if (value.length > 0) {
@@ -100,7 +93,7 @@ const WordListUploader = () => {
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
         if (file && selectedGroup) {
-            await addFile(file, selectedGroup)
+            await addFile(file, selectedGroup, userId)
         }
     }
     // 在渲染前检查 currentFileId 和 files 是否有效

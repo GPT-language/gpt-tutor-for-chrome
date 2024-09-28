@@ -1,8 +1,10 @@
-import { SavedFile, Translations, Word } from '@/common/internal-services/db'
-export interface ChatFileState {
-    currentFileId: number | null
-    currentPage: number
-    files: SavedFile[]
+import { Translations, Word } from '@/common/internal-services/db'
+export interface ChatWordState {
+    words: Word[]
+    translations: Translations
+    selectedGroup: string
+    selectedWord: Word | null
+    selectedWords: { [fileId: number]: Word | null }
 }
 
 function getFromStorage(key: string, defaultValue: unknown) {
@@ -54,18 +56,24 @@ function getObjectFromChromeStorage<T>(key: string, defaultValue: T): Promise<T>
     })
 }
 
-export const getInitialFileState = async (): Promise<ChatFileState> => {
-    const currentFileId = getNumberFromStorage('currentFileId', 0)
+export const getInitialWordState = async (): Promise<ChatWordState> => {
+    const selectedGroup = getFromStorage('selectedGroup', 'Word Learning')
+    const selectedWord = await getFromChromeStorage('selectedWord', { idx: 1, text: '', reviewCount: 0 })
+    const selectedWords = await getObjectFromChromeStorage('selectedWords', {})
 
     return {
-        currentFileId,
-        currentPage: 1,
-        files: [],
+        words: [],
+        translations: {},
+        selectedWord,
+        selectedWords,
+        selectedGroup,
     }
 }
 
-export const initialFileState: ChatFileState = {
-    currentFileId: getNumberFromStorage('currentFileId', 0),
-    currentPage: 1,
-    files: [],
+export const initialWordState: ChatWordState = {
+    words: [], // 当前文件的单词
+    translations: {},
+    selectedWord: { idx: 1, text: '', reviewCount: 0 },
+    selectedWords: {}, // 每个文件的选中单词
+    selectedGroup: getFromStorage('selectedGroup', 'Word'),
 }

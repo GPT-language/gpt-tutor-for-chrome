@@ -7,7 +7,7 @@ import { BaseProvider } from 'baseui-sd'
 import { createUseStyles } from 'react-jss'
 import { AiOutlineTranslation, AiOutlinePlusSquare, AiOutlineQuestionCircle, AiOutlineStar } from 'react-icons/ai'
 import { GoSignOut } from 'react-icons/go'
-import { useClerk } from '@clerk/chrome-extension'
+import { useClerk, useUser } from '@clerk/chrome-extension'
 import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
 import { getLangConfig, LangCode } from './lang/lang'
@@ -34,7 +34,7 @@ import { Tooltip } from './Tooltip'
 import { useSettings } from '../hooks/useSettings'
 import { Modal, ModalBody, ModalHeader, ModalFooter, ModalButton } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
-import { Action, ActionOutputRenderingFormat } from '../internal-services/db'
+import { Action, ActionOutputRenderingFormat, Translation } from '../internal-services/db'
 import { CopyButton } from './CopyButton'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { actionService } from '../services/action'
@@ -65,6 +65,10 @@ import { parseDiff, Diff, Hunk } from 'react-diff-view'
 import 'react-diff-view/style/index.css'
 import AutocompleteTextarea from './TextArea'
 import { Notification } from 'baseui-sd/notification'
+import { getUserCredit, isSettingsComplete, useIsAdmin, deductCredit } from '@/utils/auth'
+import { shallow } from 'zustand/shallow'
+import TranslationManager from './TranslationManager'
+
 
 const cache = new LRUCache({
     max: 500,
@@ -74,7 +78,7 @@ const cache = new LRUCache({
     },
 })
 
-const useStyles = createUseStyles({
+export const useStyles = createUseStyles({
     'popupCard': {
         height: '100%',
         boxSizing: 'border-box',
@@ -275,7 +279,7 @@ const useStyles = createUseStyles({
     },
     'popupCardTranslatedContentContainer': (props: IThemedStyleProps) => ({
         fontSize: '15px',
-        marginTop: '-34px',
+        marginTop: '-14px',
         display: 'flex',
         overflowY: 'auto',
         color: props.themeType === 'dark' ? props.theme.colors.contentSecondary : props.theme.colors.contentPrimary,
@@ -291,6 +295,7 @@ const useStyles = createUseStyles({
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: '20px',
+        marginRight: 'auto',
         gap: '12px',
     },
     'actionButton': (props: IThemedStyleProps) => ({
@@ -424,9 +429,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         translations,
         setTranslations,
         selectedGroup,
-        editableText,
-        setEditableText,
         addWordToReviewFile,
+        userId,
+        setUserId,
+        setUserRole,
+        messageId,
+        conversationId,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -441,6 +449,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [selectedActions, setSelectedActions] = useState<Action[]>([])
     const [showNotification1, setShowNotification1] = useState(true)
     const [showNotification2, setShowNotification2] = useState(true)
+
 
     useEffect(() => {
         const hideNotification1 = localStorage.getItem('hideNotification1')
@@ -542,7 +551,21 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const scrollYRef = useRef<number>(0)
 
     const hasActivateAction = activateAction !== undefined
-    const clerk = useClerk()
+    const { signOut } = useClerk()
+    const { user } = useUser()
+
+    useEffect(() => {
+        if (user?.id) {
+            console.log('user.id', user.id)
+            setUserId(user.id)
+        }
+
+        if (user?.publicMetadata.role) {
+            console.log('user.role', user.publicMetadata.role)
+            setUserRole(user.publicMetadata.role as string)
+        }
+    }, [user?.id, user?.publicMetadata.role])
+
 
     useLayoutEffect(() => {
         const handleResize = () => {
@@ -859,7 +882,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [showUpdateModal, setShowUpdateModal] = useState(false)
     const [latestCommitSha, setLatestCommitSha] = useState<string | null>(null)
     const [updateContent, setUpdateContent] = useState<Record<string, any>>({})
+    const [isOpenToAsk, setIsOpenToAsk] = useState(true)
     const lastModifiedRef = useRef<string | null>(null)
+    const isSettingComplete = isSettingsComplete(settings, props.defaultShowSettings)
 
     const handleAccordionChange = (expanded: Array<React.Key>) => {
         setActiveKey(expanded.length > 0 ? expanded[0] : null)
@@ -898,14 +923,36 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         forceTranslate() // 执行操作
     }
 
+    // 1. 检查是否完成设置
+    // 2. 如果没有完成设置，检查用户信息（是否订阅，是否足够积分）
+    // 3.如果积分不足，跳转到pricing页面
+    // 4. 翻译
+
     const handleSubmit = useCallback(
         async (e?: React.FormEvent) => {
             if (e) {
                 e.preventDefault()
                 e.stopPropagation()
             }
+
+            if (!isSettingComplete && !useIsAdmin) {
+                console.log('settings is not complete')
+                return
+            }
+
+
+            if ( credits < 1 && !useIsAdmin) {
+                console.log('user is not enough credit')
+                // 选择填写自己的API key或者跳转到pricing页面购买
+                console.log('choose your api key or go to pricing page');
+                // 显示两个按钮，一个是填写自己的API key，一个是跳转到pricing页面
+                // 跳转到pricing页面
+                window.open('http://localhost:3001/pricing','_blank')
+                return
+            }
+
             console.log('submit is working')
-            if (!activateAction) {
+            if (!activateAction && !isOpenToAsk) {
                 console.debug('activateAction is null')
                 return
             }
@@ -913,6 +960,24 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         },
         [activateAction, forceTranslate]
     )
+
+    // 如果没有设置activateAction，则设置为开放提问
+    useEffect(() => {
+        if (!activateAction) {
+            setIsOpenToAsk(true)
+        } else {
+            setIsOpenToAsk(false)
+        }
+    }, [activateAction])
+
+    // 重新打开时设置选择的动作和文本都为空
+    useEffect(() => {
+        if (isOpenToAsk) {
+            setAction(undefined)
+            setEditableText('')
+            setFinalText('')
+        }
+    }, [])
 
     useEffect(() => {
         if (!settingsRef.current) {
@@ -949,6 +1014,15 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const settingsIsUndefined = settings === undefined
     const [showTextParser, setShowTextParser] = useState(false)
     const [jsonText, setjsonText] = useState('')
+    const { editableText, setEditableText } = useChatStore(
+        (state) => ({ credits: state.credits, setCredits: state.setCredits, editableText: state.editableText, setEditableText: state.setEditableText }),
+        shallow
+    )
+    const [credits, setCredits] = useState(getUserCredit())
+
+
+
+    // 设置语言
     useEffect(() => {
         if (settingsIsUndefined) {
             return
@@ -1168,7 +1242,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const translateText = useCallback(
         async (text: string, signal: AbortSignal, actionName?: string) => {
-            if (!text || !activateAction?.id) {
+            if (!text) {
                 return
             }
 
@@ -1182,23 +1256,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             console.log('editText', editableText)
             console.log('selectedWord text', selectedWord?.text)
 
-            const latestActivateAction = activateAction
 
-            if (!latestActivateAction || !latestActivateAction.id) {
-                return // Handle the case where latestActivateAction is undefined
-            }
-            const action = await actionService.get(latestActivateAction.id)
-            if (!action) {
-                console.debug('action is undefined')
-                return
-            }
 
             if (actionName) {
                 setActivatedActionName(actionName)
                 setActiveKey(actionName)
             } else {
-                setActiveKey(action.name)
-                setActivatedActionName(action.name)
+                setActiveKey(t('Open Question'))
+                setActivatedActionName('Open Question')
             }
 
             const beforeTranslate = () => {
@@ -1228,9 +1293,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 }
             }
             beforeTranslate()
-            const cachedKey = `translate:${settings?.provider ?? ''}:${settings?.apiModel ?? ''}:${action.id}:${
-                action.rolePrompt
-            }:${action.commandPrompt}:${action.outputRenderingFormat}:${text}:${translationFlag}`
+            const cachedKey = `translate:${settings?.provider ?? ''}:${settings?.apiModel ?? ''}:${text}:${translationFlag}`
             const cachedValue = cache.get(cachedKey)
             if (cachedValue) {
                 afterTranslate('stop')
@@ -1241,11 +1304,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             try {
                 await translate(
                     {
-                        activateAction,
+                        activateAction: activateAction ? activateAction : undefined,
                         parentAction: parentAction,
                         detectFrom: sourceLang,
                         detectTo: targetLang,
-                        action,
                         signal,
                         text,
                         onStatusCode: (statusCode) => {
@@ -1259,14 +1321,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 if (message.isFullText) {
                                     return message.content
                                 }
-                                if (activateAction.outputRenderingFormat === 'json' && !showTextParser) {
+                                if (activateAction?.outputRenderingFormat === 'json' && !showTextParser) {
                                     setShowTextParser(true)
                                 }
                                 const newTranslatedText = message.isFullText
                                     ? message.content
                                     : translatedText + message.content
 
-                                const actionName = useChatStore.getState().activateAction?.name
+                                const actionName = useChatStore.getState().activateAction?.name || t('Open Question')
                                 if (actionName) {
                                     setTranslations({
                                         ...translations,
@@ -1285,7 +1347,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             setTranslatedText((translatedText) => {
                                 const result = translatedText
                                 cache.set(cachedKey, result)
-                                const { messageId, conversationId, activateAction, updateTranslationText } =
+                                const { activateAction, updateTranslationText, handleTranslationUpdate } =
                                     useChatStore.getState()
 
                                 if (activateAction?.name) {
@@ -1299,8 +1361,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     // 使用 Promise.all 来并行执行异步操作
                                     Promise.all([updateTranslationText(translatedText, activateAction.name, finalText)])
                                         .then(() => {
+                                            // 保存到数据库
                                             handleTranslationUpdate(
-                                                selectedWord?.idx || selectWordIdx,
                                                 activateAction.name,
                                                 finalText,
                                                 translatedText,
@@ -1322,11 +1384,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             setErrorMessage(error)
                         },
                     },
-                    engine
+                    engine,
+                    isOpenToAsk
                 )
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (error: any) {
-                // if error is a AbortError then ignore this error
                 if (error.name === 'AbortError') {
                     isStopped = true
                     return
@@ -1334,6 +1395,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 setActionStr('Error')
                 setErrorMessage((error as Error).toString())
             } finally {
+                if (settings?.apiModel) {
+                    const newCredits =  await deductCredit(userId, settings?.apiModel)
+                    console.log('newCredits', newCredits)
+                    console.log('apiModel', settings?.apiModel)
+                    setCredits(newCredits)
+                }
                 if (!isStopped) {
                     stopLoading()
                     isStopped = true
@@ -1344,50 +1411,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         [settings?.provider, settings?.apiModel, translationFlag, startLoading, stopLoading]
     )
 
-    const handleTranslationUpdate = async (
-        wordIdx: number,
-        actionName: string,
-        finalText: string,
-        translatedText: string,
-        outputFormat: ActionOutputRenderingFormat,
-        messageId?: string,
-        conversationId?: string
-    ) => {
-        let finalFileId
-        if (selectedWord) {
-            finalFileId = currentFileId
-        } else {
-            const category = 'History'
-            const currentDate = new Date()
-            const formattedDate = currentDate.toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期
-            const fileName = formattedDate
-            finalFileId = await fileService.getFileIdByName(category, fileName)
-        }
-        try {
-            if (!finalFileId) {
-                return
-            }
-
-            await fileService.addOrUpdateTranslationInWord(
-                activateAction?.parentIds ? true : false,
-                finalFileId,
-                actionName,
-                wordIdx,
-                finalText,
-                translatedText,
-                outputFormat,
-                messageId,
-                conversationId
-            )
-        } catch (error) {
-            console.error('Failed to update translation:', error)
-        } finally {
-            if (activateAction?.parentIds) {
-                // 使用辅助动作后返回到父动作
-                setAction(parentAction)
-            }
-        }
-    }
     useEffect(() => {
         if (translations[t('Sentence analysis')]) {
             setShowTextParser(true)
@@ -1584,7 +1607,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 }}
             >
                 <div style={props.containerStyle}>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <CategorySelector />
                         <div className={styles.popupCardContentContainer}>
                             {settings?.apiURL === defaultAPIURL && (
@@ -1595,13 +1618,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             <div
                                 ref={editorContainerRef}
                                 className={styles.popupCardEditorContainer}
-                                style={{ display: 'block', overflow: 'visible' }}
+                                style={{ display: 'block' }}
                             >
-                                <div style={{ height: '100%' }}>
                                     <div style={{ display: 'flex', flexDirection: 'row', height: '100%' }}>
                                         <WordListUploader />
                                         <AutocompleteTextarea
                                             selectedActions={selectedActions}
+                                            credits={credits}
+                                            isSettingComplete= {isSettingComplete}
                                             onActionSelect={setAction}
                                             onChange={handlesetEditableText}
                                             onSubmit={handleSubmit}
@@ -1609,7 +1633,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     </div>
                                     <div className={styles.actionButtonsContainer}>
                                         <StatefulTooltip content={t('Sign out')} showArrow placement='top'>
-                                            <div className={styles.actionButton} onClick={() => clerk.signOut()}>
+                                            <div className={styles.actionButton} onClick={() => signOut()}>
                                                 <GoSignOut size={20} />
                                             </div>
                                         </StatefulTooltip>
@@ -1642,11 +1666,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                         <CopyButton text={editableText} styles={styles}></CopyButton>
                                                     </div>
                                                 </Tooltip>
-                                                <Tooltip content={t('Clear input')} placement='bottom'>
+                                                <Tooltip content={t('Clear input and selected function')} placement='bottom'>
                                                     <div
                                                         className={styles.actionButton}
                                                         onClick={() => {
                                                             setEditableText('')
+                                                            setAction(undefined)
                                                             editorRef.current?.focus()
                                                         }}
                                                     >
@@ -1655,10 +1680,23 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                         </div>
                                                     </div>
                                                 </Tooltip>
+                                                <Tooltip content={t('Add to Review')} placement='bottom'>
+                                                    <div
+                                                        onClick={() => {
+                                            if (!selectedWord) {
+                                                toast.error(t('Please select a word first'))
+                                                return
+                                            }
+                                            addWordToReviewFile(selectedWord, t('To review') + t(selectedGroup))
+                                        }}
+                                        className={styles.actionButton}
+                                    >
+                                        <AiOutlineStar size={15} />
+                                                    </div>
+                                                </Tooltip>
                                             </>
                                         )}
                                     </div>
-                                </div>
                                 {selectedWord?.text !== '' && (
                                     <div
                                         className={styles.popupCardTranslatedContainer}
@@ -1704,7 +1742,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     ref={translatedContentRef}
                                                     className={styles.popupCardTranslatedContentContainer}
                                                 >
-                                                    <div>
+                                                    <div style={{ width: '100%' }}>
                                                         {showTextParser ? (
                                                             <TextParser
                                                                 jsonContent={jsonText}
@@ -1712,238 +1750,19 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             ></TextParser>
                                                         ) : null}
                                                         <>
-                                                            {Object.entries(translations).map(
-                                                                ([
-                                                                    actionName,
-                                                                    { text, format, messageId, conversationId },
-                                                                ]) => (
-                                                                    <div key={actionName}>
-                                                                        <Accordion
-                                                                            initialState={{
-                                                                                expanded: [ActivatedActionName], // 初始时展开的 Panel 的 key
-                                                                            }}
-                                                                            onChange={({ expanded }) =>
-                                                                                handleAccordionChange(expanded)
-                                                                            }
-                                                                            overrides={{
-                                                                                ToggleIcon: {
-                                                                                    component: () =>
-                                                                                        actionName === activeKey ? (
-                                                                                            <mdIcons.MdArrowDropUp
-                                                                                                size={24}
-                                                                                            />
-                                                                                        ) : (
-                                                                                            <mdIcons.MdArrowDropDown
-                                                                                                size={24}
-                                                                                            />
-                                                                                        ),
-                                                                                },
-                                                                            }}
-                                                                            accordion={true}
-                                                                        >
-                                                                            {format === 'markdown' ? (
-                                                                                <Panel
-                                                                                    title={actionName}
-                                                                                    key={actionName}
-                                                                                >
-                                                                                    <>
-                                                                                        <Markdown>{text}</Markdown>
-                                                                                    </>
-                                                                                </Panel>
-                                                                            ) : format === 'latex' ? (
-                                                                                <>
-                                                                                    <Panel
-                                                                                        title={actionName}
-                                                                                        key={actionName}
-                                                                                    >
-                                                                                        <Latex>{text}</Latex>
-                                                                                    </Panel>
-                                                                                    {isLoading && (
-                                                                                        <span
-                                                                                            className={styles.caret}
-                                                                                        />
-                                                                                    )}
-                                                                                </>
-                                                                            ) : (
-                                                                                text.split('\n').map((line, i) => (
-                                                                                    <p
-                                                                                        className={styles.paragraph}
-                                                                                        key={`p-${i}`}
-                                                                                    >
-                                                                                        {i === 0 ? (
-                                                                                            <div
-                                                                                                style={{
-                                                                                                    display: 'flex',
-                                                                                                    alignItems:
-                                                                                                        'center',
-                                                                                                    gap: '5px',
-                                                                                                }}
-                                                                                            >
-                                                                                                <Panel
-                                                                                                    title={actionName}
-                                                                                                    key={actionName}
-                                                                                                >
-                                                                                                    {line}
-                                                                                                </Panel>
-                                                                                            </div>
-                                                                                        ) : (
-                                                                                            line
-                                                                                        )}
-                                                                                    </p>
-                                                                                ))
-                                                                            )}
-                                                                            <div
-                                                                                ref={actionButtonsRef}
-                                                                                className={
-                                                                                    styles.actionButtonsContainer
-                                                                                }
-                                                                            >
-                                                                                <div style={{ marginRight: 'auto' }} />
-                                                                                {activeKey === actionName && (
-                                                                                    <>
-                                                                                        {!isLoading && (
-                                                                                            <Tooltip
-                                                                                                content={t('Retry')}
-                                                                                                placement='bottom'
-                                                                                            >
-                                                                                                <div
-                                                                                                    onClick={() =>
-                                                                                                        forceTranslate()
-                                                                                                    }
-                                                                                                    className={
-                                                                                                        styles.actionButton
-                                                                                                    }
-                                                                                                >
-                                                                                                    <RxReload
-                                                                                                        size={15}
-                                                                                                    />
-                                                                                                </div>
-                                                                                            </Tooltip>
-                                                                                        )}
-                                                                                        <Tooltip
-                                                                                            content={t('Speak')}
-                                                                                            placement='bottom'
-                                                                                        >
-                                                                                            <div
-                                                                                                className={
-                                                                                                    styles.actionButton
-                                                                                                }
-                                                                                                onClick={() =>
-                                                                                                    handleTranslatedSpeakAction(
-                                                                                                        messageId,
-                                                                                                        conversationId,
-                                                                                                        text
-                                                                                                    )
-                                                                                                }
-                                                                                            >
-                                                                                                {isSpeakingTranslatedText ? (
-                                                                                                    <SpeakerMotion />
-                                                                                                ) : (
-                                                                                                    <RxSpeakerLoud
-                                                                                                        size={15}
-                                                                                                    />
-                                                                                                )}
-                                                                                            </div>
-                                                                                        </Tooltip>
-                                                                                        <Tooltip
-                                                                                            content={t(
-                                                                                                'Copy to clipboard'
-                                                                                            )}
-                                                                                            placement='bottom'
-                                                                                        >
-                                                                                            <div
-                                                                                                className={
-                                                                                                    styles.actionButton
-                                                                                                }
-                                                                                            >
-                                                                                                <CopyButton
-                                                                                                    text={text}
-                                                                                                    styles={styles}
-                                                                                                ></CopyButton>
-                                                                                            </div>
-                                                                                        </Tooltip>
-                                                                                        <Tooltip
-                                                                                            content={t('Add to Anki')}
-                                                                                            placement='bottom'
-                                                                                        >
-                                                                                            <div
-                                                                                                onClick={() =>
-                                                                                                    addToAnki(
-                                                                                                        selectedGroup +
-                                                                                                            ':' +
-                                                                                                            actionName.split(
-                                                                                                                ':'
-                                                                                                            )[0], // assuming key is activateAction.name:editableText
-                                                                                                        editableText,
-                                                                                                        text
-                                                                                                    )
-                                                                                                }
-                                                                                                className={
-                                                                                                    styles.actionButton
-                                                                                                }
-                                                                                            >
-                                                                                                <AiOutlinePlusSquare
-                                                                                                    size={15}
-                                                                                                />
-                                                                                            </div>
-                                                                                        </Tooltip>
-                                                                                        <Tooltip
-                                                                                            content={t('Add to Review')}
-                                                                                            placement='bottom'
-                                                                                        >
-                                                                                            <div
-                                                                                                onClick={() => {
-                                                                                                    if (!selectedWord) {
-                                                                                                        toast.error(
-                                                                                                            t(
-                                                                                                                'Please select a word first'
-                                                                                                            )
-                                                                                                        )
-                                                                                                        return
-                                                                                                    }
-                                                                                                    addWordToReviewFile(
-                                                                                                        selectedWord,
-                                                                                                        t('To review') +
-                                                                                                            t(
-                                                                                                                selectedGroup
-                                                                                                            )
-                                                                                                    )
-                                                                                                }}
-                                                                                                className={
-                                                                                                    styles.actionButton
-                                                                                                }
-                                                                                            >
-                                                                                                <AiOutlineStar
-                                                                                                    size={15}
-                                                                                                />
-                                                                                            </div>
-                                                                                        </Tooltip>
-                                                                                        <Tooltip
-                                                                                            content={t(
-                                                                                                'Any question to this answer?'
-                                                                                            )}
-                                                                                            placement='bottom'
-                                                                                        >
-                                                                                            <div
-                                                                                                onClick={() =>
-                                                                                                    toggleMessageCard()
-                                                                                                }
-                                                                                                className={
-                                                                                                    styles.actionButton
-                                                                                                }
-                                                                                            >
-                                                                                                <AiOutlineQuestionCircle
-                                                                                                    size={15}
-                                                                                                />
-                                                                                            </div>
-                                                                                        </Tooltip>
-                                                                                    </>
-                                                                                )}
-                                                                            </div>
-                                                                        </Accordion>
-                                                                    </div>
-                                                                )
-                                                            )}
+                                                           <TranslationManager
+                                                            isLoading={isLoading}
+                                                            isSpeakingTranslatedText={isSpeakingTranslatedText}
+                                                            styles={styles}
+                                                            forceTranslate={forceTranslate}
+                                                            handleTranslatedSpeakAction={handleTranslatedSpeakAction}
+                                                            messageId={messageId}   
+                                                            conversationId={conversationId}
+                                                            finalText={finalText}
+                                                            engine={engine}
+                                                            addToAnki={addToAnki}
+                                                            addWordToReviewFile={addWordToReviewFile}
+                                                            />
                                                         </>
                                                     </div>
                                                 </div>
@@ -2188,28 +2007,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     />
                 </div>
             )}
-
-            <div
-                style={{
-                        color: '#999',
-                        fontSize: '12px',
-                        transform: 'scale(0.9)',
-                        marginRight: '5px',
-                    }}
-                >
-                    {showNotification1 && (
-                        <Notification closeable onClose={handleCloseNotification1}>
-                            {t('Input a question or @ to choose a function.')}
-                        </Notification>
-                    )}
-                    {showNotification2 && (
-                        <Notification closeable onClose={handleCloseNotification2}>
-                            {t('Press <Enter> to submit. Press <Shift+Enter> or <↓> to start a new line.')}
-                        </Notification>
-                    )}
-            </div>
-
-
         </div>
     )
 }

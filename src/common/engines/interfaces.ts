@@ -12,7 +12,7 @@ export interface IMessage {
 }
 
 export interface IMessageRequest {
-    activateAction: Action
+    activateAction?: Action
     rolePrompt: string
     commandPrompt: string
     parentAction?: Action

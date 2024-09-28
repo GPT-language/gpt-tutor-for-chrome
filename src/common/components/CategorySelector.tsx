@@ -119,7 +119,7 @@ const CategorySelector = () => {
     }
 
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <div
                 ref={containerRef}
                 className={css({

@@ -1,10 +1,14 @@
 import { StateCreator } from 'zustand'
 import { produce } from 'immer'
-import { parse } from 'papaparse'
 import { fileService } from '@/common/internal-services/file'
 import { ChatStore } from '../../store'
-import { ReviewSettings, SavedFile, Translations, Word } from '@/common/internal-services/db'
-import { getInitialFileState } from '../file/initialState'
+import {
+    ActionOutputRenderingFormat,
+    ReviewSettings,
+    SavedFile,
+    Translations,
+    Word,
+} from '@/common/internal-services/db'
 import i18n from '@/common/i18n'
 import { strategyOptions } from '@/common/components/ReviewSettings'
 import toast from 'react-hot-toast'
@@ -12,63 +16,32 @@ import toast from 'react-hot-toast'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any
 
-export interface ChatFileAction {
-    getInitialFile: () => Promise<boolean>
-    addFile: (file: File, category: string, UserId: string) => Promise<number>
-    selectFile: (fileId: number) => void
-    deleteFile: (fileId: number) => Promise<void>
-    loadFiles: (selectedGroup: string) => Promise<void>
-    setCurrentFileId: (fileId: number) => void
-    setCurrentPage: (page: number) => void
-    setFiles: (files: SavedFile[]) => void
-    checkIfInitialized: () => Promise<boolean>
-    initializeReviewFiles(): Promise<void>
+export interface ChatWordAction {
+    deleteSelectedWord: () => void
+    searchWord: (searchTerm: string) => void
+    selectWord: (word: Word) => void
+    selectWordNotInCurrentFile: (text: string) => void
+    deleteWords: () => void
+    loadWords: (fileId: number, pageNumber: number, pageSize: number) => Promise<boolean>
+    addWordToReviewFile: (word: Word, fileName: string) => Promise<void>
+    updateReviewStatus: (word: Word) => Promise<void>
+    markWordAsLearned: (word: Word, fileName: string) => Promise<void>
+    markWordAsForgotten: (word: Word) => Promise<void>
+    addWordToHistoryFile: (word: Word) => Promise<void>
+    updateTranslationText: (translationText: string, actionName: string, wordContent?: string) => void
+    handleTranslationUpdate: (
+        actionName: string,
+        finalText: string,
+        translatedText: string,
+        outputFormat: ActionOutputRenderingFormat,
+        messageId?: string,
+        conversationId?: string
+    ) => Promise<void>
+    setTranslations: (translations: Translations) => void
+    setSelectedGroup: (group: string) => void
 }
 
-export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatFileAction> = (set, get) => ({
-    getInitialFile: async () => {
-        const ChatFileState = await getInitialFileState()
-        set(ChatFileState)
-        return true
-    },
-    addFile: async (file, category, userId?) => {
-        const response = await new Promise<{ data: string[][] }>((resolve) =>
-            parse(file, {
-                complete: resolve,
-                header: false,
-            })
-        )
-
-        const words = response.data.map((entry, index) => ({
-            idx: index + 1,
-            text: entry[0],
-            translations: {},
-            reviewCount: 0,
-        }))
-
-        const fileId = await fileService.addFile(file.name, words, category, userId)
-        localStorage.setItem('currentFileId', fileId.toString())
-        set(
-            produce((draft) => {
-                draft.selectedWord = words[0]
-                draft.currentPage = 1
-                draft.currentFileId = fileId
-                draft.words = words
-                draft.files.push({ id: fileId, name: file.name, category: category, words: words })
-            })
-        )
-        return words.length
-    },
-
-    async checkIfInitialized() {
-        const files = await fileService.fetchFilesByCategory('学习')
-        if (files.length > 0) {
-            return true
-        }
-
-        return false
-    },
-
+export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatWordAction> = (set, get) => ({
     async initializeReviewFiles() {
         // 检查是否初始化，如果已经初始化，返回
         const isInitialized = await get().checkIfInitialized()
@@ -401,7 +374,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         get().loadWords(fileId, page, 10)
         localStorage.setItem('currentFileId', fileId.toString())
     },
-    deleteFile: async (fileId) => {
+    deleteFile: async (fileId: number) => {
         const { selectedGroup, loadFiles, currentFileId, setCurrentFileId } = get()
         await fileService.deleteFile(fileId)
         set(
@@ -485,23 +458,13 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
     // 该方法并不处理indexDB中的保存，只负责更新显示状态
     // selectWordNotInCurrentFile方法负责将搜索结果中的单词idx和text添加到历史文件中，该方法则负责更新其中的translations
-    updateTranslationText: async (newText: string, actionName: string, wordName?: string) => {
+    updateTranslationText: async (newText: string, actionName: string, wordContent?: string) => {
         try {
             const category = 'History'
             const formattedDate = new Date().toISOString().slice(0, 10).replace(/-/g, '/')
-
-            // 直接获取特定日期的文件，而不是获取所有文件
-            const file = await fileService.fetchFileByCategoryAndName(category, formattedDate)
-            if (!file) {
-                throw new Error('未找到今日的历史文件')
-            }
-
-            const { currentFileId } = get()
-            if (!currentFileId) {
-                throw new Error('当前文件ID未设置')
-            }
-
-            let updatedWord: Word | undefined
+            const files = await fileService.fetchFilesByCategory(category)
+            const file = files.find((file) => file.category === category && file.name === formattedDate)
+            const wordInFile = file?.words.find((w) => w.text === wordContent)
 
             set(
                 produce((draft) => {
@@ -509,49 +472,94 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                     if (!draft.translations) {
                         draft.translations = {}
                     }
-                    draft.translations[actionName] = { text: newText, format: 'markdown' }
 
-                    // 更新 selectedWord
+                    if (!draft.translations[actionName]) {
+                        draft.translations[actionName] = { text: newText, format: 'markdown' }
+                    } else {
+                        draft.translations[actionName].text = newText
+                    }
+
+                    // 如果 selectedWord 存在，也更新它的 translations
                     if (draft.selectedWord) {
                         if (!draft.selectedWord.translations) {
                             draft.selectedWord.translations = {}
                         }
                         draft.selectedWord.translations[actionName] = { text: newText, format: 'markdown' }
-                        updatedWord = draft.selectedWord
                     }
 
-                    // 更新 words 数组中的单词
-                    const wordInWords = draft.words.find((word: Word) => word.text === wordName)
-                    if (wordInWords) {
-                        if (!wordInWords.translations) {
-                            wordInWords.translations = {}
+                    // 验证 word 是否存在于 words 数组中
+                    const wordInWords = draft.words.find((word: Word) => word.text === wordContent)
+
+                    if (!wordInWords) {
+                        console.log('word is not in words')
+                        if (wordInFile) {
+                            draft.selectedWord = {
+                                ...wordInFile,
+                                translations: { ...draft.translations },
+                            }
+                        } else if (wordContent) {
+                            draft.selectedWord = {
+                                text: wordContent,
+                                translations: { ...draft.translations },
+                            }
                         }
-                        wordInWords.translations[actionName] = { text: newText, format: 'markdown' }
-                        updatedWord = wordInWords
-                    } else if (wordName) {
-                        // 如果 words 数组中没有这个单词，创建一个新的
-                        const newWord: Word = {
-                            text: wordName,
-                            translations: { [actionName]: { text: newText, format: 'markdown' } },
-                            idx: draft.words.length + 1,
-                            reviewCount: 0,
-                        }
-                        draft.words.push(newWord)
-                        updatedWord = newWord
+                    } else {
+                        // 更新 words 数组中的 word 的 translations
+                        wordInWords.translations = { ...draft.translations }
                     }
+
+                    console.log('Updated translations:', draft.translations)
                 })
             )
 
-            if (currentFileId && updatedWord) {
-                await fileService.updateWordInFile(currentFileId, updatedWord.idx, updatedWord)
-            }
+            // 如果需要，这里可以添加将更新后的数据保存到数据库的逻辑
         } catch (error) {
             console.error('更新翻译文本时出错:', error)
-            // 这里可以添加更多的错误处理逻辑，比如显示错误消息给用户
+            // 可以在这里添加错误处理逻辑，如显示错误提示等
         }
     },
 
-    setTranslations: (translations: Translations) => {
+    handleTranslationUpdate: async (
+        actionName: string,
+        finalText: string,
+        translatedText: string,
+        outputFormat: ActionOutputRenderingFormat,
+        messageId?: string,
+        conversationId?: string
+    ): Promise<void> => {
+        const { currentFileId, selectedWord } = get()
+        let finalFileId
+        if (selectedWord) {
+            finalFileId = currentFileId
+        } else {
+            const category = 'History'
+            const currentDate = new Date()
+            const formattedDate = currentDate.toISOString().slice(0, 10).replace(/-/g, '/') // 格式化日期
+            const fileName = formattedDate
+            finalFileId = await fileService.getFileIdByName(category, fileName)
+        }
+        try {
+            if (!finalFileId || !selectedWord?.idx) {
+                toast('Failed to update translation: fileId or wordIdx is undefined')
+                return
+            }
+
+            await fileService.addOrUpdateTranslationInWord(
+                finalFileId,
+                actionName,
+                finalText,
+                selectedWord?.idx,
+                translatedText,
+                outputFormat,
+                messageId,
+                conversationId
+            )
+        } catch (error) {
+            console.error('Failed to update translation:', error)
+        }
+    },
+
+    setTranslations: async (translations: Translations) => {
         set({ translations })
     },
 })

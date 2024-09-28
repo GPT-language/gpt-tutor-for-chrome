@@ -12,8 +12,8 @@ export class FileService {
     }
 
     // 添加新文件
-    async addFile(name: string, words: Word[], category: string): Promise<number> {
-        const fileId = await this.db.files.add({ name, words, category })
+    async addFile(name: string, words: Word[], category: string, userId?: string): Promise<number> {
+        const fileId = await this.db.files.add({ name, words, category, userId })
         return fileId
     }
 
@@ -183,6 +183,16 @@ export class FileService {
         await this.updateFile(fileId, { words: file.words })
     }
 
+    // 更新单词的translations
+    async updateWordTranslations(fileId: number, wordId: number, updatedWord: Word): Promise<void> {
+        const file = await this.fetchFileDetailsById(fileId)
+        const index = file.words.findIndex((w) => w.idx === wordId)
+        if (index !== -1) {
+            file.words[index].translations = updatedWord.translations
+            await this.updateFile(fileId, { words: file.words })
+        }
+    }
+
     // 更新文件中的某个单词
     async updateWordInFile(fileId: number, wordId: number, updatedWord: Word): Promise<Word[]> {
         const file = await this.fetchFileDetailsById(fileId)
@@ -210,12 +220,13 @@ export class FileService {
     }
 
     // 添加翻译到文件中的某个单词
+    // 1. 如果单词不存在，则添加单词
+    // 2. 如果单词存在，则更新单词的翻译
     async addOrUpdateTranslationInWord(
-        isParent: boolean,
         fileId: number,
         actionName: string,
-        wordIdx: number,
         wordText: string,
+        wordIdx: number,
         text: string,
         format: ActionOutputRenderingFormat,
         messageId?: string,
@@ -224,12 +235,10 @@ export class FileService {
         const file = await this.fetchFileDetailsById(fileId)
         let word: Word | undefined
         // 这里传入的wordText是最新的输入内容，但是传入的idx仍然是之前激活action的idx
-        if (isParent) {
-            word = file?.words.find((w) => w.idx === wordIdx)
-        } else {
-            word = file?.words.find((w) => w.text === wordText)
-        }
+
+        word = file?.words.find((w) => w.idx === wordIdx || w.text === wordText)
         if (!word) {
+            console.log('word not found in this file', wordIdx, wordText)
             // 使用更安全的方式生成新 idx
             const maxIdx = file.words?.reduce((max, w) => Math.max(max, w.idx), 0)
             word = {

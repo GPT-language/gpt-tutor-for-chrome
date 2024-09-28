@@ -4,6 +4,7 @@ import { TranslateMode } from '../translate'
 export type ActionOutputRenderingFormat = 'text' | 'markdown' | 'latex' | 'json'
 
 export interface Action {
+    userId?: string
     id?: number
     idx: number
     mode?: TranslateMode
@@ -20,11 +21,19 @@ export interface Action {
     childrenIds?: number[]
 }
 
+export interface Comment {
+    idx: number
+    text: string
+    createdAt: Date
+    updatedAt: Date
+}
+
 export interface Translation {
     text: string
     format: ActionOutputRenderingFormat
     messageId?: string
     conversationId?: string
+    comments?: Comment[]
 }
 
 export interface Translations {
@@ -50,6 +59,7 @@ export interface Word {
 }
 
 export interface SavedFile {
+    userId?: string
     category: string
     id?: number
     name: string
@@ -63,9 +73,9 @@ export class LocalDB extends Dexie {
 
     constructor() {
         super('gpt-tutor')
-        this.version(17).stores({
-            action: '++id, idx, mode, name, groups, description, model, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt, parentIds, childrenIds',
-            files: '++id, name, words,category,reviewSettings',
+        this.version(22).stores({
+            action: '++id, userId, idx, mode, name, groups, description, model, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt, parentIds, childrenIds',
+            files: '++id, userId, name, words,category,reviewSettings',
         })
         this.action = this.table('action')
         this.files = this.table('files')

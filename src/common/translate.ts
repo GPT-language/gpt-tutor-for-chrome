@@ -24,13 +24,13 @@ export type APIModel =
     | string
 
 interface BaseTranslateQuery {
-    activateAction: Action
+    activateAction?: Action
     parentAction?: Action
     text: string
-    detectFrom: LangCode
-    detectTo: LangCode
+    context?: string
+    detectFrom?: LangCode
+    detectTo?: LangCode
     mode?: Exclude<TranslateMode, 'big-bang'>
-    action: Action
     onMessage: (message: { content: string; role: string; isFullText?: boolean }) => void
     onError: (error: string) => void
     onFinish: (reason: string) => void
@@ -314,24 +314,16 @@ async function registerWebsocket(token: string): Promise<{ wss_url: string; expi
     return callBackendAPIWithToken(token, 'POST', '/register-websocket').then((r) => r.json())
 }
 
-export async function translate(query: TranslateQuery, engine: IEngine | undefined) {
+export async function translate(query: TranslateQuery, engine: IEngine | undefined, isOpenToAsk?: boolean) {
     const fetcher = getUniversalFetch()
     let rolePrompt = ''
     let commandPrompt = ''
     let contentPrompt = query.text
     const assistantPrompts: string[] = []
-    let quoteProcessor: QuoteProcessor | undefined
-    const settings = await getSettings()
 
-    if (query.mode === 'big-bang') {
-        rolePrompt = oneLine`
-        You are a professional writer
-        and you will write ${query.articlePrompt}
-        based on the given words`
-        commandPrompt = oneLine`
-        Write ${query.articlePrompt} of no more than 160 words.
-        The article must contain the words in the following text.
-        The more words you use, the better`
+    if (isOpenToAsk) {
+        rolePrompt = ''
+        commandPrompt = query.text
     } else {
         const sourceLangCode = query.detectFrom
         const targetLangCode = query.detectTo
@@ -344,28 +336,28 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
         const sourceLangConfig = getLangConfig(sourceLangCode)
         rolePrompt = targetLangConfig.rolePrompt
 
-        switch (query.action.mode) {
+        switch (query.activateAction?.mode) {
             case null:
             case undefined:
             case 'built-in':
                 if (
-                    (query.action.rolePrompt ?? '').includes('${text}') ||
-                    (query.action.commandPrompt ?? '').includes('${text}')
+                    (query.activateAction?.rolePrompt ?? '').includes('${text}') ||
+                    (query.activateAction?.commandPrompt ?? '').includes('${text}')
                 ) {
                     contentPrompt = ''
                 } else {
                     contentPrompt = '"""' + query.text + '"""'
                 }
-                rolePrompt = (query.action.rolePrompt ?? '')
+                rolePrompt = (query.activateAction?.rolePrompt ?? '')
                     .replace('${sourceLang}', sourceLangName)
                     .replace('${targetLang}', targetLangName)
                     .replace('${text}', query.text)
-                commandPrompt = (query.action.commandPrompt ?? '')
+                commandPrompt = (query.activateAction?.commandPrompt ?? '')
                     .replace('${sourceLang}', sourceLangName)
                     .replace('${targetLang}', targetLangName)
                     .replace('${text}', query.text)
-                if (query.action.outputRenderingFormat) {
-                    commandPrompt += `. Format: ${query.action.outputRenderingFormat}`
+                if (query.activateAction?.outputRenderingFormat) {
+                    commandPrompt += `. Format: ${query.activateAction.outputRenderingFormat}`
                 }
                 break
         }
@@ -376,8 +368,6 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
     }
 
     await engine?.sendMessage({
-        activateAction: query.activateAction,
-        parentAction: query.parentAction,
         signal: query.signal,
         rolePrompt,
         commandPrompt,
@@ -395,4 +385,29 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
             query.onStatusCode?.(statusCode)
         },
     })
+}
+
+export async function simpleTranslate(query: TranslateQuery, engine: IEngine): Promise<void> {
+    const abortController = new AbortController()
+
+    try {
+        await engine.sendMessage({
+            rolePrompt: `context: ${query.context}`,
+            commandPrompt: `\n${query.text}`,
+            signal: abortController.signal,
+            onMessage: async (message) => {
+                if (message.content) {
+                    query.onMessage({ ...message })
+                }
+            },
+            onFinished: (reason) => {
+                query.onFinish(reason)
+            },
+            onError: (error) => {
+                query.onError(error)
+            },
+        })
+    } catch (error) {
+        query.onError((error as Error).message)
+    }
 }

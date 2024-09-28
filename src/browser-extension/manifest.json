@@ -53,7 +53,7 @@
     "background": {
         "service_worker": "/src/browser-extension/background/index.ts"
     },
-    "permissions": ["storage", "contextMenus", "sidePanel","webRequest", "cookies", "declarativeNetRequestWithHostAccess"],
+    "permissions": ["tabs", "storage", "contextMenus", "sidePanel","webRequest", "cookies", "declarativeNetRequestWithHostAccess"],
 
     "commands": {
         "open-popup": {
