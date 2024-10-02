@@ -100,7 +100,7 @@
     "react-window": "^1.8.9",
     "styletron-engine-atomic": "^1.6.2",
     "styletron-react": "^6.1.1",
-    "swr": "^2.1.5",
+    "swr": "^2.2.5",
     "tailwind-merge": "^2.2.1",
     "tailwindcss": "^3.4.10",
     "ufo": "^1.1.2",
