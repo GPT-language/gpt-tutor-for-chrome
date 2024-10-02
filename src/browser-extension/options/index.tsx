@@ -8,13 +8,13 @@ import './index.css'
 const engine = new Styletron()
 
 const Options = () => {
-    return <Settings engine={engine} />
+  return <Settings engine={engine} />
 }
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
 root.render(
-    <React.StrictMode>
-        <Options />
-    </React.StrictMode>
+  <React.StrictMode>
+    <Options />
+  </React.StrictMode>
 )

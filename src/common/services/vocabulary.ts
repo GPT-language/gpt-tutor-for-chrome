@@ -3,5 +3,5 @@ import { IVocabularyInternalService, vocabularyInternalService } from '../intern
 import { isDesktopApp } from '../utils'
 
 export const vocabularyService: IVocabularyInternalService = isDesktopApp()
-    ? vocabularyInternalService
-    : backgroundVocabularyService
+  ? vocabularyInternalService
+  : backgroundVocabularyService

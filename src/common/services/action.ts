@@ -3,4 +3,4 @@ import { IActionInternalService, actionInternalService } from '../internal-servi
 import { isDesktopApp, isUserscript } from '../utils'
 
 export const actionService: IActionInternalService =
-    isDesktopApp() || isUserscript() ? actionInternalService : backgroundActionService
+  isDesktopApp() || isUserscript() ? actionInternalService : backgroundActionService
