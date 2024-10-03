@@ -1,4 +1,4 @@
 export interface Translate {
-    from?: string
-    to: string
+  from?: string
+  to: string
 }

@@ -3,23 +3,23 @@ import { LobeAgentConfig } from '@/types/agent'
 import { BaseDataModel } from './meta'
 
 export enum LobeSessionType {
-    Agent = 'agent',
-    Group = 'group',
+  Agent = 'agent',
+  Group = 'group',
 }
 
 export type SessionGroupId = SessionDefaultGroup | string
 
 export enum SessionDefaultGroup {
-    Default = 'default',
-    Pinned = 'pinned',
+  Default = 'default',
+  Pinned = 'pinned',
 }
 
 export interface SessionGroupItem {
-    createdAt: number
-    id: string
-    name: string
-    sort?: number
-    updatedAt: number
+  createdAt: number
+  id: string
+  name: string
+  sort?: number
+  updatedAt: number
 }
 
 export type SessionGroups = SessionGroupItem[]
@@ -28,29 +28,29 @@ export type SessionGroups = SessionGroupItem[]
  * Lobe Agent
  */
 export interface LobeAgentSession extends BaseDataModel {
-    group?: SessionGroupId
-    pinned?: boolean
-    type: LobeSessionType.Agent
+  group?: SessionGroupId
+  pinned?: boolean
+  type: LobeSessionType.Agent
 }
 
 export interface LobeAgentSettings {
-    /**
-     * 语言模型角色设定
-     */
-    config: LobeAgentConfig
+  /**
+   * 语言模型角色设定
+   */
+  config: LobeAgentConfig
 }
 
 export type LobeSessions = LobeAgentSession[]
 
 export interface CustomSessionGroup {
-    children: LobeSessions
-    id: SessionGroupId
-    name: string
+  children: LobeSessions
+  id: SessionGroupId
+  name: string
 }
 
 export interface ChatSessionList {
-    all: LobeSessions
-    customGroup: CustomSessionGroup[]
-    default: LobeSessions
-    pinned: LobeSessions
+  all: LobeSessions
+  customGroup: CustomSessionGroup[]
+  default: LobeSessions
+  pinned: LobeSessions
 }

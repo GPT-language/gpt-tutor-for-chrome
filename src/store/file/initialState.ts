@@ -5,7 +5,7 @@ import { ComponentState, initialComponentState } from './slices/component/initia
 export type ChatStoreState = ChatFileState & ChatState & ComponentState
 
 export const initialState: ChatStoreState = {
-    ...initialFileState,
-    ...initialChatState,
-    ...initialComponentState,
+  ...initialFileState,
+  ...initialChatState,
+  ...initialComponentState,
 }

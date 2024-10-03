@@ -5,28 +5,28 @@ import { useTheme } from '../common/hooks/useTheme'
 import { BaseProvider } from 'baseui-sd'
 
 export function Thumb() {
-    const { theme } = useTheme()
+  const { theme } = useTheme()
 
-    return (
-        <BaseProvider theme={theme}>
-            <div
-                className='thumb'
-                style={{
-                    background: theme.colors.backgroundPrimary,
-                }}
-            >
-                <img
-                    draggable={false}
-                    style={{
-                        display: 'block',
-                        width: '100%',
-                        height: '100%',
-                    }}
-                    src={icon}
-                />
-            </div>
-        </BaseProvider>
-    )
+  return (
+    <BaseProvider theme={theme}>
+      <div
+        className='thumb'
+        style={{
+          background: theme.colors.backgroundPrimary,
+        }}
+      >
+        <img
+          draggable={false}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+          }}
+          src={icon}
+        />
+      </div>
+    </BaseProvider>
+  )
 }
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

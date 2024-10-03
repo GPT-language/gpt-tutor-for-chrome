@@ -73,6 +73,25 @@ You can directly download it via the [Chrome Web Store](https://chromewebstore.g
 
 ![alt text](./public/image-7.png)
 
+## 3. Developer Guide
+
+1. Clone the repository.
+
+2. Install the dependencies.
+
+```bash
+pnpm install
+```
+
+3. make chrome extension.
+
+```bash
+make build-browser-extension
+```
+
+4. Open the Extensions page, and then click on **Manage Extensions** at the bottom.
+5. load the extension from the `dist/browser-extension/chromium` folder.
+   
 
 # License
 

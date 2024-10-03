@@ -1,5 +1,5 @@
 export const BackgroundEventNames = {
-    fetch: 'fetch',
-    actionService: 'actionService',
-    fileService: 'fileService',
+  fetch: 'fetch',
+  actionService: 'actionService',
+  fileService: 'fileService',
 }
