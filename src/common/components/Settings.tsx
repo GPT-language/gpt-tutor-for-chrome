@@ -903,6 +903,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
         { label: 'Claude', id: 'Claude' },
         { label: 'DeepSeek', id: 'DeepSeek' },
         { label: 'OpenRouter', id: 'OpenRouter' },
+        { label: 'Ollama', id: 'Ollama' },
       ] as {
         label: string
         id: Provider
@@ -920,6 +921,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
         { label: 'Claude', id: 'Claude' },
         { label: 'DeepSeek', id: 'DeepSeek' },
         { label: 'OpenRouter', id: 'OpenRouter' },
+        { label: 'Ollama', id: 'Ollama' },
       ] as {
         label: string
         id: Provider
