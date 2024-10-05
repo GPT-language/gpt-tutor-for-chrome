@@ -11,6 +11,8 @@ import { chatUser, ChatUserAction } from './slices/user/action'
 import { chatWord, ChatWordAction } from './slices/word/action'
 import { createHyperStorage } from './middleware/createHyperStorage'
 import { createActionSlice, ActionSlice } from './slices/action/action'
+import { Word } from '@/common/internal-services/db'
+import { produce } from 'immer'
 
 export type ChatStore = ChatStoreState &
     ChatFileAction &
@@ -20,6 +22,7 @@ export type ChatStore = ChatStoreState &
     ChatWordAction &
     ActionSlice
 export const DB_NAME = 'GPT-Tutor'
+
 //  ===============  聚合 createStoreFn ============ //
 
 const createStore: StateCreator<ChatStore, [['zustand/devtools', never]]> = (...params) => ({
@@ -77,17 +80,27 @@ useChatStore.subscribe(
     }
 )
 
-const updateWords = () => {
-    const { files, currentFileId } = useChatStore.getState()
-    const currentFile = files.find((file) => file.id === currentFileId)
-    useChatStore.setState({ words: currentFile ? currentFile.words : [] })
-}
-
-// 监听 files 的变化
-useChatStore.subscribe((state) => state.files, updateWords, { equalityFn: shallow })
-
 // 监听 currentFileId 的变化
-useChatStore.subscribe((state) => state.currentFileId, updateWords)
+useChatStore.subscribe(
+    (state) => state.currentFileId,
+    (currentFileId) => {
+        const { files } = useChatStore.getState()
+        const currentFile = files.find((file) => file.id === currentFileId)
+        if (currentFile) {
+            useChatStore.setState({ words: currentFile.words })
+        } else {
+            useChatStore.setState({ words: [] })
+        }
+    }
+)
 
 // 初始化
-updateWords()
+const initializeState = () => {
+    const { files, currentFileId } = useChatStore.getState()
+    const currentFile = files.find((file) => file.id === currentFileId)
+    if (currentFile) {
+        useChatStore.setState({ words: currentFile.words })
+    }
+}
+
+initializeState()

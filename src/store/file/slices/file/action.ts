@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand'
 import { produce } from 'immer'
 import { parse } from 'papaparse'
 import { ChatStore } from '../../store'
-import { ReviewSettings, SavedFile, Answers } from '@/common/internal-services/db'
+import { ReviewSettings, SavedFile, Answers, Word } from '@/common/internal-services/db'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any
@@ -12,6 +12,7 @@ export interface ChatFileAction {
     createFile: (file: SavedFile) => void
     selectFile: (fileId: number) => void
     updateFile: (updatedFile: SavedFile) => void
+    updateFileWords: (fileId: number, updater: (words: Word[]) => Word[]) => void
     deleteFile: (fileId: number) => Promise<void>
     loadFiles: (selectedGroup: string) => void
     setCurrentFileId: (fileId: number) => void
@@ -69,6 +70,22 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         set((state) => ({
             files: state.files.map((file) => (file.id === updatedFile.id ? updatedFile : file)),
         })),
+
+    // 更新 files 中的单词
+    updateFileWords: (fileId: number, updater: (words: Word[]) => Word[]) => {
+        set(
+            produce((draft: ChatStore) => {
+                const fileIndex = draft.files.findIndex((file) => file.id === fileId)
+                if (fileIndex !== -1) {
+                    draft.files[fileIndex].words = updater(draft.files[fileIndex].words)
+                    // 如果是当前文件，同时更新 words
+                    if (fileId === draft.currentFileId) {
+                        draft.words = draft.files[fileIndex].words
+                    }
+                }
+            })
+        )
+    },
 
     async getCompletedWords() {
         try {

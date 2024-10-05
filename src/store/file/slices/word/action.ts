@@ -189,21 +189,22 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
         answerFormat?: ActionOutputRenderingFormat
     ) => {
         try {
-            set(
-                produce((draft) => {
-                    const fileIndex = draft.files.findIndex((f: SavedFile) => f.id === fileId)
-                    if (fileIndex === -1) throw new Error('File not found')
-
-                    const wordToUpdate = draft.files[fileIndex].words.find((w: Word) => w.idx === wordIdx)
-                    if (wordToUpdate) {
-                        if (!wordToUpdate.answers) {
-                            wordToUpdate.answers = {}
-                        }
-                        wordToUpdate.answers[actionName] = {
-                            text: answerText,
-                            format: answerFormat || 'markdown',
+            const { updateFileWords } = get()
+            updateFileWords(fileId, (words) =>
+                words.map((word) => {
+                    if (word.idx === wordIdx) {
+                        return {
+                            ...word,
+                            answers: {
+                                ...word.answers,
+                                [actionName]: {
+                                    text: answerText,
+                                    format: answerFormat || 'markdown',
+                                },
+                            },
                         }
                     }
+                    return word
                 })
             )
         } catch (error) {
