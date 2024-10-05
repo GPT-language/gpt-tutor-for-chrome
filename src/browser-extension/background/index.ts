@@ -2,16 +2,12 @@
 import browser from 'webextension-polyfill'
 import { BackgroundEventNames } from '../../common/background/eventnames'
 import { BackgroundFetchRequestMessage, BackgroundFetchResponseMessage } from '../../common/background/fetch'
-import { fileService } from '../../common/internal-services/file'
-import { actionInternalService } from '../../common/internal-services/action'
 // Import the functions you need from the SDKs you need
 import { setUserConfig } from '../../common/utils'
 import { keyKimiAccessToken } from '@/common/engines/kimi'
 import { keyChatGLMAccessToken } from '@/common/engines/chatglm'
 import { handleCheckoutCompletion } from '@/utils/auth'
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
 browser.contextMenus?.create(
     {
@@ -107,7 +103,7 @@ try {
                         [keyChatGLMAccessToken]: accessToken,
                     })
                     .then(() => {
-                        console.log('Kimi access_token saved')
+                        console.log('ChatGLM access_token saved')
                     })
             }
         },
@@ -223,16 +219,6 @@ async function callMethod(request: any, service: any): Promise<any> {
     }
     return { result }
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-browser.runtime.onMessage.addListener(async (request) => {
-    switch (request.type) {
-        case BackgroundEventNames.fileService:
-            return await callMethod(request, fileService)
-        case BackgroundEventNames.actionService:
-            return await callMethod(request, actionInternalService)
-    }
-})
 
 browser?.commands?.onCommand.addListener(async (command) => {
     switch (command) {

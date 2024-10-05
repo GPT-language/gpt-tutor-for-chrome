@@ -3,21 +3,34 @@ import { fetchSSE, getSettings } from '../utils'
 import { AbstractEngine } from './abstract-engine'
 import { IModel, IMessageRequest } from './interfaces'
 
-export class OpenRouter extends AbstractEngine {
+export class Subscribe extends AbstractEngine {
     supportCustomModel(): boolean {
         return true
     }
 
+    async getApiKey(): Promise<string> {
+        const tokenInfo = await fetch(`http://localhost:3000/api/token`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        const tokenInfoData = await tokenInfo.json();
+        console.log('tokenInfo:', JSON.stringify(tokenInfoData.data.key));
+        return tokenInfoData.data.key
+    }
+
     async getModel(): Promise<string> {
         const settings = await getSettings()
-        return settings.openRouterAPIModel
+        return settings.subscribeAPIModel || 'gpt-3.5-turbo'
     }
 
     async listModels(apiKey: string | undefined): Promise<IModel[]> {
         const settings = await getSettings()
-        const url = 'https://openrouter.ai/api/v1/models'
+        // TODO: use correct url
+        const url = 'http://localhost:3000/api/models'
         const headers = {
-            Authorization: `Bearer ${apiKey || settings.openRouterAPIKey}`,
+            Authorization: `Bearer ${apiKey || settings.subscribeAPIKey}`,
         }
 
         const fetcher = getUniversalFetch()
@@ -28,21 +41,25 @@ export class OpenRouter extends AbstractEngine {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             const data = await response.json()
-            return data.data.map((model: IModel) => ({
-                id: model.id,
-                name: model.name,
-            }))
+            return data.message.map((modelName: string) => {
+                const [name, id] = modelName.split(':').map((s) => s.trim())
+                return {
+                    id: id || name, // 如果没有冒号，就用整个字符串作为id
+                    name: name,
+                }
+            })
         } catch (error) {
-            console.error('Error fetching OpenRouter models:', error)
+            console.error('Error fetching Subscribe models:', error)
             return []
         }
     }
 
     async sendMessage(req: IMessageRequest): Promise<void> {
         const settings = await getSettings()
-        const apiKey = settings.openRouterAPIKey
+        const apiKey = settings.subscribeAPIKey
         const model = await this.getModel()
-        const url = 'https://openrouter.ai/api/v1/chat/completions'
+        // TODO: use correct url
+        const url = 'https://gpt-tutor.zeabur.app/v1/chat/completions'
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,

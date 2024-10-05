@@ -1,10 +1,24 @@
 import { ISettings } from '@/common/types'
 import { getUniversalFetch } from '@/common/universal-fetch'
-import { useUser } from '@clerk/clerk-react'
+import { useUser, useAuth } from '@clerk/clerk-react'
 
 export function useIsAdmin() {
     const { user } = useUser()
+    console.log('user', user)
     return user?.publicMetadata?.role === 'admin' ?? false
+}
+
+export const getUserAuth = async () => {
+    const clerkAuth = useAuth()
+
+    const userId = clerkAuth.userId
+    return { userId }
+}
+
+const fetchUserData = async (userId: string) => {
+    const response = await fetch(`/api/user/${userId}`)
+    if (!response.ok) throw new Error('Failed to fetch user data')
+    return response.json()
 }
 
 export function useIsSubscriber() {
@@ -100,7 +114,7 @@ async function updateExtensionUserState(data) {
 // 更新creddits
 export async function deductCredit(userId: string, model: string): Promise<number> {
     try {
-        const response = await fetch('http://localhost:3000/api/deduct-credit', {
+        const response = await fetch(`${process.env.VITE_API_URL}/api/deduct-credit`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

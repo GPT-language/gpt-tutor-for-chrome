@@ -50,12 +50,22 @@ function cleanMarkdown(text: string): string {
         .trim() // 去除首尾空白
 }
 
-export async function speak({ text, lang, messageId, conversationId, onFinish }: SpeakOptions) {
+export async function speak({
+    text,
+    lang,
+    messageId,
+    conversationId,
+    onFinish,
+    rate: inputRate,
+    volume: inputVolume,
+}: SpeakOptions) {
     const settings = await getSettings()
     const langTag = langCode2TTSLang[lang ?? 'en'] ?? 'en-US'
     const voiceCfg = settings.tts?.voices?.find((item) => item.lang === lang)
-    const rate = (settings.tts?.rate ?? 10) / 10
-    const volume = settings.tts?.volume
+
+    // 使用传入的 rate 和 volume，如果没有传入则使用设置中的值
+    const rate = inputRate !== undefined ? inputRate / 10 : (settings.tts?.rate ?? 10) / 10
+    const volume = inputVolume !== undefined ? inputVolume : settings.tts?.volume
 
     if (!settings.tts?.provider || settings.tts?.provider === 'EdgeTTS') {
         return edgeSpeak({

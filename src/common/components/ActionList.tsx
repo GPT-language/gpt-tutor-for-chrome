@@ -3,7 +3,6 @@ import { Action } from '../internal-services/db'
 import { useChatStore } from '@/store/file/store'
 import { Button, KIND, SHAPE, SIZE } from 'baseui-sd/button'
 import { useTranslation } from 'react-i18next'
-import { actionInternalService } from '../internal-services/action'
 import { Select, Value } from 'baseui-sd/select'
 import { Textarea } from 'baseui-sd/textarea'
 import toast from 'react-hot-toast'
@@ -26,7 +25,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick }) => {
         setAction,
         currentPage,
         setCurrentPage,
-        translations,
     } = useChatStore()
     const [nextAction, setNextAction] = useState<Action | undefined>(undefined)
     const [isCompleted, setIsCompleted] = useState(false)
@@ -153,21 +151,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick }) => {
         }
     }, [activateAction?.parentIds])
 
-    useEffect(() => {
-        const fetchActions = async () => {
-            if (!activateAction?.childrenIds) {
-                return
-            }
-            const childrenActionsId = activateAction?.childrenIds
-
-            const childrenActions = await actionInternalService.getByChildrenIds(childrenActionsId)
-
-            if (childrenActions) {
-                setAssistantActions(childrenActions)
-            }
-        }
-        fetchActions()
-    }, [activateAction])
 
     const renderButtons = () => {
         if (!selectedWord) {

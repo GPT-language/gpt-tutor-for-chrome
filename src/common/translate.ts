@@ -319,7 +319,9 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
     let rolePrompt = ''
     let commandPrompt = ''
     let contentPrompt = query.text
-    const assistantPrompts: string[] = []
+    const assistantPrompts: string[] = query.context
+        ? ['The following is the context of the conversation: ' + query.context]
+        : []
 
     if (isOpenToAsk) {
         rolePrompt = ''
@@ -330,8 +332,6 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
         const sourceLangName = lang.getLangName(sourceLangCode)
         const targetLangName = lang.getLangName(targetLangCode)
         const toChinese = chineseLangCodes.indexOf(targetLangCode) >= 0
-        console.debug('sourceLang', sourceLangName)
-        console.debug('targetLang', targetLangName)
         const targetLangConfig = getLangConfig(targetLangCode)
         const sourceLangConfig = getLangConfig(sourceLangCode)
         rolePrompt = targetLangConfig.rolePrompt

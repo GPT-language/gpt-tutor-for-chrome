@@ -18,8 +18,9 @@ export const defaultChatGPTWebAPI = 'https://chatgpt.com/backend-api'
 export const defaultGeminiAPIURL = 'https://generativelanguage.googleapis.com'
 export const defaultChatContext = true
 export const defaultAutoTranslate = false
+export const isFirstTimeUse = true
 export const defaultTargetLanguage = 'zh-Hans'
-export const defaultSourceLanguage = 'en'
+export const defaultSourceLanguage = ['en']
 export const defaultYouglishLanguage = 'en'
 export const defaultSelectInputElementsText = true
 export const defaulti18n = 'en'
@@ -28,6 +29,43 @@ export async function getApiKey(): Promise<string> {
     const settings = await getSettings()
     const apiKeys = (settings.apiKeys ?? '').split(',').map((s) => s.trim())
     return apiKeys[Math.floor(Math.random() * apiKeys.length)] ?? ''
+}
+
+export async function getFreeApiKey(
+    id: string,
+    name: string,
+    remainQuota: number
+): Promise<{ apiKey: string; remainQuota: number; expired_time: number }> {
+    try {
+        const response = await fetch(`http://localhost:3000/api/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id,
+                name,
+                remain_quota: remainQuota,
+                model: 'basic',
+            }),
+        })
+
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const responseData = await response.json()
+        console.log('tokenInfo:', JSON.stringify(responseData.message))
+        return {
+            apiKey: responseData.token,
+            remainQuota: responseData.remain_quota,
+            expired_time: responseData.expired_time,
+        }
+    } catch (error) {
+        console.error('Error fetching API key:', error)
+        throw error
+    }
 }
 
 export async function getAzureApiKey(): Promise<string> {
@@ -102,6 +140,7 @@ export async function getAccessTokenWithoutLocalStorage(): Promise<string> {
 
 // In order to let the type system remind you that all keys have been passed to browser.storage.sync.get(keys)
 const settingKeys: Record<keyof ISettings, number> = {
+    isFirstTimeUse: 1,
     automaticCheckForUpdates: 1,
     apiKeys: 1,
     apiURL: 1,
@@ -128,6 +167,8 @@ const settingKeys: Record<keyof ISettings, number> = {
     defaultTranslateMode: 1,
     defaultTargetLanguage: 1,
     defaultSourceLanguage: 1,
+    languageLevel: 1,
+    userPrompt: 1,
     alwaysShowIcons: 1,
     hotkey: 1,
     displayWindowHotkey: 1,
@@ -172,6 +213,8 @@ const settingKeys: Record<keyof ISettings, number> = {
     deepSeekAPIModel: 1,
     openRouterAPIKey: 1,
     openRouterAPIModel: 1,
+    subscribeAPIKey: 1,
+    subscribeAPIModel: 1,
     fontSize: 1,
     uiFontSize: 1,
     iconSize: 1,
@@ -208,6 +251,9 @@ export async function getSettings(): Promise<ISettings> {
     }
     if (!settings.defaultTranslateMode) {
         settings.defaultTranslateMode = 'translate'
+    }
+    if (!settings.isFirstTimeUse === undefined || settings.isFirstTimeUse === null) {
+        settings.isFirstTimeUse = isFirstTimeUse
     }
     if (!settings.defaultSourceLanguage) {
         settings.defaultSourceLanguage = defaultSourceLanguage
@@ -345,6 +391,20 @@ export const isTauri = () => {
 
 export const isDesktopApp = () => {
     return isElectron() || isTauri()
+}
+
+export const isBrowserExtensionOptions = () => {
+    if (typeof window === 'undefined') {
+        return false
+    }
+    return window['__IS_OT_BROWSER_EXTENSION_OPTIONS__' as any] !== undefined
+}
+
+export function getAssetUrl(asset: string) {
+    if (isUserscript()) {
+        return asset
+    }
+    return new URL(asset, import.meta.url).href
 }
 
 export const isUserscript = () => {

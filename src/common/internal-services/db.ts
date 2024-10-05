@@ -1,4 +1,3 @@
-import Dexie, { Table } from 'dexie'
 import { TranslateMode } from '../translate'
 
 export type ActionOutputRenderingFormat = 'text' | 'markdown' | 'latex' | 'json'
@@ -21,23 +20,23 @@ export interface Action {
     childrenIds?: number[]
 }
 
-export interface Comment {
+export interface FollowUpAnswer {
     idx: number
     text: string
     createdAt: Date
     updatedAt: Date
 }
 
-export interface Translation {
+export interface Answer {
     text: string
     format: ActionOutputRenderingFormat
     messageId?: string
     conversationId?: string
-    comments?: Comment[]
+    followUpAnswers?: FollowUpAnswer[]
 }
 
-export interface Translations {
-    [actionName: string]: Translation
+export interface Answers {
+    [actionName: string]: Answer
 }
 
 export interface ReviewSettings {
@@ -49,13 +48,15 @@ export interface ReviewSettings {
 export interface Word {
     idx: number
     text: string
-    translations?: Translations
+    answers?: Answers
     isNew?: boolean
     lastReviewed?: Date
     nextReview?: Date
     reviewCount: number
     fileId?: number
     completed?: boolean
+    inHistory?: boolean
+    inReview?: boolean
 }
 
 export interface SavedFile {
@@ -65,36 +66,4 @@ export interface SavedFile {
     name: string
     words: Word[]
     reviewSettings?: ReviewSettings
-}
-
-export class LocalDB extends Dexie {
-    action!: Table<Action, number>
-    files!: Table<SavedFile, number>
-
-    constructor() {
-        super('gpt-tutor')
-        this.version(22).stores({
-            action: '++id, userId, idx, mode, name, groups, description, model, icon, rolePrompt, commandPrompt, outputRenderingFormat, updatedAt, createdAt, parentIds, childrenIds',
-            files: '++id, userId, name, words,category,reviewSettings',
-        })
-        this.action = this.table('action')
-        this.files = this.table('files')
-    }
-}
-
-let localDB: LocalDB
-
-export const getLocalDB = () => {
-    if (!localDB) {
-        localDB = new LocalDB()
-    }
-    return localDB
-}
-
-export const getTable = (tableName: string): Dexie.Table => {
-    // 确保 localDB 已经初始化
-    if (!localDB) {
-        localDB = new LocalDB()
-    }
-    return localDB.table(tableName) as Dexie.Table
 }

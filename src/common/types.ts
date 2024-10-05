@@ -44,6 +44,7 @@ export interface IThemedStyleProps {
 }
 
 export interface ISettings {
+    isFirstTimeUse: boolean
     chatgptArkoseReqUrl: string
     chatgptArkoseReqForm: string
     [x: string]: any
@@ -70,8 +71,10 @@ export interface ISettings {
     deepSeekAPIModel: string
     defaultTranslateMode: Exclude<TranslateMode, 'big-bang'> | 'nop'
     defaultTargetLanguage: string
-    defaultSourceLanguage: string
+    defaultSourceLanguage: string[]
     defaultYouglishLanguage: string
+    languageLevel: string
+    userPrompt: string
     alwaysShowIcons: boolean
     hotkey?: string
     ocrHotkey?: string

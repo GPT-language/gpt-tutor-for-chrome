@@ -10,6 +10,7 @@ import { Action } from '../internal-services/db'
 import debounce from 'lodash-es/debounce'
 import { Button, KIND, SIZE } from 'baseui-sd/button'
 import { BiFirstPage, BiLastPage } from 'react-icons/bi'
+import { Tooltip } from './Tooltip'
 
 const MAX_TAB_WIDTH = 120
 const MORE_TAB_WIDTH = 80
@@ -51,14 +52,16 @@ const CategorySelector = () => {
 
     const renderToggleButton = () => (
         <>
-            <Button
-                onClick={toggleSidebar}
-                kind={KIND.tertiary}
-                size={SIZE.compact}
-                style={{ backgroundColor: 'white' }}
-            >
-                {showSidebar ? <BiFirstPage /> : <BiLastPage />}
-            </Button>
+            <Tooltip content={showSidebar ? t('Hide List') : t('Show List')}>
+                <Button
+                    onClick={toggleSidebar}
+                    kind={KIND.tertiary}
+                    size={SIZE.compact}
+                    style={{ backgroundColor: 'white' }}
+                >
+                    {showSidebar ? <BiFirstPage /> : <BiLastPage />}
+                </Button>
+            </Tooltip>
         </>
     )
 
@@ -154,29 +157,6 @@ const CategorySelector = () => {
                         },
                     }}
                 >
-                    {showSidebar && (
-                        <Tab
-                            key='History'
-                            title={t('History')}
-                            overrides={{
-                                TabPanel: {
-                                    style: { display: 'none' }, // 隐藏 TabPanel
-                                },
-                            }}
-                        />
-                    )}
-
-                    {showSidebar && (
-                        <Tab
-                            key='Review'
-                            title={t('Review')}
-                            overrides={{
-                                TabPanel: {
-                                    style: { display: 'none' }, // 隐藏 TabPanel
-                                },
-                            }}
-                        />
-                    )}
                     {visibleTabs.map((tab) => (
                         <Tab
                             key={tab}

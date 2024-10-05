@@ -4,7 +4,6 @@ import { Button, KIND } from 'baseui-sd/button'
 import Slider from 'rc-slider'
 import 'rc-slider/assets/index.css'
 import { StudyChart, StudyDay, generateStudyPlan } from './StudyChart'
-import { fileService } from '../internal-services/file'
 import { useTranslation } from 'react-i18next'
 import { ReviewSettings, SavedFile } from '../internal-services/db'
 import { useChatStore } from '@/store/file/store'
@@ -173,7 +172,7 @@ export const ReviewManager = () => {
             array: [0, 5, 30, 60, 240, 1440, 5760, 12960, 21600, 36000],
         },
     ]
-    const { selectedWord } = useChatStore()
+    const { selectedWord, files } = useChatStore()
     const [selectedStrategy, setSelectedStrategy] = useState(strategyOptions[0])
     const [sliderValues, setSliderValues] = useState(() => selectedStrategy.array.map(calculateSliderPosition))
     const [startTime, setStartTime] = useState(new Date())
@@ -186,7 +185,6 @@ export const ReviewManager = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const files = await fileService.fetchAllFiles()
             const fileOptions = files.map((file) => ({
                 id: file.id,
                 label: file.name,
@@ -194,26 +192,28 @@ export const ReviewManager = () => {
             setFileOptions(fileOptions)
         }
         fetchData()
-    }, [])
+    }, [files])
 
     const onFileChange = async ({ value }) => {
         if (value.length) {
             const newFileId = value[0].id // 获取选中项的 id
-            const file = await fileService.fetchFileDetailsById(newFileId)
-            setTotalWords(file.words.length)
-            setSelectFile(file)
-            if (file.reviewSettings) {
-                setSavedIntervals(file.reviewSettings.interval)
-                setDailyWords(file.reviewSettings.dailyWords)
-                setStartTime(file.reviewSettings.startTime)
-                const strategy: StrategyOption = {
-                    id: newFileId,
-                    label: file.name,
-                    array: file.reviewSettings.interval,
-                }
-                if (!strategyOptions.find((option) => option.id === newFileId)) {
-                    strategyOptions.push(strategy)
-                    setSelectedStrategy(strategy)
+            const file = files.find((f) => f.id === newFileId)
+            if (file) {
+                setTotalWords(file.words.length)
+                setSelectFile(file)
+                if (file.reviewSettings) {
+                    setSavedIntervals(file.reviewSettings.interval)
+                    setDailyWords(file.reviewSettings.dailyWords)
+                    setStartTime(file.reviewSettings.startTime)
+                    const strategy: StrategyOption = {
+                        id: newFileId,
+                        label: file.name,
+                        array: file.reviewSettings.interval,
+                    }
+                    if (!strategyOptions.find((option) => option.id === newFileId)) {
+                        strategyOptions.push(strategy)
+                        setSelectedStrategy(strategy)
+                    }
                 }
             }
         }
@@ -240,11 +240,10 @@ export const ReviewManager = () => {
         const updateStudyPlan = async () => {
             let isWordInFile = false
             if (selectFile) {
-                isWordInFile = await fileService.isWordInFile(
-                    selectFile?.id || 0,
-                    selectedWord?.idx || 0,
-                    selectedWord?.text || ''
-                )
+                const file = files.find((file) => file.id === selectFile.id)
+                isWordInFile =
+                    file?.words.some((word) => word.idx === selectedWord?.idx && word.text === selectedWord?.text) ??
+                    false
             }
             const studyPlan = generateStudyPlan(
                 dailyWords,
@@ -255,7 +254,7 @@ export const ReviewManager = () => {
             setStudyData(studyPlan)
         }
         updateStudyPlan()
-    }, [dailyWords, savedIntervals, selectFile, selectedWord, startTime, totalWords])
+    }, [dailyWords, files, savedIntervals, selectFile, selectedWord, startTime, totalWords])
 
     const handleSave = () => {
         try {
@@ -281,7 +280,11 @@ export const ReviewManager = () => {
             }
             setSelectedStrategy(strategy)
 
-            fileService.updateReviewSettings(selectFile.id, reviewSettings)
+            const file = files.find((file) => file.id === selectFile.id)
+            if (file) {
+                const updatedFile = { ...file, reviewSettings }
+                useChatStore.getState().updateFile(updatedFile)
+            }
 
             toast.success(t('Review settings saved successfully'))
         } catch (error) {

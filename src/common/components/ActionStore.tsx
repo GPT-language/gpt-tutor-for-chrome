@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { useStyletron } from 'baseui-sd'
 import { useTheme } from '../hooks/useTheme'
-import { actionService } from '../services/action'
+import { useChatStore } from '@/store/file/store'
 
 const GITHUB_TOKEN = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN
 
@@ -149,8 +149,7 @@ const ActionStore: React.FC = () => {
                 )
                 const data = await response.json() // 改为 .json()
 
-                // 使用 actionService.bulkPut 加载数据
-                await actionService.bulkPut(data)
+                useChatStore.getState().actions.push(data)
 
                 toast.success(t('Actions loaded successfully!'))
                 // 等待1s

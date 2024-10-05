@@ -4,6 +4,8 @@ export interface SpeakOptions {
     voice?: string
     messageId?: string
     conversationId?: string
+    rate?: number
+    volume?: number
     onFinish?: () => void
 }
 

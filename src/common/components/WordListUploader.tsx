@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react'
 import { useChatStore } from '@/store/file/store'
 import { Word } from '../internal-services/db'
-import { fileService } from '../internal-services/file'
-import { Button, KIND, SIZE } from 'baseui-sd/button'
+import { Button, SIZE } from 'baseui-sd/button'
 import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { rgb } from 'polished'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
-import { BsClockHistory, BsArrowRepeat } from 'react-icons/bs'
 import { styled } from 'styletron-react'
 import { AiOutlineDelete } from 'react-icons/ai'
-import { Select } from 'baseui-sd/select'
+import { OnChangeParams, Select } from 'baseui-sd/select'
 
 const SidebarContainer = styled('div', ({ $showSidebar }: { $showSidebar: boolean }) => ({
     width: $showSidebar ? '250px' : '0px',
@@ -32,7 +30,7 @@ const ContentContainer = styled('div', {
 const WordListUploader = () => {
     const {
         words,
-        files,
+        selectedFiles,
         selectedWord,
         currentFileId,
         selectedWords,
@@ -41,7 +39,6 @@ const WordListUploader = () => {
         addFile,
         loadWords,
         loadFiles,
-        getInitialFile,
         setIsShowActionList,
         setShowWordBookManager,
         selectFile,
@@ -50,25 +47,17 @@ const WordListUploader = () => {
         setCurrentPage,
         setActionStr,
         showSidebar,
-        setSelectedGroup,
         refreshTextArea,
         userId,
     } = useChatStore()
     const itemsPerPage = 10
     const { t } = useTranslation()
     const [numPages, setNumPages] = useState<number>(1)
-    const [IsInitialized, setIsInitialized] = useState<boolean>(false)
     const [displayWords, setDisplayWords] = useState<Word[]>(words)
-    const [currentTime, setCurrentTime] = useState<Date>(new Date())
-    const [latestNextWordNeedToReview, setLatestNextWordNeedToReview] = useState<Date | null>(null)
-    const reminderIntervalRef = useRef<NodeJS.Timeout | null>(null)
-    const reviewWordsCountRef = useRef(0)
-    const hasShownReviewNotificationRef = useRef(false)
     const [isGridView, setIsGridView] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
-
     const options = [
-        ...files.map((file) => ({
+        ...selectedFiles.map((file) => ({
             id: file.id,
             label: file.name,
         })),
@@ -76,19 +65,24 @@ const WordListUploader = () => {
         { id: -1, label: t('Upload') },
     ]
 
-    const onChange = (params: { value: { id: number; label: string }[] }) => {
-        const { value } = params
-        if (value.length > 0) {
-            if (value[0].id === 0) {
+    const onChange = (params: OnChangeParams) => {
+        if (params.value.length > 0) {
+            const selectedId = params.value[0].id as number
+            if (selectedId === 0) {
                 setShowWordBookManager(true)
-            } else if (value[0].id === -1) {
-                // 新增的逻辑
+            } else if (selectedId === -1) {
                 fileInputRef.current?.click()
             } else {
-                selectFile(value[0].id)
+                selectFile(selectedId)
             }
         }
     }
+
+    useEffect(() => {
+        console.log('currentFileId is', currentFileId)
+        console.log('current words is', words)
+        console.log('current display words is', displayWords)
+    }, [currentFileId, words, displayWords])
 
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
@@ -96,10 +90,7 @@ const WordListUploader = () => {
             await addFile(file, selectedGroup, userId)
         }
     }
-    // 在渲染前检查 currentFileId 和 files 是否有效
-    const validValue = files.some((file) => file.id === currentFileId)
-        ? options.filter((option) => option.id === currentFileId)
-        : []
+
     const handleWordClick = (word: Word) => {
         selectWord(word)
         refreshTextArea()
@@ -110,16 +101,39 @@ const WordListUploader = () => {
         if (!currentFileId) {
             return
         }
-        const success = await loadWords(currentFileId, newPageNumber, itemsPerPage)
-        if (success) {
-            setCurrentPage(newPageNumber)
-        } else {
-            console.error('Failed to load words for page', newPageNumber)
+        // 先更新页码，提供即时反馈
+        setCurrentPage(newPageNumber)
+
+        // 检查是否需要加载新数据
+        const startIndex = (newPageNumber - 1) * itemsPerPage
+        const endIndex = startIndex + itemsPerPage
+        const pageWords = words.slice(startIndex, endIndex)
+
+        if (pageWords.length < itemsPerPage) {
+            // 需要加载更多数据
+            const success = await loadWords(currentFileId, newPageNumber, itemsPerPage)
+            if (!success) {
+                console.error('加载第 ${newPageNumber} 页单词失败')
+                toast.error('加载单词失败，请重试')
+                // 可以选择回滚到之前的页码
+                setCurrentPage(currentPage)
+            }
         }
+
+        // 更新显示的单词
+        setDisplayWords(words.slice(startIndex, endIndex))
     }
+
+    useEffect(() => {
+        setDisplayWords(words.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage))
+    }, [words, currentPage, itemsPerPage])
+
 
     const nextPageHandler = () => {
         const newPage = currentPage + 1
+        console.log('currentPage is', currentPage)
+        console.log('newPage is', newPage)
+        console.log('numPages is', numPages)
         if (newPage <= numPages) {
             changePage(newPage)
         }
@@ -131,43 +145,13 @@ const WordListUploader = () => {
             changePage(newPage)
         }
     }
-    function formatNextReviewTime(ms: number) {
-        let seconds = Math.floor(ms / 1000)
-        let minutes = Math.floor(seconds / 60)
-        let hours = Math.floor(minutes / 60)
-        const days = Math.floor(hours / 24)
-        seconds = seconds % 60
-        minutes = minutes % 60
-        hours = hours % 24
-        if (minutes < 1) {
-            return `${seconds}s`
-        } else if (hours < 1) {
-            return `${minutes}min ${seconds}s`
-        } else if (days < 1) {
-            return `${hours}h ${minutes}min ${seconds}s`
-        } else {
-            return `${days}d ${hours}h ${minutes}min ${seconds}s`
-        }
-    }
-
-    useEffect(() => {
-        async function initialize() {
-            const isInitialized = await getInitialFile()
-            if (isInitialized) {
-                setIsInitialized(true)
-            }
-        }
-
-        initialize()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
 
     useEffect(() => {
         const fetchNumPages = async () => {
             if (!currentFileId) {
                 return
             }
-            const totalWordCount = await fileService.getTotalWordCount(currentFileId)
+            const totalWordCount = words.length || 0
             const totalPages = Math.ceil(totalWordCount / itemsPerPage)
             setNumPages(totalPages)
         }
@@ -175,183 +159,12 @@ const WordListUploader = () => {
         if (currentFileId) {
             fetchNumPages()
         }
-    }, [currentFileId, itemsPerPage])
-
-    useEffect(() => {
-        if (!IsInitialized || !currentFileId) {
-            console.log('Not initialized or no current file')
-            return
-        }
-
-        if (!selectedWords[currentFileId]) {
-            console.log('No selected word for current file, loading first page')
-            loadWords(currentFileId, 1, itemsPerPage)
-            setCurrentPage(1)
-            selectWord(words[0])
-        } else {
-            console.log('Selected word exists for current file')
-            const saveWord = selectedWords[currentFileId]
-            if (saveWord) {
-                console.log('Selecting saved word:', saveWord)
-                selectWord(saveWord)
-                const page = Math.floor((saveWord.idx - 1) / itemsPerPage) + 1
-                console.log('Calculated page:', page)
-                loadWords(currentFileId, page, itemsPerPage)
-                setCurrentPage(page)
-            } else {
-                console.log('No valid selected word, loading first page')
-                loadWords(currentFileId, 1, itemsPerPage)
-                setCurrentPage(1)
-                selectWord(words[0])
-            }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentFileId, IsInitialized])
+    }, [currentFileId, itemsPerPage, selectedFiles, words.length])
 
     useEffect(() => {
         loadFiles(selectedGroup)
     }, [selectedGroup, loadFiles])
 
-    useEffect(() => {
-        if (!currentFileId) {
-            return
-        }
-        loadWords(currentFileId, currentPage, itemsPerPage)
-    }, [currentFileId, currentPage, loadWords, itemsPerPage])
-
-    useEffect(() => {
-        const current = new Date()
-        const updateReviewStatus = async () => {
-            if (!currentFileId) {
-                setDisplayWords([])
-                return
-            }
-            const fileWords = (await fileService.fetchFileDetailsById(currentFileId))?.words || []
-            const reviewWords = fileWords.filter(
-                (word) => !word.completed && word.nextReview && word.nextReview <= new Date()
-            )
-            reviewWordsCountRef.current = reviewWords.length // 更新 ref
-            if (reviewWords.length > 0 && !hasShownReviewNotificationRef.current) {
-                hasShownReviewNotificationRef.current = true
-                toast(t('There are ') + reviewWords.length + t(' words need to review'), {
-                    icon: '🔔',
-                    duration: 5000,
-                })
-            }
-            if (selectedGroup === 'Review') {
-                // 计算最新的需要复习的单词，即nextReview大于当前时间且最接近当前时间的单词
-                if (words.length === 0) {
-                    let closest: Word | null = null
-
-                    fileWords.forEach((word) => {
-                        if (!word.nextReview) {
-                            return
-                        }
-                        if (word.nextReview > current) {
-                            if (
-                                !closest ||
-                                (closest.nextReview &&
-                                    word.nextReview.getTime() - current.getTime() <
-                                        closest.nextReview.getTime() - current.getTime())
-                            ) {
-                                closest = word
-                            }
-                        }
-                    })
-                    setLatestNextWordNeedToReview(closest ? closest.nextReview : null)
-                    setDisplayWords([])
-                } else if (words.length > 0) {
-                    setLatestNextWordNeedToReview(null)
-                    setActionStr(t('There are ') + reviewWordsCountRef.current + t(' words need to review'))
-                    // 根据当前页码计算起始索引和终止索引
-                    const startIndex = (currentPage - 1) * itemsPerPage
-                    const endIndex = startIndex + itemsPerPage
-                    console.log('startIndex', startIndex)
-                    console.log('endIndex', endIndex)
-                    // 切割数组以只包含当前页的单词
-                    setDisplayWords(reviewWords.slice(startIndex, endIndex))
-                } else {
-                    // 如果没有需要复习的单词，清除定时提醒
-                    if (reminderIntervalRef.current) {
-                        clearInterval(reminderIntervalRef.current)
-                        reminderIntervalRef.current = null
-                    }
-                }
-            } else {
-                setDisplayWords(words)
-            }
-        }
-        updateReviewStatus()
-    }, [words, currentPage, selectedGroup, currentFileId, setActionStr, t, hasShownReviewNotificationRef])
-
-    useEffect(() => {
-        if (reviewWordsCountRef.current === 0) {
-            if (reminderIntervalRef.current) {
-                clearInterval(reminderIntervalRef.current)
-                reminderIntervalRef.current = null
-            }
-            return
-        }
-        const showReminder = () => {
-            toast(t('There are ') + reviewWordsCountRef.current + t(' words need to review'), {
-                icon: '🔔',
-                duration: 5000,
-            })
-        }
-        showReminder() // 立即显示一次提醒
-
-        reminderIntervalRef.current = setInterval(showReminder, 10 * 1000) // 每10分钟提醒一次
-
-        return () => {
-            if (reminderIntervalRef.current) {
-                clearInterval(reminderIntervalRef.current)
-            }
-        }
-    }, [t])
-
-    useEffect(() => {
-        if (selectedGroup !== 'Review' || !currentFileId) {
-            return
-        }
-        if (words.length !== 0) {
-            return
-        }
-        if (latestNextWordNeedToReview && currentFileId) {
-            const reviewTimer = latestNextWordNeedToReview.getTime() - currentTime.getTime()
-            setActionStr(t('All reviewed. Next review time:') + formatNextReviewTime(reviewTimer))
-        } else {
-            setActionStr(t('All reviewed'))
-        }
-    }, [currentFileId, currentTime, latestNextWordNeedToReview, selectedGroup, setActionStr, t, words.length])
-
-    useEffect(() => {
-        const intervalId = setInterval(() => {
-            setCurrentTime(new Date())
-        }, 1000) // 每秒更新一次
-
-        return () => clearInterval(intervalId) // 清理定时器
-    }, []) // 空依赖数组，确保只在组件挂载时设置定时器
-
-    const renderViewTabs = () => (
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
-            <Button
-                onClick={() => setSelectedGroup('History')}
-                kind={KIND.tertiary}
-                size={SIZE.compact}
-                style={selectedGroup === 'History' ? { backgroundColor: 'lightgray' } : {}}
-            >
-                <BsClockHistory />
-            </Button>
-            <Button
-                onClick={() => setSelectedGroup('Review')}
-                kind={KIND.tertiary}
-                size={SIZE.compact}
-                style={selectedGroup === 'Review' ? { backgroundColor: 'lightgray' } : {}}
-            >
-                <BsArrowRepeat />
-            </Button>
-        </div>
-    )
 
     const GridView = ({
         words,
@@ -418,7 +231,7 @@ const WordListUploader = () => {
                     labelKey='label'
                     valueKey='id'
                     onChange={onChange}
-                    value={validValue}
+                    value={currentFileId ? [{ id: currentFileId }] : []}
                     placeholder={t('Select a file') ?? 'Select a file'}
                     overrides={{
                         Root: {
@@ -467,7 +280,9 @@ const WordListUploader = () => {
                     title={t('Delete this file') ?? 'Delete this file'}
                     onClick={(e) => {
                         e.stopPropagation()
-                        deleteFile(currentFileId)
+                        if (currentFileId) {
+                            deleteFile(currentFileId)
+                        }
                     }}
                     style={{
                         marginLeft: '5px',

@@ -28,7 +28,7 @@ export const fileSelectors = {
     getTranslationInWord: (fileId: number, wordIndex: number, actionName: string) => (state: ChatStore) => {
         const file = state.files.find((f) => f.id === fileId)
         const word = file ? file.words[wordIndex] : undefined
-        return word && word.translations ? word.translations[actionName] : undefined
+        return word && word.answers ? word.answers[actionName] : undefined
     },
 }
 

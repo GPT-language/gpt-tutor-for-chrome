@@ -6,7 +6,6 @@ import Latex from 'react-latex-next'
 import { Markdown } from './Markdown'
 import { useChatStore } from '@/store/file/store'
 import { Textarea } from 'baseui-sd/textarea'
-import { fileService } from '../internal-services/file'
 import { Tooltip } from './Tooltip'
 import { RxCopy, RxReload, RxSpeakerLoud } from 'react-icons/rx'
 import { CopyButton } from './CopyButton'
@@ -25,55 +24,61 @@ interface ITranslationManagerProps {
     isLoading: boolean
     isSpeakingTranslatedText: boolean
     styles: ReturnType<typeof useStyles>
+    showFullQuoteText: boolean
     forceTranslate: () => void
     handleTranslatedSpeakAction: (messageId: string, conversationId: string, text: string) => void
     messageId: string
     conversationId: string
     finalText: string
+    quoteText: string
     engine: IEngine | undefined
     addToAnki: (deckName: string, front: string, back: string) => void
-    addWordToReviewFile: (word: Word, deckName: string) => void
 }
 
 const TranslationManager: React.FC<ITranslationManagerProps> = ({
     isLoading,
     isSpeakingTranslatedText,
     styles,
+    showFullQuoteText,
     forceTranslate,
     handleTranslatedSpeakAction,
     messageId,
     conversationId,
     addToAnki,
     finalText,
+    quoteText,
     engine,
 }) => {
     const [editingAction, setEditingAction] = useState<string | null>(null)
     const [editingParagraph, setEditingParagraph] = useState<number | null>(null)
     const [editedText, setEditedText] = useState('')
     const [expandedActions, setExpandedActions] = useState<Set<string>>(new Set())
-    const { currentFileId, translations, setTranslations, selectedWord, selectedGroup, toggleMessageCard } =
-        useChatStore()
+    const {
+        currentFileId,
+        answers,
+        setAnswers,
+        selectedWord,
+        selectedGroup,
+        toggleMessageCard,
+        editableText,
+        updateWordAnswer,
+        updateFollowUpAnswer,
+    } = useChatStore()
     const [hoveredParagraph, setHoveredParagraph] = useState<number | null>(null)
     const { t } = useTranslation()
     const [askingParagraph, setAskingParagraph] = useState<number | null>(null)
     const [askQuestion, setAskQuestion] = useState('')
-    const [aiAnswer, setAiAnswer] = useState('')
+    const [currentAiAnswer, setCurrentAiAnswer] = useState<string>('')
+
     const handleAsk = useCallback(
         (index: number, actionName: string) => {
-            console.log('index is', index)
-            console.log('actionName is', actionName)
-            if (selectedWord && selectedWord.translations && selectedWord.translations[actionName]) {
-                const comments = selectedWord.translations[actionName].comments
-                console.log('comments is', comments)
-                if (comments) {
-                    const comment = comments.find((comment) => comment.idx === index)
-                    console.log('comment is', comment)
-                    if (comment) {
-                        setAiAnswer(comment.text)
-                    } else {
-                        setAiAnswer('')
-                    }
-                }
+            const followUpAnswers = selectedWord?.answers?.[actionName]?.followUpAnswers || []
+            const existingAnswer = followUpAnswers.find((followUpAnswer) => followUpAnswer.idx === index)
+
+            if (existingAnswer) {
+                setCurrentAiAnswer(existingAnswer.text)
+            } else {
+                setCurrentAiAnswer('')
             }
             setAskingParagraph(index)
             setAskQuestion('')
@@ -98,48 +103,35 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                             if (!message.content) {
                                 return
                             }
-                            setAiAnswer((prevAnswer) => {
-                                if (message.isFullText) {
-                                    return prevAnswer + message.content
-                                }
-                                const newTranslatedText = message.isFullText
-                                    ? message.content
-                                    : prevAnswer + message.content
 
-                                return newTranslatedText
+                            setCurrentAiAnswer((prevAnswer) => {
+                                return prevAnswer + message.content
                             })
                         },
                         onFinish: () => {
-                            setAiAnswer((prevAnswer) => {
-                                // 设置换行+分割线
-                                const separator = '\n\n---\n\n'
-                                const result = prevAnswer + separator
-                                if (selectedWord && selectedWord.translations && currentFileId) {
-                                    const updatedTranslations = {
-                                        ...selectedWord.translations,
-                                        [actionName]: {
-                                            ...selectedWord.translations[actionName],
-                                            comments: [
-                                                ...(selectedWord.translations[actionName]?.comments || []),
-                                                {
-                                                    idx: index,
-                                                    text: result,
-                                                    createdAt: new Date(),
-                                                    updatedAt: new Date(),
-                                                },
-                                            ],
-                                        },
-                                    }
-                                    fileService.updateWordTranslations(currentFileId, selectedWord.idx, {
-                                        ...selectedWord,
-                                        translations: updatedTranslations,
-                                    })
+                            setCurrentAiAnswer((prevAnswer) => {
+                                const separator = prevAnswer ? '\n\n---\n\n' : ''
+
+                                if (selectedWord && currentFileId) {
+                                    updateFollowUpAnswer(
+                                        currentFileId,
+                                        selectedWord.idx,
+                                        actionName,
+                                        index,
+                                        prevAnswer + separator
+                                    )
                                 }
-                                return result
+
+                                return prevAnswer + separator
                             })
                         },
                         onError: (error) => {
-                            setAiAnswer(error)
+                            setCurrentAiAnswer((prevAnswer) => {
+                                if (prevAnswer) {
+                                    return prevAnswer + '\n\n---\n\n' + error
+                                }
+                                return ''
+                            })
                         },
                         signal: abortController.signal,
                     },
@@ -150,7 +142,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 // 显示错误提示
             }
         },
-        [askQuestion, currentFileId, engine, selectedWord]
+        [askQuestion, currentFileId, engine, selectedWord, updateFollowUpAnswer]
     )
 
     const handleCopy = useCallback(
@@ -172,14 +164,14 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
 
     const handleSave = useCallback(
         async (actionName: string) => {
-            const currentTranslation = translations[actionName]
+            const currentTranslation = answers[actionName]
             const updatedParagraphs = currentTranslation.text
                 .split('\n')
                 .map((paragraph, index) => (index === editingParagraph ? editedText : paragraph))
             const updatedText = updatedParagraphs.join('\n')
 
-            const updatedTranslations = {
-                ...translations,
+            const updateWordAnswers = {
+                ...answers,
                 [actionName]: {
                     ...currentTranslation,
                     text: updatedText,
@@ -188,25 +180,22 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
 
             if (selectedWord && currentFileId) {
                 try {
-                    await fileService.updateWordTranslations(currentFileId, selectedWord.idx, {
-                        ...selectedWord,
-                        translations: updatedTranslations,
-                    })
+                    updateWordAnswer(currentFileId, selectedWord.idx, actionName, updatedText)
                     // 只在成功更新后设置状态
-                    setTranslations(updatedTranslations)
+                    setAnswers(updateWordAnswers)
                 } catch (error) {
                     console.error('更新单词翻译失败:', error)
                     // 这里可以添加错误处理逻辑，比如显示一个错误提示
                 }
             } else {
                 // 如果没有选中的单词或文件ID，只更新本地状态
-                setTranslations(updatedTranslations)
+                setAnswers(updateWordAnswers)
             }
 
             setEditingAction(null)
             setEditingParagraph(null)
         },
-        [editingParagraph, editedText, selectedWord, currentFileId, translations, setTranslations]
+        [answers, selectedWord, currentFileId, editingParagraph, editedText, updateWordAnswer, setAnswers]
     )
 
     const handleCancel = () => {
@@ -229,7 +218,10 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
 
     const renderContent = useMemo(
         () => (actionName: string, text: string, format: string) => {
-            const paragraphs = text.split('\n')
+            const paragraphs = text
+                .split('\n')
+                .flatMap((paragraph) => paragraph.split(/(?<=\.)/).map((sentence) => sentence.trim()))
+                .filter(Boolean)
 
             switch (format) {
                 case 'markdown':
@@ -276,7 +268,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                             $style={{ gap: '10px' }}
                                         >
                                             <Button onClick={() => handleSave(actionName)} kind='primary' size='mini'>
-                                                保存
+                                                {t('Save')}
                                             </Button>
                                             <Button
                                                 onClick={handleCancel}
@@ -284,7 +276,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                 size='mini'
                                                 style={{ marginRight: '10px' }}
                                             >
-                                                取消
+                                                {t('Cancel')}
                                             </Button>
                                         </Block>
                                     </Block>
@@ -301,7 +293,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                     handleAskSubmit(paragraph, actionName, index)
                                                 }
                                             }}
-                                            placeholder='输入您的问题'
+                                            placeholder={t('Input your question') || 'Input your question'}
                                             autoFocus
                                         />
                                         <Block
@@ -316,17 +308,17 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                 size='mini'
                                                 onClick={() => handleAskSubmit(paragraph, actionName, index)}
                                             >
-                                                提交
+                                                {t('Submit')}
                                             </Button>
                                             <Button
                                                 kind='secondary'
                                                 size='mini'
                                                 onClick={() => setAskingParagraph(null)}
                                             >
-                                                取消
+                                                {t('Cancel')}
                                             </Button>
                                         </Block>
-                                        {aiAnswer && (
+                                        {currentAiAnswer && (
                                             <Block
                                                 $style={{
                                                     marginTop: '10px',
@@ -334,8 +326,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                     padding: '10px',
                                                 }}
                                             >
-                                                <strong>AI回答：</strong>
-                                                <Markdown>{aiAnswer}</Markdown>
+                                                <Markdown>{currentAiAnswer}</Markdown>
                                             </Block>
                                         )}
                                     </>
@@ -373,7 +364,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                             handleEdit(actionName, index, paragraph)
                                                         }}
                                                     >
-                                                        <CiEdit size={13}/>
+                                                        <CiEdit size={13} />
                                                     </Button>
                                                 </Tooltip>
                                                 <Tooltip content={t('Ask')} placement='bottom'>
@@ -400,6 +391,24 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                         <RxCopy size={13} />
                                                     </Button>
                                                 </Tooltip>
+                                                <Tooltip content={t('Speak')} placement='bottom'>
+                                                    <div
+                                                        className={styles.actionButton}
+                                                        onClick={() =>
+                                                            handleTranslatedSpeakAction(
+                                                                messageId,
+                                                                conversationId,
+                                                                paragraph
+                                                            )
+                                                        }
+                                                    >
+                                                        {isSpeakingTranslatedText ? (
+                                                            <SpeakerMotion />
+                                                        ) : (
+                                                            <RxSpeakerLoud size={13} />
+                                                        )}
+                                                    </div>
+                                                </Tooltip>
                                             </Block>
                                         )}
                                     </Block>
@@ -419,19 +428,28 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             askingParagraph,
             askQuestion,
             editedText,
-            aiAnswer,
+            currentAiAnswer,
             hoveredParagraph,
             t,
+            styles.actionButton,
+            isSpeakingTranslatedText,
             handleSave,
             handleAskSubmit,
             handleAsk,
             handleCopy,
+            handleTranslatedSpeakAction,
+            messageId,
+            conversationId,
         ]
     )
 
+    if (showFullQuoteText) {
+        return <Block>{renderContent(selectedGroup, quoteText, 'markdown')}</Block>
+    }
+
     return (
         <Block>
-            {Object.entries(translations).map(([actionName, translation]) => (
+            {Object.entries(answers).map(([actionName, answer]) => (
                 <Block key={actionName} marginBottom={'20px'} width='100%'>
                     <Block
                         onClick={() => toggleExpand(actionName)}
@@ -446,7 +464,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                     </Block>
                     {expandedActions.has(actionName) && (
                         <Block width='100%'>
-                            {renderContent(actionName, translation.text, translation.format)}
+                            {renderContent(actionName, answer.text, answer.format)}
                             <Block className={styles.actionButtonsContainer}>
                                 {!isLoading && (
                                     <Tooltip content={t('Retry')} placement='bottom'>
@@ -459,7 +477,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                     <div
                                         className={styles.actionButton}
                                         onClick={() =>
-                                            handleTranslatedSpeakAction(messageId, conversationId, translation.text)
+                                            handleTranslatedSpeakAction(messageId, conversationId, answer.text)
                                         }
                                     >
                                         {isSpeakingTranslatedText ? <SpeakerMotion /> : <RxSpeakerLoud size={15} />}
@@ -467,12 +485,12 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 </Tooltip>
                                 <Tooltip content={t('Copy to clipboard')} placement='bottom'>
                                     <div className={styles.actionButton}>
-                                        <CopyButton text={translation.text} styles={styles} />
+                                        <CopyButton text={answer.text} styles={styles} />
                                     </div>
                                 </Tooltip>
                                 <Tooltip content={t('Add to Anki')}>
                                     <div
-                                        onClick={() => addToAnki(selectedGroup, finalText, translation.text)}
+                                        onClick={() => addToAnki(selectedGroup, finalText, answer.text)}
                                         className={styles.actionButton}
                                     >
                                         <AiOutlinePlusSquare size={15} />

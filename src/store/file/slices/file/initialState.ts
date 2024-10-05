@@ -1,7 +1,8 @@
-import { SavedFile, Translations, Word } from '@/common/internal-services/db'
+import { SavedFile } from '@/common/internal-services/db'
 export interface ChatFileState {
     currentFileId: number | null
     currentPage: number
+    selectedFiles: SavedFile[]
     files: SavedFile[]
 }
 
@@ -54,17 +55,9 @@ function getObjectFromChromeStorage<T>(key: string, defaultValue: T): Promise<T>
     })
 }
 
-export const getInitialFileState = async (): Promise<ChatFileState> => {
-    const currentFileId = getNumberFromStorage('currentFileId', 0)
-
-    return {
-        currentFileId,
-        currentPage: 1,
-        files: [],
-    }
-}
 
 export const initialFileState: ChatFileState = {
+    selectedFiles: [],
     currentFileId: getNumberFromStorage('currentFileId', 0),
     currentPage: 1,
     files: [],

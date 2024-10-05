@@ -1,12 +1,11 @@
 import { useTranslation } from 'react-i18next'
-import { ICreateActionOption } from '../internal-services/action'
+import { ICreateActionOption } from ''
 import { Action } from '../internal-services/db'
 import { createForm } from './Form'
 import { Input } from 'baseui-sd/input'
 import { Textarea } from 'baseui-sd/textarea'
 import { Button } from 'baseui-sd/button'
 import { useCallback, useState, useEffect } from 'react'
-import { actionService } from '../services/action'
 import { createUseStyles } from 'react-jss'
 import { IThemedStyleProps } from '../types'
 import { useTheme } from '../hooks/useTheme'
@@ -16,6 +15,7 @@ import ModelSelect from './ModelSelect'
 import GroupSelect from './GroupSelect'
 import { useIsAdmin } from '@/utils/auth'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
+import { useChatStore } from '@/store/file/store'
 
 const useStyles = createUseStyles({
     placeholder: (props: IThemedStyleProps) => ({
@@ -46,7 +46,7 @@ export interface IActionFormProps {
 const { Form, FormItem } = createForm<ICreateActionOption>()
 
 export function ActionForm(props: IActionFormProps) {
-    const [actions, setActions] = useState<Action[]>([])
+    const { createAction, updateAction, actions } = useChatStore()
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType })
     const { t } = useTranslation()
@@ -59,36 +59,22 @@ export function ActionForm(props: IActionFormProps) {
             setLoading(true)
             let action: Action
             if (props.action) {
-                action = await actionService.update(props.action, values)
+                action = await updateAction(props.action, values)
             } else {
-                action = await actionService.create(values)
+                action = await createAction(values)
             }
             props.onSubmit(action)
             setLoading(false)
         },
-        [props]
+        [props, createAction, updateAction]
     )
 
-    useEffect(() => {
-        const fetchActions = async () => {
-            setLoading(true)
-            try {
-                const fetchedActions = await actionService.list() // Assuming this returns an array of actions
-                setActions(fetchedActions)
-            } catch (error) {
-                console.error('Failed to fetch actions:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchActions()
-    }, [])
 
     useEffect(() => {
         const fetchGroups = async () => {
             try {
-                setActionGroups(await actionService.getAllGroups())
+                const groups = actions.map((action) => action.groups).flat()
+                setActionGroups(groups)
             } catch (error) {
                 console.error('Failed to fetch groups:', error)
             }

@@ -1,6 +1,4 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import icon from '../assets/images/icon.png'
-import { actionService } from '../services/action'
 import { FiEdit } from 'react-icons/fi'
 import { createUseStyles } from 'react-jss'
 import { IThemedStyleProps } from '../types'
@@ -22,6 +20,7 @@ import { useIsAdmin } from '../../utils/auth'
 import { KIND, Tag } from 'baseui-sd/tag'
 import { useStyletron } from 'styletron-react'
 import ActionStore from './ActionStore'
+import { useChatStore } from '@/store/file/store'
 
 export const useStyles = createUseStyles({
     root: () => ({
@@ -165,7 +164,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
     const { theme, themeType } = useTheme()
     const [css] = useStyletron()
     const styles = useStyles({ theme, themeType })
-    const actions = useLiveQuery(() => actionService.list(), [refreshActionsFlag])
+    const { actions } = useChatStore()
     const [showActionForm, setShowActionForm] = useState(false)
     const [updatingAction, setUpdatingAction] = useState<Action>()
     const [deletingAction, setDeletingAction] = useState<Action>()
@@ -255,7 +254,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                 return // 导入的数据为空或无效时退出函数
             }
 
-            await actionService.bulkPut(importActions)
+            actions.push(...importActions)
 
             refreshActions()
         } catch (error) {
@@ -375,15 +374,14 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                 const groupActions = actionGroups[group]
                                                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                                                 const newActions = arrayMove(groupActions!, oldIndex, newIndex)
-                                                await actionService.bulkPut(
-                                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                                    newActions.map((a, idx) => {
-                                                        return {
-                                                            ...a,
-                                                            idx,
-                                                        }
-                                                    })
-                                                )
+                                                actions.push(...newActions)
+                                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                                newActions.map((a, idx) => {
+                                                    return {
+                                                        ...a,
+                                                        idx,
+                                                    }
+                                                })
                                                 if (!isDesktopApp()) {
                                                     refreshActions()
                                                 }
@@ -436,14 +434,14 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                                             idx,
                                                                             idx - 1
                                                                         )
-                                                                        await actionService.bulkPut(
-                                                                            newActions.map((a, idx) => {
-                                                                                return {
-                                                                                    ...a,
-                                                                                    idx,
-                                                                                }
-                                                                            })
-                                                                        )
+                                                                        actions.push(...newActions)
+                                                                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                                                        newActions.map((a, idx) => {
+                                                                            return {
+                                                                                ...a,
+                                                                                idx,
+                                                                            }
+                                                                        })
                                                                         if (!isDesktopApp()) {
                                                                             refreshActions()
                                                                         }
@@ -463,14 +461,14 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                                             idx,
                                                                             idx + 1
                                                                         )
-                                                                        await actionService.bulkPut(
-                                                                            newActions.map((a, idx) => {
-                                                                                return {
-                                                                                    ...a,
-                                                                                    idx,
-                                                                                }
-                                                                            })
-                                                                        )
+                                                                        actions.push(...newActions)
+                                                                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                                                        newActions.map((a, idx) => {
+                                                                            return {
+                                                                                ...a,
+                                                                                idx,
+                                                                            }
+                                                                        })
                                                                         if (!isDesktopApp()) {
                                                                             refreshActions()
                                                                         }
@@ -570,7 +568,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                     <ModalButton
                                         size='compact'
                                         onClick={async () => {
-                                            await actionService.delete(deletingAction?.id as number)
+                                            actions.splice(actions.indexOf(deletingAction as Action), 1)
                                             if (!isDesktopApp()) {
                                                 refreshActions()
                                             }
