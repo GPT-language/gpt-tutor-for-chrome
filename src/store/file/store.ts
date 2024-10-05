@@ -43,13 +43,13 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
 
     skipHydration: false,
 
-    version: 4,
+    version: 6,
 
     storage: createHyperStorage({
         localStorage: {
             dbName: DB_NAME,
             mode: 'indexedDB',
-            selectors: ['files', 'currentFileId', 'currentPage', 'actions'],
+            selectors: ['files', 'currentFileId', 'currentPage', 'actions', 'selectedWords', 'selectedGroup'],
         },
     }),
 }
@@ -84,10 +84,14 @@ useChatStore.subscribe(
 useChatStore.subscribe(
     (state) => state.currentFileId,
     (currentFileId) => {
-        const { files } = useChatStore.getState()
+        const { files, selectedWords, selectFile } = useChatStore.getState()
         const currentFile = files.find((file) => file.id === currentFileId)
         if (currentFile) {
             useChatStore.setState({ words: currentFile.words })
+            if (currentFile.id) {
+                useChatStore.setState({ selectedWord: selectedWords[currentFile.id] })
+                selectFile(currentFile.id)
+            }
         } else {
             useChatStore.setState({ words: [] })
         }

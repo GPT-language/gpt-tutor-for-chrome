@@ -2,7 +2,6 @@ import { StateCreator } from 'zustand'
 import { produce } from 'immer'
 import { ChatStore } from '../../store'
 import { Answers, Word, SavedFile, ActionOutputRenderingFormat, FollowUpAnswer } from '@/common/internal-services/db'
-import { strategyOptions } from '@/common/components/ReviewSettings'
 import toast from 'react-hot-toast'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,21 +48,27 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     // 添加到历史记录的文件中
-
     async addWordToFile(word: Word, fileName: string) {
         try {
             console.log('Starting to add word to History file', word)
             console.log('fileName is', fileName)
 
             const currentDate = new Date()
-            const { selectedGroup } = get()
+            const { selectedGroup, words } = get()
             let addedFileId = 0
             let addedWordIdx = 0
+            let targetFile = get().selectedFiles.find((file: SavedFile) => file.name === fileName)
+            // 创建单词的副本并添加到历史文件
+            const wordCopy: Word = {
+                ...word,
+                idx: targetFile?.words.length ? targetFile.words.length + 1 : 1, // 新的索引
+                inHistory: true,
+                lastReviewed: currentDate,
+            }
 
             set(
                 produce((draft) => {
                     // 搜索当前类别中是否存在历史文件
-                    let targetFile = draft.selectedFiles.find((file: SavedFile) => file.name === fileName)
 
                     if (!targetFile) {
                         // 如果历史文件不存在，创建新文件
@@ -81,26 +86,17 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                         draft.selectedFiles.push(targetFile)
                     }
 
-                    // 创建单词的副本并添加到历史文件
-                    const wordCopy: Word = {
-                        ...word,
-                        idx: targetFile.words.length + 1, // 新的索引
-                        inHistory: true,
-                        lastReviewed: currentDate,
-                    }
-
                     // 直接修改 files 数组中的对象
-                    draft.files.find((file: SavedFile) => file.id === targetFile.id)?.words.push(wordCopy)
+                    draft.files.find((file: SavedFile) => file.id === targetFile?.id)?.words.push(wordCopy)
 
                     console.log('Word added to History file:', wordCopy.idx)
-                    addedFileId = targetFile.id
+                    addedFileId = targetFile?.id || 0
                     addedWordIdx = wordCopy.idx
                 })
             )
+            set({ currentFileId: addedFileId, selectedWord: wordCopy })
             console.log('Word added to History file:', { fileId: addedFileId, wordIdx: addedWordIdx })
-            // 3. 更新 状态
 
-            set({ currentFileId: addedFileId })
             return { fileId: addedFileId, wordIdx: addedWordIdx }
         } catch (error) {
             console.error('Failed to add word to History file:', error)
