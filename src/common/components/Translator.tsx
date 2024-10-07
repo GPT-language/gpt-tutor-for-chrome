@@ -524,19 +524,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const hasActivateAction = activateAction !== undefined
     const { signOut } = useClerk()
-    const { user } = useUser()
-
-    useEffect(() => {
-        if (user?.id) {
-            console.log('user.id', user.id)
-            setUserId(user.id)
-        }
-
-        if (user?.publicMetadata.role) {
-            console.log('user.role', user.publicMetadata.role)
-            setUserRole(user.publicMetadata.role as string)
-        }
-    }, [user?.id, user?.publicMetadata.role])
 
     useLayoutEffect(() => {
         const handleResize = () => {
@@ -978,8 +965,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [jsonText, setjsonText] = useState('')
     const { editableText, setEditableText } = useChatStore(
         (state) => ({
-            credits: state.credits,
-            setCredits: state.setCredits,
             editableText: state.editableText,
             setEditableText: state.setEditableText,
         }),

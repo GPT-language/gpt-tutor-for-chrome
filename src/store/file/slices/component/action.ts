@@ -1,6 +1,8 @@
 /* eslint-disable prettier/prettier */
 import { StateCreator } from 'zustand'
 import { ComponentState } from './initialState'
+import { ISettings } from '@/common/types'
+import { getSettings } from '@/common/utils'
 export interface ComponentAction {
     setShowActionManager: (isShow: boolean) => void
     setShowSettings: (isShow: boolean) => void
@@ -14,6 +16,8 @@ export interface ComponentAction {
     toggleMessageCard: () => void
     setIsShowActionList: (isShow: boolean) => void
     refreshTextArea: () => void
+    initializeSettings: () => void
+    updateSettings: (newSettings: Partial<ISettings>) => void
 }
 
 export const component: StateCreator<ComponentState, [['zustand/devtools', never]], [], ComponentAction> = (set) => ({
@@ -29,4 +33,9 @@ export const component: StateCreator<ComponentState, [['zustand/devtools', never
     setIsShowActionList: (isShow) => set({ isShowActionList: isShow }),
     setShowSidebar: (isShow) => set({ showSidebar: isShow }),
     refreshTextArea: () => set((state) => ({ refreshTextAreaFlag: state.refreshTextAreaFlag + 1 })),
+    initializeSettings: async () => {
+        const settings = await getSettings()
+        set({ settings })
+    },
+    updateSettings: (newSettings: Partial<ISettings>) => set((state) => ({ settings: { ...state.settings, ...newSettings } })),
 })

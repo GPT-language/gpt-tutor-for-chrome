@@ -6,6 +6,8 @@ import * as utils from '../utils'
 import { Client as Styletron } from 'styletron-engine-atomic'
 import { Provider as StyletronProvider } from 'styletron-react'
 import { BaseProvider, LightTheme } from 'baseui-sd'
+import { Spinner } from 'baseui-sd/spinner'
+import { Notification } from 'baseui-sd/notification'
 import { Input, SIZE } from 'baseui-sd/input'
 import { createForm } from './Form'
 import { Button, ButtonProps, KIND, SHAPE } from 'baseui-sd/button'
@@ -46,6 +48,8 @@ import { RxSpeakerLoud } from 'react-icons/rx'
 import { BsKeyboard } from 'react-icons/bs'
 import SpeakerMotion from './SpeakerMotion'
 import { Block } from 'baseui-sd/block'
+import { t } from 'i18next'
+import { useClerkUser } from '../hooks/useClerkUser'
 
 const langOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
     return [
@@ -97,13 +101,22 @@ const specifiedLangCodes = [
     'sign-nz',
 ]
 
-const languageLevels: Value = [
-    { id: 'level0', label: '我完全不认识这门语言（词汇量：0，表达量：0）' },
-    { id: 'level1', label: '我会最简单的词汇和表达（词汇量：0-100，表达量：0-10）' },
-    { id: 'level2', label: '我有基础水平（词汇量：100-500，表达量：10-50）' },
-    { id: 'level3', label: '我有中级水平（词汇量：500-2000，表达量：50-200）' },
-    { id: 'level4', label: '我有高级水平（词汇量：2000-5000，表达量：200-500）' },
-    { id: 'level5', label: '我接近母语水平（词汇量：5000+，表达量：500+）' },
+const inputLanguageLevels: Value = [
+    { id: 'level0', label: t('完全零基础') },
+    { id: 'level1', label: t('幼儿园') },
+    { id: 'level2', label: t('小学') },
+    { id: 'level3', label: t('中学') },
+    { id: 'level4', label: t('大学') },
+    { id: 'level5', label: t('研究生') },
+]
+
+const outputLanguageLevels: Value = [
+    { id: 'level0', label: t('完全零基础') },
+    { id: 'level1', label: t('幼儿园') },
+    { id: 'level2', label: t('小学') },
+    { id: 'level3', label: t('中学') },
+    { id: 'level4', label: t('大学') },
+    { id: 'level5', label: t('研究生') },
 ]
 
 const yourglishLangOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
@@ -123,6 +136,7 @@ interface ILanguageSelectorProps {
     value?: string
     onChange?: (value: string) => void
     onBlur?: () => void
+    type?: 'input' | 'output'
 }
 
 interface IMultipleLanguageSelectorProps {
@@ -170,13 +184,14 @@ function YouglishLanguageSelector({ value, onChange, onBlur }: ILanguageSelector
     )
 }
 
-function LanguageLevelSelector({ value, onChange, onBlur }: ILanguageSelectorProps) {
+function LanguageLevelSelector({ value, onChange, onBlur, type }: ILanguageSelectorProps) {
+    const options = type === 'input' ? inputLanguageLevels : outputLanguageLevels
     return (
         <Select
             onBlur={onBlur}
             size='compact'
             clearable={false}
-            options={languageLevels}
+            options={options}
             value={value ? [{ id: value }] : []}
             onChange={({ value }) => {
                 const selected = value[0]
@@ -1096,7 +1111,6 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
               { label: 'Claude', id: 'Claude' },
               { label: 'DeepSeek', id: 'DeepSeek' },
               { label: 'OpenRouter', id: 'OpenRouter' },
-              { label: 'Subscribe', id: 'Subscribe' },
           ] as {
               label: string
               id: Provider
@@ -1114,7 +1128,6 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
               { label: 'Claude', id: 'Claude' },
               { label: 'DeepSeek', id: 'DeepSeek' },
               { label: 'OpenRouter', id: 'OpenRouter' },
-              { label: 'Subscribe', id: 'Subscribe' },
           ] as {
               label: string
               id: Provider
@@ -1147,6 +1160,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
 }
 
 const { Form, FormItem, useForm } = createForm<ISettings>()
+
 
 interface IInnerSettingsProps {
     onSave?: (oldSettings: ISettings) => void
@@ -1193,6 +1207,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         defaultYouglishLanguage: utils.defaultYouglishLanguage,
         defaultSourceLanguage: utils.defaultSourceLanguage,
         defaultTargetLanguage: utils.defaultTargetLanguage,
+        inputLanguageLevel:'',
+        outputLanguageLevel:'',
         languageLevel: '',
         userPrompt: '',
         alwaysShowIcons: !isTauri,
@@ -1304,35 +1320,56 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             await utils.setSettings(values)
             setPrevValues(values)
         }
+        setCurrentStep(currentStep + 1)
     }, [prevValues, values])
 
+    const handleNoAPIKey = useCallback(() => {
+        setCurrentStep(currentStep + 1)
+    }, [currentStep])
+
+    const handleYesAPIKey = useCallback(() => {
+        setCurrentStep(currentStep + 2)
+    }, [currentStep])
+
+    const { user, isLoaded, refreshClerkUser } = useClerkUser()
+    const [role, setRole] = useState(user?.publicMetadata.role)
+    const [apiKey, setApiKey] = useState(user?.publicMetadata.token as string)
+    const [remainQuota, setRemainQuota] = useState(user?.publicMetadata.remain_quota)
+    const [expiredTime, setExpiredTime] = useState(user?.publicMetadata.expired_time)
+    const [loadingAPIKey, setLoadingAPIKey] = useState(false)
     const getAndSaveAPIKey = useCallback(
         async (provider: string) => {
+            if (loadingAPIKey) {
+                return
+            }
+            setLoadingAPIKey(true)
             try {
-                const auth = await getUserAuth()
                 // 使用 getFreeApiKey 函数获取 API key
-                if (auth.userId) {
-                    const res = await utils.getFreeApiKey(auth.userId, auth.userId, 1000000)
-                    const apiKey = res.apiKey
-                    const remainQuota = res.remainQuota
-                    const expired_time = res.expired_time
-
+                if (isLoaded && user) {
+                    console.log('user is:', user.id)
+                    console.log('isLoaded is:', isLoaded)
+                    const res = await utils.getFreeApiKey(user.id, user.id.substring(5), 1000000)
+                    setApiKey(res.apiKey)
+                    setRole(res.role)
+                    setRemainQuota(res.remainQuota)
+                    setExpiredTime(res.expired_time)
                     // 更新本地状态
                     setValues((prevValues) => ({
                         ...prevValues,
-                        [`${provider.toLowerCase()}APIKey`]: 'sk-' + apiKey,
+                        [`${provider.toLowerCase()}APIKey`]:  apiKey,
+                        [provider] : 'Subscribe'
                     }))
 
                     // 保存到设置
                     await utils.setSettings({
                         ...values,
-                        [`${provider.toLowerCase()}APIKey`]: 'sk-' + apiKey,
+                        [`${provider.toLowerCase()}APIKey`]:  apiKey,
+                        provider: 'Subscribe',
                     })
 
                     // 更新到用户界面
+                    refreshClerkUser()
                     console.log('apiKey is:', apiKey)
-                    console.log('remainQuota is:', remainQuota)
-                    console.log('expired_time is:', expired_time)
                     toast.success(`Subscription successful`)
                 } else {
                     toast.error(`User not logged in`)
@@ -1343,6 +1380,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 console.error(`获取 ${provider} API Key 失败:`, error)
                 toast.error(`Subscription failed`)
                 // 这里可以添加错误处理，比如显示一个错误消息
+            } finally {
+                setLoadingAPIKey(false)
             }
         },
         [values]
@@ -1356,6 +1395,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
     const [activeTab, setActiveTab] = useState('general')
 
     const [isScrolled, setIsScrolled] = useState(window.scrollY > 0)
+
 
     useEffect(() => {
         const onScroll = () => {
@@ -1429,53 +1469,93 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             <Ii18nSelector onBlur={onStepBlur} />
                         </FormItem>
                     </Form>
-                    <SpacedButton disabled>{t('Previous')}</SpacedButton>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton disabled={currentStep === 0} onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
                 </>
             ),
         },
         {
             title: t('The Language You are Using'),
             content: (
+                <>
                 <Form form={form} initialValues={values} onValuesChange={onStepChange}>
                     <FormItem name='defaultTargetLanguage'>
                         <LanguageSelector onBlur={onStepBlur} />
                     </FormItem>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                 </Form>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
             ),
         },
         {
             title: t('The Language You Want to Learn'),
             content: (
+                <>
                 <Form form={form} initialValues={values} onValuesChange={onInputChange}>
                     <FormItem name='defaultSourceLanguage'>
                         <MultipleLanguageSelector value={values.defaultSourceLanguage} onBlur={onStepBlur} />
                     </FormItem>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                 </Form>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
             ),
         },
         {
-            title: t('Language Level'),
+            title: t('Language Level (Input) '),
             content: (
+                <>
                 <Form form={form} initialValues={values} onValuesChange={onStepChange}>
+                    <StyledBody>
+                    <strong>{t('输入量是指你学习的关于这门语言的内容，比如词汇量，语法，阅读量。输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')} </strong> 
+                    </StyledBody>
                     <FormItem name='languageLevel'>
-                        <LanguageLevelSelector onBlur={onStepBlur} />
+                        <LanguageLevelSelector onBlur={onStepBlur} type='input' />
                     </FormItem>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                 </Form>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
+            ),
+        },
+        {
+            title: t('Language Level (Output) '),
+            content: (
+                <>
+                <Form form={form} initialValues={values} onValuesChange={onStepChange}>
+                    <StyledBody>
+                        <strong>{t('输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')}</strong>
+                    </StyledBody>
+                    <FormItem name='languageLevel'>
+                        <LanguageLevelSelector onBlur={onStepBlur} type='output' />
+                    </FormItem>
+                </Form>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
             ),
         },
         {
             title: t('About You'),
             content: (
+                <>
                 <Form form={form} initialValues={values} onValuesChange={onInputChange}>
                     <StyledBody>
                         <ul>
+                            <li>
+                                <strong>{t('你希望让GPT-Tutor知道的需求和偏好，GPT-Tutor会根据这些信息来调整。')}</strong>
+                            </li>
                             <li>
                                 {t(
                                     '例如：我是一名七岁的小孩，我希望你在解释时使用尽量简单的语言，不要使用复杂的词汇和句子。'
@@ -1497,27 +1577,97 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             }
                         />
                     </FormItem>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                 </Form>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
             ),
         },
         {
             title: t('设置如何发音'),
             content: (
+                <>
                 <Form form={form} initialValues={values} onValuesChange={onInputChange}>
+                    <StyledBody>
+                        <strong>{t('设置GPT-Tutor中不同语言朗读时的人声、速度和音量。')}</strong>
+                    </StyledBody>
                     <FormItem name='tts' label={t('TTS')}>
                         <TTSVoicesSettings onBlur={onBlur} />
                     </FormItem>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
-                    <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                 </Form>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
             ),
         },
         {
-            title: '服务提供商',
+            title: t('是否有自己的API Key?'),
+            content: (
+                <>
+                <StyledBody>
+                    <strong>{t('想要完整且正确地使用GPT-Tutor，推荐使用一个具有高级模型（GPT-4o/Claude 3.5 Sonnet/Gemini Pro/LLAMA 3.1 405B）功能的API Key。')}</strong>
+                </StyledBody>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <SpacedButton onClick={handleNoAPIKey}>{t('我没有API Key')}</SpacedButton>
+                    <SpacedButton onClick={handleYesAPIKey}>{t('我有自己的API Key')}</SpacedButton>
+                </div>
+                </>
+            ),
+        },
+        {
+            title: t('没有API Key'),
             content: (
                 <div>
+                    {apiKey === '' || apiKey === undefined ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <strong>{t('点击开始免费试用。免费试用三天后，再决定是否订阅。')}</strong>
+                            <SpacedButton isLoading={loadingAPIKey} disabled={loadingAPIKey} onClick={() => getAndSaveAPIKey('Subscribe')}>{t('开始免费试用')}</SpacedButton>
+                        </div>
+                    ) : (
+                        <div>
+                            {loadingAPIKey ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px' }}>
+            <Spinner $size={50} />
+        </div>
+    ) : (
+        <>
+            <Notification closeable>{t('选择模型，完成最后的设置')}</Notification>
+            <Form form={form} initialValues={values} onValuesChange={onInputChange}>
+                <FormItem
+                    name='subscribeAPIModel'
+                    label={t('API Model')}
+                    required={values.provider === 'Subscribe'}
+                >
+                    <APIModelSelector
+                        provider='Subscribe'
+                        currentProvider={values.provider}
+                        apiKey={values.subscribeAPIKey}
+                        value={values.subscribeAPIModel}
+                        onBlur={onBlur}
+                    />
+                </FormItem>
+            </Form>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <SpacedButton onClick={async () => await handleSave()}>{t('完成设置')}</SpacedButton>
+            </div>
+        </>
+    )}
+                        </div>
+                    )}
+                </div>
+            ),
+        },
+        {
+            title: t('填入自己的API Key'),
+            content: (
+                <div>
+                    <StyledBody>
+                        <strong>{t('选择一个服务提供商，GPT-Tutor会根据你选择的服务提供商来调整教学内容和难度。')}</strong>
+                    </StyledBody>
                     <Form form={form} initialValues={values} onValuesChange={onInputChange}>
                         <FormItem
                             name='provider'
@@ -2180,52 +2330,24 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                                 />
                             </FormItem>
                         </div>
-                        <div
-                            style={{
-                                display: values.provider === 'Subscribe' ? 'block' : 'none',
-                            }}
-                        >
-                            <FormItem
-                                required={values.provider === 'Subscribe'}
-                                name='subscribeAPIKey'
-                                label='Subscribe API Key'
-                            >
-                                <Button kind='tertiary' onClick={() => getAndSaveAPIKey('Subscribe')}>
-                                    {t('Subscribe')}
-                                </Button>
-                            </FormItem>
-                            <FormItem
-                                name='subscribeAPIModel'
-                                label={t('API Model')}
-                                required={values.provider === 'Subscribe'}
-                            >
-                                <APIModelSelector
-                                    provider='Subscribe'
-                                    currentProvider={values.provider}
-                                    apiKey={values.subscribeAPIKey}
-                                    onBlur={onBlur}
-                                />
-                            </FormItem>
-                        </div>
                     </Form>
                 </div>
             ),
         },
     ]
 
-    const handleNext = async () => {
-        if (currentStep < steps.length - 1) {
-            setCurrentStep(currentStep + 1)
-        } else {
-            try {
-                setLoading(true)
-                // 设置isFirstTimeUse为false
-                await onSubmit({ ...values, isFirstTimeUse: false })
-            } catch (error) {
-                console.error(error)
-            } finally {
-                setLoading(false)
-            }
+
+    const handleSave = async () => {
+        try {
+            setLoading(true)
+            await onSubmit({ ...values, isFirstTimeUse: false })
+            useChatStore.setState({
+                showSettings: false,
+            })
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -2381,7 +2503,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 </Tabs>
             </nav>
 
-            {values.isFirstTimeUse ? (
+            {!values.isFirstTimeUse ? (
                 <Card>
                     <StyledBody>
                         <ProgressSteps current={currentStep}>
@@ -2391,13 +2513,10 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                                 </Step>
                             ))}
                         </ProgressSteps>
-                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
-                            <Button onClick={handlePrev} disabled={currentStep === 0}>
-                                {t('Previous')}
-                            </Button>
-                            <Button onClick={handleNext}>
-                                {currentStep === steps.length - 1 ? t('Save') : t('Next')}
-                            </Button>
+                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <SpacedButton onClick={handleSave}>
+                                 {t('Save')}
+                            </SpacedButton>
                         </div>
                     </StyledBody>
                 </Card>
@@ -3073,33 +3192,6 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                                     provider='OpenRouter'
                                     currentProvider={values.provider}
                                     apiKey={values.openRouterAPIKey}
-                                    onBlur={onBlur}
-                                />
-                            </FormItem>
-                        </div>
-                        <div
-                            style={{
-                                display: values.provider === 'Subscribe' ? 'block' : 'none',
-                            }}
-                        >
-                            <FormItem
-                                required={values.provider === 'Subscribe'}
-                                name='subscribeAPIKey'
-                                label='Subscribe API Key'
-                            >
-                                <Button kind='tertiary' onClick={() => getAndSaveAPIKey('Subscribe')}>
-                                    {t('Subscribe')}
-                                </Button>
-                            </FormItem>
-                            <FormItem
-                                name='subscribeAPIModel'
-                                label={t('API Model')}
-                                required={values.provider === 'Subscribe'}
-                            >
-                                <APIModelSelector
-                                    provider='Subscribe'
-                                    currentProvider={values.provider}
-                                    apiKey={values.subscribeAPIKey}
                                     onBlur={onBlur}
                                 />
                             </FormItem>

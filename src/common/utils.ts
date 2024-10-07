@@ -34,8 +34,8 @@ export async function getApiKey(): Promise<string> {
 export async function getFreeApiKey(
     id: string,
     name: string,
-    remainQuota: number
-): Promise<{ apiKey: string; remainQuota: number; expired_time: number }> {
+    remainQuota: number,
+): Promise<{ apiKey: string; remainQuota: number; expired_time: number; role: string }> {
     try {
         const response = await fetch(`http://localhost:3000/api/token`, {
             method: 'POST',
@@ -56,11 +56,12 @@ export async function getFreeApiKey(
         }
 
         const responseData = await response.json()
-        console.log('tokenInfo:', JSON.stringify(responseData.message))
+        console.log('tokenInfo:', JSON.stringify(responseData))
         return {
             apiKey: responseData.token,
             remainQuota: responseData.remain_quota,
             expired_time: responseData.expired_time,
+            role: responseData.role,
         }
     } catch (error) {
         console.error('Error fetching API key:', error)

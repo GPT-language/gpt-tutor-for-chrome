@@ -166,5 +166,12 @@
   "Determine which groups this action belongs to": "Determine which groups this action belongs to",
   "You can set multiple group names": "You can set multiple group names",
   "Enter a group, then press Enter": "Enter a group, then press Enter",
+  "没有任何该语言的知识 (A0)": "Beignner, No knowledge of the language",
+  "能理解和使用一些日常表达和非常基本的短语 (A1)": "Beginner, Can understand and use some everyday expressions and very basic phrases",
+  "能理解常用语句和表达，能进行简单的日常交流 (A2)": "Beginner, Can understand common sentences and expressions, and can have simple daily conversations",
+  "能理解日常生活中的主要内容，能简单描述经历、事件、梦想等 (B1)": "Intermediate, Can understand the main content of everyday life and can describe experiences, events, and dreams in a simple way",
+  "能理解复杂文本的主要内容，能与母语者进行较为流利的即兴交谈 (B2)": "Intermediate, Can understand the main content of complex texts and can have a fluent and natural conversation with native speakers",
+  "能理解几乎所有听到或读到的内容，能流畅、准确地表达复杂的意思。 (C1)": "Advanced, Can understand almost everything heard or read, and can express complex ideas fluently and accurately.",
+  "能轻松理解几乎所有听到或读到的内容，能流畅、准确地表达复杂的意思。 (C2)": "Advanced, Can easily understand almost everything heard or read, and can express complex ideas fluently and accurately.",
   "Finish": "Finish this subject and add to review"
 }

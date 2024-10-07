@@ -13,5 +13,5 @@ export const initialWordState: ChatWordState = {
     answers: {},
     selectedWord: { idx: 1, text: '', reviewCount: 0 },
     selectedWords: {}, // 每个文件的选中单词
-    selectedGroup: 'Word',
+    selectedGroup: 'Unsorted',
 }

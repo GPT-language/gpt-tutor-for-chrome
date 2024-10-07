@@ -11,8 +11,6 @@ import { chatUser, ChatUserAction } from './slices/user/action'
 import { chatWord, ChatWordAction } from './slices/word/action'
 import { createHyperStorage } from './middleware/createHyperStorage'
 import { createActionSlice, ActionSlice } from './slices/action/action'
-import { Word } from '@/common/internal-services/db'
-import { produce } from 'immer'
 
 export type ChatStore = ChatStoreState &
     ChatFileAction &
@@ -43,13 +41,22 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
 
     skipHydration: false,
 
-    version: 6,
+    version: 8,
 
     storage: createHyperStorage({
         localStorage: {
             dbName: DB_NAME,
             mode: 'indexedDB',
-            selectors: ['files', 'currentFileId', 'currentPage', 'actions', 'selectedWords', 'selectedGroup'],
+            selectors: [
+                'files',
+                'currentFileId',
+                'currentPage',
+                'actions',
+                'selectedWords',
+                'selectedGroup',
+                'user',
+                'settings',
+            ],
         },
     }),
 }
