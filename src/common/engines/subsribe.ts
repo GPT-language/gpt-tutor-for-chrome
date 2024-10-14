@@ -15,8 +15,8 @@ export class Subscribe extends AbstractEngine {
                 'Content-Type': 'application/json',
             },
         })
-        const tokenInfoData = await tokenInfo.json();
-        console.log('tokenInfo:', JSON.stringify(tokenInfoData.data.key));
+        const tokenInfoData = await tokenInfo.json()
+        console.log('tokenInfo:', JSON.stringify(tokenInfoData.data.key))
         return tokenInfoData.data.key
     }
 
@@ -59,7 +59,7 @@ export class Subscribe extends AbstractEngine {
         const apiKey = settings.subscribeAPIKey
         const model = await this.getModel()
         // TODO: use correct url
-        const url = 'https://gpt-tutor.zeabur.app/v1/chat/completions'
+        const url = 'https://tutor-chatgpt.zeabur.app/v1/chat/completions'
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,
@@ -99,13 +99,44 @@ export class Subscribe extends AbstractEngine {
             },
             onError: (err) => {
                 hasError = true
+                if (err && typeof err === 'object') {
+                    console.log('忽略空对象错误')
+                    return
+                }
                 if (err instanceof Error) {
                     req.onError(err.message)
-                } else if (typeof err === 'string') {
-                    req.onError(err)
-                } else {
-                    req.onError('Unknown error')
+                    return
                 }
+                if (typeof err === 'string') {
+                    req.onError(err)
+                    return
+                }
+                if (typeof err === 'object') {
+                    if (Array.isArray(err) && err.length > 0) {
+                        const item = err[0]
+                        if (item && item.error && item.error.message) {
+                            req.onError(item.error.message)
+                            return
+                        }
+                    }
+                    const { error } = err as { error?: unknown }
+                    if (error instanceof Error) {
+                        req.onError(error.message)
+                        return
+                    }
+                    if (typeof error === 'object' && error !== null) {
+                        const { message } = error as { message?: unknown }
+                        if (message) {
+                            if (typeof message === 'string') {
+                                req.onError(message)
+                            } else {
+                                req.onError(JSON.stringify(message))
+                            }
+                            return
+                        }
+                    }
+                }
+                req.onError('Unknown error')
             },
         })
 

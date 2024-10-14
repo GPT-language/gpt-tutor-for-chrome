@@ -38,8 +38,6 @@ import { TbCloudNetwork, TbDirectionSign } from 'react-icons/tb'
 import NumberInput from './NumberInput'
 import { useChatStore } from '@/store/file/store'
 import React, { ReactNode, useCallback, useEffect, useReducer, useState } from 'react'
-import { getApiKey, getFreeApiKey } from '../utils'
-import { getUserAuth } from '@/utils/auth'
 import { ProgressSteps, Step } from 'baseui-sd/progress-steps'
 import { Card, StyledBody } from 'baseui-sd/card'
 import { StyledTabList, StyledTabPanel, Tab, Tabs } from 'baseui-sd/tabs-motion'
@@ -49,7 +47,6 @@ import { BsKeyboard } from 'react-icons/bs'
 import SpeakerMotion from './SpeakerMotion'
 import { Block } from 'baseui-sd/block'
 import { t } from 'i18next'
-import { useClerkUser } from '../hooks/useClerkUser'
 
 const langOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
     return [
@@ -1098,6 +1095,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
 
     const options = utils.isDesktopApp()
         ? ([
+            { label: 'Subscribe', id: 'Subscribe' },
               { label: 'OpenAI', id: 'OpenAI' },
               { label: `Kimi`, id: 'Kimi' },
               { label: `ChatGLM`, id: 'ChatGLM' },
@@ -1116,6 +1114,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
               id: Provider
           }[])
         : ([
+            { label: 'Subscribe', id: 'Subscribe' },
               { label: 'OpenAI', id: 'OpenAI' },
               { label: `Kimi`, id: 'Kimi' },
               { label: `ChatGLM`, id: 'ChatGLM' },
@@ -1329,94 +1328,25 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         setCurrentStep(currentStep + 2)
     }, [currentStep])
 
-    const { user, isLoaded, refreshClerkUser } = useClerkUser()
+    const handleGetAPIKey = useCallback(async () => {
+         // 更新本地状态
+         setValues((prevValues) => ({
+            ...prevValues,
+            provider: 'Subscribe'
+        }))
+
+        // 保存到设置
+        await utils.setSettings({
+            ...values,
+            provider: 'Subscribe',
+        })
+        window.open('https://tutor-chatgpt.zeabur.app/login', '_blank')
+    }, [currentStep])
+
     const {chatUser} = useChatStore()
     const [loadingAPIKey, setLoadingAPIKey] = useState(false)
-    const showAuthModal = useChatStore.getState().showAuthModal
 
 
-    const getAndSaveAPIKey = useCallback(
-        async (provider: string) => {
-            if (!isLoaded || !user) {
-                toast.error(`User not logged in`)
-                // 如果未登录，显示登录模态框
-                useChatStore.getState().setShowAuthModal(true)
-                return
-            }
-            if (loadingAPIKey) {
-                return
-            }
-            setLoadingAPIKey(true)
-            try {
-                // 使用 getFreeApiKey 函数获取 API key
-                if (isLoaded && user) {
-                    console.log('user is:', user.id)
-                    console.log('isLoaded is:', isLoaded)
-                    const res = await utils.getFreeApiKey(user.id, user.id.substring(5), 1000000)
-                    useChatStore.getState().setUser({
-                        apiKey: res.apiKey,
-                        role: res.role,
-                        remainQuota: res.remainQuota,
-                        expiredTime: res.expired_time,
-                        isFirstTimeUse: false,
-                    })
-                    // 更新本地状态
-                    setValues((prevValues) => ({
-                        ...prevValues,
-                        [`${provider.toLowerCase()}APIKey`]:  res.apiKey,
-                        [provider] : 'Subscribe'
-                    }))
-
-                    // 保存到设置
-                    await utils.setSettings({
-                        ...values,
-                        [`${provider.toLowerCase()}APIKey`]:  res.apiKey,
-                        provider: 'Subscribe',
-                    })
-
-
-                    console.log('apiKey is:', res.apiKey)
-                    toast.success(`Subscription successful`)
-                } 
-                // 这里可以添加一个 toast 通知或其他用户反馈机制
-            } catch (error) {
-                console.error(`获取 ${provider} API Key 失败:`, error)
-                toast.error(`Subscription failed`)
-                // 这里可以添加错误处理，比如显示一个错误消息
-            } finally {
-                setLoadingAPIKey(false)
-                // 更新到用户界面
-                refreshClerkUser()
-            }
-        },
-        [values, user, isLoaded, refreshClerkUser]
-    )
-
-    useEffect(() => {
-        if (showAuthModal) {
-            // 如果 AuthModal 正在显示，不执行任何操作
-            return
-        }
-
-        if (!settings) {
-            console.error('settings is not set:')
-            return
-        }
-
-        // 这里还需要处理provider为chatgpt web、Kimi、ChatGLM的情况
-
-        if (user && isLoaded && !chatUser.apiKey) {
-            // 用户已登录，且 API Key 尚未获取
-            getAndSaveAPIKey('Subscribe')
-                .then(() => {
-                    console.log('API Key saved')
-                })
-                .catch((error) => {
-                    console.error('Failed to get API Key:', error)
-                    // 可以在这里添加错误处理逻辑
-                })
-        }
-    }, [showAuthModal, user, isLoaded, getAndSaveAPIKey])
 
     const isDesktopApp = utils.isDesktopApp()
     const isMacOS = navigator.userAgent.includes('Mac OS X')
@@ -1653,21 +1583,26 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             title: t('没有API Key'),
             content: (
                 <div>
-        {!chatUser.apiKey ? (
+        
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <strong>{t('点击开始免费试用。免费试用三天后，再决定是否订阅。')}</strong>
                 <SpacedButton 
                     isLoading={loadingAPIKey} 
                     disabled={loadingAPIKey} 
-                    onClick={() => getAndSaveAPIKey('Subscribe')}
+                    onClick={() => handleGetAPIKey()}
                 >
-                    {t('开始免费试用')}
+                    {t('点击获取API Key')}
                 </SpacedButton>
             </div>
-        ) : (
             <>
-                <Notification closeable>{t('选择模型，完成最后的设置')}</Notification>
+                <Notification closeable>{t('输入复制的API Key，选择模型，完成设置')}</Notification>
                 <Form form={form} initialValues={values} onValuesChange={onInputChange}>
+                <FormItem
+                                required={values.provider === 'Subscribe'}
+                                name='subscribeAPIKey'
+                                label='Subscribe API Key'
+                            >
+                                <Input autoFocus type='password' size='compact' onBlur={onBlur} aria-hidden={false} />
+                            </FormItem>
                     <FormItem
                         name='subscribeAPIModel'
                         label={t('API Model')}
@@ -1688,22 +1623,6 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     </SpacedButton>
                 </div>
             </>
-        )}
-        {loadingAPIKey && (
-            <div style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                bottom: 0, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                background: 'rgba(255, 255, 255, 0.7)' 
-            }}>
-                <Spinner $size={50} />
-            </div>
-        )}
     </div>
 )
         },
@@ -2376,6 +2295,31 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                                 />
                             </FormItem>
                         </div>
+                        <div
+                            style={{
+                                display: values.provider === 'Subscribe' ? 'block' : 'none',
+                            }}
+                        >
+                            <FormItem
+                                required={values.provider === 'Subscribe'}
+                                name='subscribeAPIKey'
+                                label='Subscribe API Key'
+                            >
+                                <Input autoFocus type='password' size='compact' onBlur={onBlur} />
+                            </FormItem>
+                            <FormItem
+                                name='subscribeAPIModel'
+                                label={t('API Model')}
+                                required={values.provider === 'Subscribe'}
+                            >
+                                <APIModelSelector
+                                    provider='Subscribe'
+                                    currentProvider={values.provider}
+                                    apiKey={values.subscribeAPIKey}
+                                    onBlur={onBlur}
+                                />
+                            </FormItem>
+                        </div>
                     </Form>
                 </div>
             ),
@@ -2388,7 +2332,11 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             setLoading(true)
             await onSubmit({ ...values })
             useChatStore.setState((state) => ({
-                showSettings: false
+                showSettings: false,
+                chatUser: {
+                    ...state.chatUser,
+                    isFirstTimeUse: false
+                }
             }))
         } catch (error) {
             console.error(error)
@@ -2402,11 +2350,6 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         console.log('values', values)
     }, [values])
 
-    const handlePrev = useCallback(() => {
-        if (currentStep > 0) {
-            setCurrentStep(currentStep - 1)
-        }
-    }, [currentStep])
 
     return (
         <div
@@ -3238,6 +3181,31 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                                     provider='OpenRouter'
                                     currentProvider={values.provider}
                                     apiKey={values.openRouterAPIKey}
+                                    onBlur={onBlur}
+                                />
+                            </FormItem>
+                        </div>
+                        <div
+                            style={{
+                                display: values.provider === 'Subscribe' ? 'block' : 'none',
+                            }}
+                        >
+                            <FormItem
+                                required={values.provider === 'Subscribe'}
+                                name='subscribeAPIKey'
+                                label='Subscribe API Key'
+                            >
+                                <Input autoFocus type='password' size='compact' onBlur={onBlur} />
+                            </FormItem>
+                            <FormItem
+                                name='subscribeAPIModel'
+                                label={t('API Model')}
+                                required={values.provider === 'Subscribe'}
+                            >
+                                <APIModelSelector
+                                    provider='Subscribe'
+                                    currentProvider={values.provider}
+                                    apiKey={values.subscribeAPIKey}
                                     onBlur={onBlur}
                                 />
                             </FormItem>

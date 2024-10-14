@@ -13,6 +13,7 @@ export interface ComponentState {
     isShowMessageCard: boolean
     isShowActionList: boolean
     refreshTextAreaFlag: number
+    showAuthModal: boolean
     settings: ISettings
 }
 
@@ -56,7 +57,7 @@ const defaultSettings: ISettings = {
     writingNewlineHotkey: '',
     themeType: 'followTheSystem',
     i18n: 'en',
-    tts: false,
+    tts: {},
     restorePreviousPosition: false,
     runAtStartup: false,
     selectInputElementsText: true,
@@ -123,4 +124,5 @@ export const initialComponentState: ComponentState = {
     showSidebar: false,
     refreshTextAreaFlag: 0,
     settings: defaultSettings,
+    showAuthModal: false,
 }

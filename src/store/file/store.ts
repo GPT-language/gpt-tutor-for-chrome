@@ -1,4 +1,4 @@
-import { devtools, persist, PersistOptions, subscribeWithSelector } from 'zustand/middleware'
+import { persist, PersistOptions, subscribeWithSelector } from 'zustand/middleware'
 import { shallow } from 'zustand/shallow'
 import { createWithEqualityFn } from 'zustand/traditional'
 import { StateCreator } from 'zustand/vanilla'
@@ -11,6 +11,13 @@ import { chatUser, ChatUserAction } from './slices/user/action'
 import { chatWord, ChatWordAction } from './slices/word/action'
 import { createHyperStorage } from './middleware/createHyperStorage'
 import { createActionSlice, ActionSlice } from './slices/action/action'
+import { createDevtools } from './middleware/createDevtools'
+
+declare global {
+    interface Window {
+        __REDUX_DEVTOOLS_EXTENSION__?: any
+    }
+}
 
 export type ChatStore = ChatStoreState &
     ChatFileAction &
@@ -41,7 +48,7 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
 
     skipHydration: false,
 
-    version: 8,
+    version: 10,
 
     storage: createHyperStorage({
         localStorage: {
@@ -54,7 +61,7 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
                 'actions',
                 'selectedWords',
                 'selectedGroup',
-                'user',
+                'chatUser',
                 'settings',
             ],
         },
@@ -62,6 +69,8 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
 }
 
 //  ===============  实装 useStore ============ //
+
+const devtools = createDevtools('chat')
 
 export const useChatStore = createWithEqualityFn<ChatStore>()(
     persist(

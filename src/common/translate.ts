@@ -407,7 +407,20 @@ export async function simpleTranslate(query: TranslateQuery, engine: IEngine): P
                 query.onError(error)
             },
         })
-    } catch (error) {
-        query.onError((error as Error).message)
+    } catch (error: any) {
+        console.log('原始错误对象:', error) // 用于调试
+
+        let errorMessage = '未知错误'
+        if (typeof error === 'string') {
+            errorMessage = error
+        } else if (typeof error === 'object' && error !== null) {
+            if (error.error && typeof error.error === 'object') {
+                errorMessage = error.error.message || errorMessage
+            } else if (error.message) {
+                errorMessage = error.message
+            }
+        }
+
+        query.onError(errorMessage)
     }
 }

@@ -13,7 +13,6 @@ import { IconPicker } from './IconPicker'
 import { RenderingFormatSelector } from './RenderingFormatSelector'
 import ModelSelect from './ModelSelect'
 import GroupSelect from './GroupSelect'
-import { useIsAdmin } from '@/utils/auth'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
 import { useChatStore } from '@/store/file/store'
 
@@ -52,7 +51,6 @@ export function ActionForm(props: IActionFormProps) {
     const { t } = useTranslation()
     const [loading, setLoading] = useState(false)
     const [actionGroups, setActionGroups] = useState<string[]>([])
-    const isAdmin = useIsAdmin()
 
     const onSubmit = useCallback(
         async (values: ICreateActionOption) => {
@@ -201,7 +199,7 @@ export function ActionForm(props: IActionFormProps) {
                 />
                 <StatefulTooltip
                     content={
-                        props.action?.mode === 'built-in' && !isAdmin
+                        props.action?.mode === 'built-in'
                             ? t('Built-in actions cannot be modified')
                             : t('Save changes to this action')
                     }
@@ -210,11 +208,7 @@ export function ActionForm(props: IActionFormProps) {
                     <span>
                         {' '}
                         {/* 使用 span 包裹 Button，因为 Tooltip 不能直接包裹 disabled 的元素 */}
-                        <Button
-                            isLoading={loading}
-                            size='compact'
-                            disabled={props.action?.mode === 'built-in' && !isAdmin}
-                        >
+                        <Button isLoading={loading} size='compact' disabled={props.action?.mode === 'built-in'}>
                             {t('Save')}
                         </Button>
                     </span>

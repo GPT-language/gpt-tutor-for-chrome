@@ -6,13 +6,9 @@ import { Button } from 'baseui-sd/button'
 import { IoIosFlash, IoIosRocket } from 'react-icons/io'
 import { useTranslation } from 'react-i18next'
 import { useChatStore } from '@/store/file/store'
-import { FaLightbulb } from 'react-icons/fa'
-import { Tooltip } from './Tooltip'
-import { IoFlashSharp } from 'react-icons/io5'
 
 interface AutocompleteTextareaProps {
     selectedActions: Action[]
-    credits?: number
     isSettingComplete: boolean
     onActionSelect: (action: Action) => void
     onChange: (value: string) => void
@@ -21,8 +17,6 @@ interface AutocompleteTextareaProps {
 
 const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
     selectedActions,
-    credits,
-    isSettingComplete,
     onActionSelect,
     onChange,
     onSubmit,
@@ -276,31 +270,6 @@ const AutocompleteTextarea: React.FC<AutocompleteTextareaProps> = ({
                 </div>
             )}
             <div style={{ position: 'absolute', right: 0, bottom: '-10px', display: 'flex', alignItems: 'center' }}>
-                {!isSettingComplete && (
-                    <Tooltip content={t('Credit')}>
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                marginRight: '10px',
-                                fontSize: '14px', // 增加字号以提高可读性
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                color: '#6B7280', // 设置字体为浅灰色
-                                fontFamily: 'Arial, sans-serif', // 使用通用字体以提高跨平台兼容性
-                                fontWeight: 'bold', // 加粗字体以提高视觉效果
-                                textShadow: '1px 1px 2px #fff', // 添加文本阴影以提高字体的立体感
-                            }}
-                        >
-                            <IoFlashSharp
-                                size={13}
-                                color={credits === 0 ? '' : '#33ff33'}
-                                style={{ marginRight: '6px' }}
-                            />
-                            {credits}
-                        </div>
-                    </Tooltip>
-                )}
                 <Button
                     size='mini'
                     kind='secondary'

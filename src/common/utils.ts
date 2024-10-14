@@ -34,10 +34,10 @@ export async function getApiKey(): Promise<string> {
 export async function getFreeApiKey(
     id: string,
     name: string,
-    remainQuota: number,
-): Promise<{ apiKey: string; remainQuota: number; expired_time: number; role: string }> {
+    remainQuota: number
+): Promise<{ apiKey: string; remainQuota: number; expired_time: number; role: string; isFirstTimeUse: boolean }> {
     try {
-        const response = await fetch(`http://localhost:3000/api/token`, {
+        const response = await fetch(`https://gpt-tutor-website-with-stripe.vercel.app/api/token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -46,10 +46,8 @@ export async function getFreeApiKey(
                 id,
                 name,
                 remain_quota: remainQuota,
-                model: 'basic',
             }),
         })
-
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
@@ -62,6 +60,7 @@ export async function getFreeApiKey(
             remainQuota: responseData.remain_quota,
             expired_time: responseData.expired_time,
             role: responseData.role,
+            isFirstTimeUse: false,
         }
     } catch (error) {
         console.error('Error fetching API key:', error)

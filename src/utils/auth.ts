@@ -1,29 +1,18 @@
 import { ISettings } from '@/common/types'
 import { getUniversalFetch } from '@/common/universal-fetch'
 import { useChatStore } from '@/store/file/store'
-import { useUser } from '@clerk/clerk-react'
-
-export function useIsAdmin() {
-    const { user } = useUser()
-    console.log('user', user)
-    return user?.publicMetadata?.role === 'admin' ?? false
-}
 
 
 
-export function useIsSubscriber() {
-    const { user } = useUser()
-    return user?.publicMetadata?.role === 'subscriber' ?? false
-}
+
+
+
 
 export function isCreditEnough(credit: number, price: number): boolean {
     return credit >= price
 }
 
-export function getUserCredit() {
-    const { user } = useUser()
-    return (user?.publicMetadata?.credits as number) ?? 0
-}
+
 
 export const isSettingsComplete = (
     settings: ISettings | undefined,

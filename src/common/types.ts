@@ -44,7 +44,6 @@ export interface IThemedStyleProps {
 }
 
 export interface ISettings {
-    isFirstTimeUse: boolean
     chatgptArkoseReqUrl: string
     chatgptArkoseReqForm: string
     [x: string]: any

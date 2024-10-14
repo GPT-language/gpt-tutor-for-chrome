@@ -16,7 +16,6 @@ import { ActionForm } from './ActionForm'
 import { IconType } from 'react-icons'
 import { isDesktopApp, exportToJson, jsonToActions } from '../utils'
 import { MdArrowDownward, MdArrowUpward } from 'react-icons/md'
-import { useIsAdmin } from '../../utils/auth'
 import { KIND, Tag } from 'baseui-sd/tag'
 import { useStyletron } from 'styletron-react'
 import ActionStore from './ActionStore'
@@ -170,7 +169,6 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
     const [deletingAction, setDeletingAction] = useState<Action>()
     const [openGroups, setOpenGroups] = useState<string[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
-    const isAdmin = useIsAdmin()
     const [activeType, setActiveType] = useState<'user' | 'built-in' | 'store'>('user')
     if (!actions) {
         return null
@@ -489,14 +487,12 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                                 setShowActionForm(true)
                                                             }}
                                                         >
-                                                            {action.mode === 'built-in' && !isAdmin
-                                                                ? t('View')
-                                                                : t('Update')}
+                                                            {action.mode === 'built-in' ? t('View') : t('Update')}
                                                         </Button>
                                                         <Button
                                                             size='mini'
                                                             kind='secondary'
-                                                            disabled={action.mode === 'built-in' && !isAdmin}
+                                                            disabled={action.mode === 'built-in'}
                                                             startEnhancer={<RiDeleteBinLine size={12} />}
                                                             onClick={(e) => {
                                                                 e.preventDefault()

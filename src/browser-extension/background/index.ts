@@ -1,12 +1,12 @@
 /* eslint-disable no-case-declarations */
 import browser from 'webextension-polyfill'
+declare const chrome: typeof browser
 import { BackgroundEventNames } from '../../common/background/eventnames'
 import { BackgroundFetchRequestMessage, BackgroundFetchResponseMessage } from '../../common/background/fetch'
 // Import the functions you need from the SDKs you need
 import { setUserConfig } from '../../common/utils'
 import { keyKimiAccessToken } from '@/common/engines/kimi'
 import { keyChatGLMAccessToken } from '@/common/engines/chatglm'
-import { handleCheckoutCompletion } from '@/utils/auth'
 
 
 browser.contextMenus?.create(
@@ -235,49 +235,3 @@ browser?.commands?.onCommand.addListener(async (command) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 chrome?.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch((error: any) => console.error(error))
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    console.log('Tab updated:', tabId, changeInfo, tab)
-    if (changeInfo.status === 'complete') {
-        chrome.tabs.get(tabId, async (updatedTab) => {
-            if (chrome.runtime.lastError) {
-                console.error(chrome.runtime.lastError)
-                return
-            }
-
-            if (updatedTab.url && updatedTab.url.includes('checkout?sessionId=')) {
-                try {
-                    const url = new URL(updatedTab.url)
-                    const sessionId = url.searchParams.get('sessionId')
-                    if (sessionId) {
-                        const isProcessed = await checkSessionProcessed(sessionId)
-                        if (!isProcessed) {
-                            await handleCheckoutCompletion(sessionId)
-                            await markSessionAsProcessed(sessionId)
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error processing tab URL:', error)
-                }
-            }
-        })
-    }
-})
-
-async function checkSessionProcessed(sessionId: string): Promise<boolean> {
-    return new Promise((resolve) => {
-        chrome.storage.local.get(['processedSessions'], (result) => {
-            const processedSessions = result.processedSessions || []
-            resolve(processedSessions.includes(sessionId))
-        })
-    })
-}
-
-async function markSessionAsProcessed(sessionId: string): Promise<void> {
-    return new Promise((resolve) => {
-        chrome.storage.local.get(['processedSessions'], (result) => {
-            const processedSessions = result.processedSessions || []
-            processedSessions.push(sessionId)
-            chrome.storage.local.set({ processedSessions }, resolve)
-        })
-    })
-}

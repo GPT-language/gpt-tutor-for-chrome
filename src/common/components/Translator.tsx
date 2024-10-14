@@ -6,8 +6,6 @@ import { Provider as StyletronProvider, useStyletron } from 'styletron-react'
 import { BaseProvider } from 'baseui-sd'
 import { createUseStyles } from 'react-jss'
 import { AiOutlineTranslation, AiOutlinePlusSquare, AiOutlineQuestionCircle, AiOutlineStar } from 'react-icons/ai'
-import { GoSignOut } from 'react-icons/go'
-import { useClerk, useUser } from '@clerk/chrome-extension'
 import { IoSettingsOutline } from 'react-icons/io5'
 import * as mdIcons from 'react-icons/md'
 import { getLangConfig, LangCode } from './lang/lang'
@@ -58,7 +56,7 @@ import { checkForUpdates, getFilenameForLanguage, getLocalData, updateLastChecke
 import { parseDiff, Diff, Hunk } from 'react-diff-view'
 import 'react-diff-view/style/index.css'
 import AutocompleteTextarea from './TextArea'
-import { getUserCredit, isSettingsComplete, useIsAdmin, deductCredit } from '@/utils/auth'
+import { isSettingsComplete } from '@/utils/auth'
 import { shallow } from 'zustand/shallow'
 import TranslationManager from './TranslationManager'
 import QuotePreview from './QuotePreview'
@@ -422,14 +420,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         answers,
         setAnswers,
         selectedGroup,
-        userId,
-        setUserId,
-        setUserRole,
         messageId,
         conversationId,
         updateWordAnswer,
         addWordToFile,
         actions,
+        chatUser,
+        setUser,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -523,7 +520,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const scrollYRef = useRef<number>(0)
 
     const hasActivateAction = activateAction !== undefined
-    const { signOut } = useClerk()
 
     useLayoutEffect(() => {
         const handleResize = () => {
@@ -740,6 +736,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowUpdateModal(false)
     }
 
+
     useEffect(() => {
         if (!settings?.i18n) return
 
@@ -885,26 +882,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 e.stopPropagation()
             }
 
-            if (!isSettingComplete && !useIsAdmin) {
-                console.log('settings is not complete')
-                return
-            }
-
-            if (credits < 1 && !useIsAdmin) {
-                console.log('user is not enough credit')
-                // 选择填写自己的API key或者跳转到pricing页面购买
-                console.log('choose your api key or go to pricing page')
-                // 显示两个按钮，一个是填写自己的API key，一个是跳转到pricing页面
-                // 跳转到pricing页面
-                window.open('http://localhost:3001/pricing', '_blank')
-                return
-            }
-
-            console.log('submit is working')
-            if (!activateAction && !isOpenToAsk) {
-                console.debug('activateAction is null')
-                return
-            }
             forceTranslate()
         },
         [activateAction, forceTranslate]
@@ -970,7 +947,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }),
         shallow
     )
-    const [credits, setCredits] = useState(getUserCredit())
 
     // 设置语言
     useEffect(() => {
@@ -1341,9 +1317,19 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 return result
                             })
                         },
-                        onError: (error) => {
+                        onError: (error:any) => {
+                            if (error && typeof error === 'object') {
+                                console.log('忽略空对象错误')
+                                return
+                            }                
                             setActionStr('Error')
-                            setErrorMessage(error)
+                            console.log('error in translateText:', error)
+                            if (settings?.provider === 'Subscribe' && error && typeof error === 'object') {
+                                setIsNotLogin(true)
+                                setErrorMessage(t('余额不足或者时间到期，请在one-api中进行充值和设置') || '余额不足或者时间到期，请在one-api中进行充值和设置')
+                            } else {
+                                setErrorMessage(error.toString())
+                            }
                         },
                     },
                     engine,
@@ -1354,15 +1340,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     isStopped = true
                     return
                 }
+                if (error && typeof error === 'object') {
+                    console.log('忽略空对象错误')
+                    return
+                } 
                 setActionStr('Error')
                 setErrorMessage((error as Error).toString())
             } finally {
-                if (settings?.apiModel) {
-                    const newCredits = await deductCredit(userId, settings?.apiModel)
-                    console.log('newCredits', newCredits)
-                    console.log('apiModel', settings?.apiModel)
-                    setCredits(newCredits)
-                }
                 if (!isStopped) {
                     stopLoading()
                     isStopped = true
@@ -1589,7 +1573,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     {showFullQuoteText ? null : (
                                         <AutocompleteTextarea
                                             selectedActions={selectedActions}
-                                            credits={credits}
                                             isSettingComplete={isSettingComplete}
                                             onActionSelect={setAction}
                                             onChange={handlesetEditableText}
@@ -1599,11 +1582,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 </div>
                                 {showFullQuoteText ? null : (
                                     <div className={styles.actionButtonsContainer}>
-                                        <StatefulTooltip content={t('Sign out')} showArrow placement='top'>
-                                            <div className={styles.actionButton} onClick={() => signOut()}>
-                                                <GoSignOut size={20} />
-                                            </div>
-                                        </StatefulTooltip>
                                         <div style={{ marginLeft: 'auto' }}></div>
                                         {!!editableText.length && (
                                             <>
@@ -1826,12 +1804,33 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                         </>
                                     </div>
                                 )}
+                                {isNotLogin && settings?.provider === 'Subscribe' && (
+                                    <div
+                                        style={{
+                                            fontSize: '12px',
+                                            color: theme.colors.contentPrimary,
+                                        }}
+                                    >
+                                        <>
+                                            <span>{t('打开one-api进行充值')}: </span>
+                                            <a
+                                                href='https://tutor-chatgpt.zeabur.app/login'
+                                                target='_blank'
+                                                rel='noreferrer'
+                                                style={{
+                                                    color: theme.colors.contentSecondary,
+                                                }}
+                                            >
+                                                Login
+                                            </a>
+                                        </>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            {props.showSettings && (
                 <div className={styles.footer}>
                     <Tooltip content={showSettings ? t('Go to Translator') : t('Go to Settings')} placement='right'>
                         <div onClick={() => setShowSettings(!showSettings)}>
@@ -1839,7 +1838,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                         </div>
                     </Tooltip>
                 </div>
-            )}
 
             <Modal
                 isOpen={!isDesktopApp() && showActionManager}

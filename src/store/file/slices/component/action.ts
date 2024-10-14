@@ -18,6 +18,7 @@ export interface ComponentAction {
     refreshTextArea: () => void
     initializeSettings: () => void
     updateSettings: (newSettings: Partial<ISettings>) => void
+    setShowAuthModal: (isShow: boolean) => void
 }
 
 export const component: StateCreator<ComponentState, [['zustand/devtools', never]], [], ComponentAction> = (set) => ({
@@ -38,4 +39,5 @@ export const component: StateCreator<ComponentState, [['zustand/devtools', never
         set({ settings })
     },
     updateSettings: (newSettings: Partial<ISettings>) => set((state) => ({ settings: { ...state.settings, ...newSettings } })),
+    setShowAuthModal: (isShow) => set({ showAuthModal: isShow }),
 })
