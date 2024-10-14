@@ -1,19 +1,25 @@
-export interface User {
+export interface ChatUser {
     userId: string
     role: string
     apiKey: string
     isLogin: boolean
+    isFirstTimeUse: boolean
+    remainQuota?: number
+    expiredTime?: number
 }
 
 export interface ChatUserState {
-    user: User
+    chatUser: ChatUser
 }
 
 export const initialUserState: ChatUserState = {
-    user: {
+    chatUser: {
         userId: '',
         role: '',
         apiKey: '',
         isLogin: false,
+        isFirstTimeUse: true,
+        remainQuota: 0,
+        expiredTime: 0,
     },
 }

@@ -1,6 +1,7 @@
 import { ISettings } from '@/common/types'
 import { getUniversalFetch } from '@/common/universal-fetch'
-import { useUser, useAuth } from '@clerk/clerk-react'
+import { useChatStore } from '@/store/file/store'
+import { useUser } from '@clerk/clerk-react'
 
 export function useIsAdmin() {
     const { user } = useUser()
@@ -8,18 +9,7 @@ export function useIsAdmin() {
     return user?.publicMetadata?.role === 'admin' ?? false
 }
 
-export const getUserAuth = async () => {
-    const clerkAuth = useAuth()
 
-    const userId = clerkAuth.userId
-    return { userId }
-}
-
-const fetchUserData = async (userId: string) => {
-    const response = await fetch(`/api/user/${userId}`)
-    if (!response.ok) throw new Error('Failed to fetch user data')
-    return response.json()
-}
 
 export function useIsSubscriber() {
     const { user } = useUser()
@@ -111,30 +101,6 @@ async function updateExtensionUserState(data) {
     console.log('updateExtensionUserState', data)
 }
 
-// 更新creddits
-export async function deductCredit(userId: string, model: string): Promise<number> {
-    try {
-        const response = await fetch(`${process.env.VITE_API_URL}/api/deduct-credit`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId, model }),
-        })
-
-        if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || '扣除 credit 失败')
-        }
-
-        const { credits } = await response.json()
-        console.log('剩余 credits:', credits)
-        return credits
-    } catch (error) {
-        console.error('扣除 credit 时出错:', error)
-        throw error
-    }
-}
 
 export async function fetchUserInfo() {
     const userId = await getUserIdFromStorage()
@@ -158,5 +124,19 @@ export async function fetchUserInfo() {
     } catch (error) {
         console.error('Error fetching user info:', error)
         throw error
+    }
+}
+
+export const checkAuth = () => {
+    const chatUser = useChatStore.getState().chatUser
+    return chatUser.role !== 'guest'
+}
+
+export const requireAuth = (callback: () => void) => {
+    if (checkAuth()) {
+        callback()
+    } else {
+        // 显示登录/注册模态框
+        useChatStore.getState().setShowAuthModal(true)
     }
 }

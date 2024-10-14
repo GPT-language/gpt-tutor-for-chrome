@@ -1190,10 +1190,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
     const [currentStep, setCurrentStep] = useState(0)
 
     const isTauri = utils.isTauri()
-
     const [loading, setLoading] = useState(false)
     const [values, setValues] = useState<ISettings>({
-        isFirstTimeUse: utils.isFirstTimeUse,
         chatgptArkoseReqUrl: '',
         chatgptArkoseReqForm: '',
         apiKeys: '',
@@ -1332,13 +1330,19 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
     }, [currentStep])
 
     const { user, isLoaded, refreshClerkUser } = useClerkUser()
-    const [role, setRole] = useState(user?.publicMetadata.role)
-    const [apiKey, setApiKey] = useState(user?.publicMetadata.token as string)
-    const [remainQuota, setRemainQuota] = useState(user?.publicMetadata.remain_quota)
-    const [expiredTime, setExpiredTime] = useState(user?.publicMetadata.expired_time)
+    const {chatUser} = useChatStore()
     const [loadingAPIKey, setLoadingAPIKey] = useState(false)
+    const showAuthModal = useChatStore.getState().showAuthModal
+
+
     const getAndSaveAPIKey = useCallback(
         async (provider: string) => {
+            if (!isLoaded || !user) {
+                toast.error(`User not logged in`)
+                // 如果未登录，显示登录模态框
+                useChatStore.getState().setShowAuthModal(true)
+                return
+            }
             if (loadingAPIKey) {
                 return
             }
@@ -1349,32 +1353,31 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     console.log('user is:', user.id)
                     console.log('isLoaded is:', isLoaded)
                     const res = await utils.getFreeApiKey(user.id, user.id.substring(5), 1000000)
-                    setApiKey(res.apiKey)
-                    setRole(res.role)
-                    setRemainQuota(res.remainQuota)
-                    setExpiredTime(res.expired_time)
+                    useChatStore.getState().setUser({
+                        apiKey: res.apiKey,
+                        role: res.role,
+                        remainQuota: res.remainQuota,
+                        expiredTime: res.expired_time,
+                        isFirstTimeUse: false,
+                    })
                     // 更新本地状态
                     setValues((prevValues) => ({
                         ...prevValues,
-                        [`${provider.toLowerCase()}APIKey`]:  apiKey,
+                        [`${provider.toLowerCase()}APIKey`]:  res.apiKey,
                         [provider] : 'Subscribe'
                     }))
 
                     // 保存到设置
                     await utils.setSettings({
                         ...values,
-                        [`${provider.toLowerCase()}APIKey`]:  apiKey,
+                        [`${provider.toLowerCase()}APIKey`]:  res.apiKey,
                         provider: 'Subscribe',
                     })
 
-                    // 更新到用户界面
-                    refreshClerkUser()
-                    console.log('apiKey is:', apiKey)
-                    toast.success(`Subscription successful`)
-                } else {
-                    toast.error(`User not logged in`)
-                }
 
+                    console.log('apiKey is:', res.apiKey)
+                    toast.success(`Subscription successful`)
+                } 
                 // 这里可以添加一个 toast 通知或其他用户反馈机制
             } catch (error) {
                 console.error(`获取 ${provider} API Key 失败:`, error)
@@ -1382,10 +1385,38 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 // 这里可以添加错误处理，比如显示一个错误消息
             } finally {
                 setLoadingAPIKey(false)
+                // 更新到用户界面
+                refreshClerkUser()
             }
         },
-        [values]
+        [values, user, isLoaded, refreshClerkUser]
     )
+
+    useEffect(() => {
+        if (showAuthModal) {
+            // 如果 AuthModal 正在显示，不执行任何操作
+            return
+        }
+
+        if (!settings) {
+            console.error('settings is not set:')
+            return
+        }
+
+        // 这里还需要处理provider为chatgpt web、Kimi、ChatGLM的情况
+
+        if (user && isLoaded && !chatUser.apiKey) {
+            // 用户已登录，且 API Key 尚未获取
+            getAndSaveAPIKey('Subscribe')
+                .then(() => {
+                    console.log('API Key saved')
+                })
+                .catch((error) => {
+                    console.error('Failed to get API Key:', error)
+                    // 可以在这里添加错误处理逻辑
+                })
+        }
+    }, [showAuthModal, user, isLoaded, getAndSaveAPIKey])
 
     const isDesktopApp = utils.isDesktopApp()
     const isMacOS = navigator.userAgent.includes('Mac OS X')
@@ -1622,44 +1653,59 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             title: t('没有API Key'),
             content: (
                 <div>
-                    {apiKey === '' || apiKey === undefined ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                            <strong>{t('点击开始免费试用。免费试用三天后，再决定是否订阅。')}</strong>
-                            <SpacedButton isLoading={loadingAPIKey} disabled={loadingAPIKey} onClick={() => getAndSaveAPIKey('Subscribe')}>{t('开始免费试用')}</SpacedButton>
-                        </div>
-                    ) : (
-                        <div>
-                            {loadingAPIKey ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px' }}>
-            <Spinner $size={50} />
-        </div>
-    ) : (
-        <>
-            <Notification closeable>{t('选择模型，完成最后的设置')}</Notification>
-            <Form form={form} initialValues={values} onValuesChange={onInputChange}>
-                <FormItem
-                    name='subscribeAPIModel'
-                    label={t('API Model')}
-                    required={values.provider === 'Subscribe'}
+        {!chatUser.apiKey ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <strong>{t('点击开始免费试用。免费试用三天后，再决定是否订阅。')}</strong>
+                <SpacedButton 
+                    isLoading={loadingAPIKey} 
+                    disabled={loadingAPIKey} 
+                    onClick={() => getAndSaveAPIKey('Subscribe')}
                 >
-                    <APIModelSelector
-                        provider='Subscribe'
-                        currentProvider={values.provider}
-                        apiKey={values.subscribeAPIKey}
-                        value={values.subscribeAPIModel}
-                        onBlur={onBlur}
-                    />
-                </FormItem>
-            </Form>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <SpacedButton onClick={async () => await handleSave()}>{t('完成设置')}</SpacedButton>
+                    {t('开始免费试用')}
+                </SpacedButton>
             </div>
-        </>
-    )}
-                        </div>
-                    )}
+        ) : (
+            <>
+                <Notification closeable>{t('选择模型，完成最后的设置')}</Notification>
+                <Form form={form} initialValues={values} onValuesChange={onInputChange}>
+                    <FormItem
+                        name='subscribeAPIModel'
+                        label={t('API Model')}
+                        required={values.provider === 'Subscribe'}
+                    >
+                        <APIModelSelector
+                            provider='Subscribe'
+                            currentProvider={values.provider}
+                            apiKey={values.subscribeAPIKey}
+                            value={values.subscribeAPIModel}
+                            onBlur={onBlur}
+                        />
+                    </FormItem>
+                </Form>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <SpacedButton onClick={async () => await handleSave()}>
+                        {t('完成设置')}
+                    </SpacedButton>
                 </div>
-            ),
+            </>
+        )}
+        {loadingAPIKey && (
+            <div style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                bottom: 0, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                background: 'rgba(255, 255, 255, 0.7)' 
+            }}>
+                <Spinner $size={50} />
+            </div>
+        )}
+    </div>
+)
         },
         {
             title: t('填入自己的API Key'),
@@ -2340,10 +2386,10 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
     const handleSave = async () => {
         try {
             setLoading(true)
-            await onSubmit({ ...values, isFirstTimeUse: false })
-            useChatStore.setState({
-                showSettings: false,
-            })
+            await onSubmit({ ...values })
+            useChatStore.setState((state) => ({
+                showSettings: false
+            }))
         } catch (error) {
             console.error(error)
         } finally {
@@ -2365,7 +2411,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
     return (
         <div
             style={{
-                paddingTop: values.isFirstTimeUse || utils.isBrowserExtensionOptions() ? undefined : '136px',
+                paddingTop: chatUser.isFirstTimeUse || utils.isBrowserExtensionOptions() ? undefined : '136px',
                 paddingBottom: utils.isBrowserExtensionOptions() ? undefined : '32px',
                 background: isDesktopApp ? 'transparent' : theme.colors.backgroundPrimary,
                 minWidth: isDesktopApp ? 450 : 400,
@@ -2376,7 +2422,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         >
             <nav
                 style={{
-                    display: values.isFirstTimeUse ? 'none' : 'flex',
+                    display: chatUser.isFirstTimeUse ? 'none' : 'flex',
                     position: utils.isBrowserExtensionOptions() ? 'sticky' : 'fixed',
                     left: 0,
                     top: 0,
@@ -2503,7 +2549,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 </Tabs>
             </nav>
 
-            {!values.isFirstTimeUse ? (
+            {chatUser.isFirstTimeUse ? (
                 <Card>
                     <StyledBody>
                         <ProgressSteps current={currentStep}>
