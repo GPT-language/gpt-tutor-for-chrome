@@ -5,6 +5,8 @@ import { useChatStore } from '@/store/file/store'
 import { Button } from 'baseui-sd/button'
 import { Input } from 'baseui-sd/input'
 import { useTranslation } from 'react-i18next'
+import { Notification, KIND } from 'baseui-sd/notification'
+import { Spinner } from 'baseui-sd/spinner'
 
 export const AuthModal = () => {
     const [isOpen, setIsOpen] = useState(true)
@@ -13,12 +15,13 @@ export const AuthModal = () => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [verificationCode, setVerificationCode] = useState('')
+    const [error, setError] = useState<string | null>(null)
+    const [isLoading, setIsLoading] = useState(false)
     const setShowAuthModal = useChatStore((state) => state.setShowAuthModal)
     const setChatUser = useChatStore((state) => state.setUser)
     const clerk = useClerk()
     const { t } = useTranslation()
 
-    // 1️⃣ 关闭模态框并更新用户状态
     const closeModal = useCallback(() => {
         setIsOpen(false)
         setShowAuthModal(false)
@@ -35,8 +38,9 @@ export const AuthModal = () => {
         }
     }, [clerk.user, setShowAuthModal, setChatUser])
 
-    // 2️⃣ 处理登录
     const handleSignIn = useCallback(async () => {
+        setError(null)
+        setIsLoading(true)
         try {
             const signIn = await clerk.client.signIn.create({
                 identifier: email,
@@ -49,11 +53,15 @@ export const AuthModal = () => {
             }
         } catch (error) {
             console.error('登录错误:', error)
-            // 这里可以添加错误处理逻辑，比如显示错误消息
+            setError(t('邮箱或密码错误，请重试'))
+        } finally {
+            setIsLoading(false)
         }
-    }, [clerk, email, password, closeModal])
+    }, [clerk, email, password, closeModal, t])
 
     const handleSignUp = useCallback(async () => {
+        setError(null)
+        setIsLoading(true)
         try {
             const signUp = await clerk.client.signUp.create({
                 emailAddress: email,
@@ -64,21 +72,23 @@ export const AuthModal = () => {
                 await clerk.setActive({ session: signUp.createdSessionId })
                 closeModal()
             } else if (signUp.status === 'missing_requirements') {
-                // 检查是否需要验证电子邮件
                 if (signUp.unverifiedFields.includes('email_address')) {
-                    // 发送验证邮件
                     await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
                     setVerificationStep('email_sent')
                 }
             }
         } catch (error) {
             console.error('注册错误:', error)
-            // 这里可以添加错误处理逻辑，比如显示错误消息
+            setError(t('注册失败，请重试'))
+        } finally {
+            setIsLoading(false)
         }
-    }, [clerk, email, password, closeModal])
+    }, [clerk, email, password, closeModal, t])
 
     const handleEmailVerification = useCallback(
         async (code: string) => {
+            setError(null)
+            setIsLoading(true)
             try {
                 const signUp = await clerk.client.signUp.attemptEmailAddressVerification({
                     code,
@@ -88,52 +98,63 @@ export const AuthModal = () => {
                     await clerk.setActive({ session: signUp.createdSessionId })
                     closeModal()
                 } else {
-                    // 处理其他状态
-                    console.log('验证未完成:', signUp.status)
+                    setError(t('验证未完成，请重试'))
                 }
             } catch (error) {
                 console.error('邮箱验证错误:', error)
+                setError(t('验证码错误，请重试'))
+            } finally {
+                setIsLoading(false)
             }
         },
-        [clerk, closeModal]
+        [clerk, closeModal, t]
     )
 
-    // 4️⃣ 渲染表单
     const renderForm = () => {
         if (mode === 'signin') {
             return (
                 <>
-                    <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder='邮箱' type='email' />
+                    <Input
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder={t('邮箱') || '邮箱'}
+                        type='email'
+                    />
                     <Input
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder={t('密码') || 'password'}
+                        placeholder={t('密码') || '密码'}
                         type='password'
                     />
-                    <Button kind='secondary' onClick={handleSignIn} style={{ marginTop: '16px' }}>
-                        {t('登录')}
+                    <Button kind='secondary' onClick={handleSignIn} isLoading={isLoading} style={{ marginTop: '16px' }}>
+                        {isLoading ? <Spinner /> : t('登录')}
                     </Button>
                 </>
             )
         } else if (verificationStep === 'initial') {
             return (
                 <>
-                    <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder='邮箱' type='email' />
+                    <Input
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder={t('邮箱') || '邮箱'}
+                        type='email'
+                    />
                     <Input
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder={t('密码') || 'password'}
+                        placeholder={t('密码') || '密码'}
                         type='password'
                     />
-                    <Button onClick={handleSignUp} kind='secondary' style={{ marginTop: '16px' }}>
-                        {t('注册')}
+                    <Button onClick={handleSignUp} kind='secondary' isLoading={isLoading} style={{ marginTop: '16px' }}>
+                        {isLoading ? <Spinner /> : t('注册')}
                     </Button>
                 </>
             )
         } else if (verificationStep === 'email_sent') {
             return (
                 <>
-                    <p>验证邮件已发送，请输入验证码：</p>
+                    <p>{t('验证邮件已发送，请输入验证码：')}</p>
                     <Input
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value)}
@@ -143,9 +164,10 @@ export const AuthModal = () => {
                     <Button
                         onClick={() => handleEmailVerification(verificationCode)}
                         kind='secondary'
+                        isLoading={isLoading}
                         style={{ marginTop: '16px' }}
                     >
-                        {t('验证')}
+                        {isLoading ? <Spinner /> : t('验证')}
                     </Button>
                 </>
             )
@@ -156,11 +178,19 @@ export const AuthModal = () => {
         <Modal onClose={closeModal} isOpen={isOpen}>
             <ModalHeader>{mode === 'signin' ? t('登录') : t('注册')}</ModalHeader>
             <ModalBody>
+                {error && (
+                    <Notification kind={KIND.negative} closeable onClose={() => setError(null)}>
+                        {error}
+                    </Notification>
+                )}
                 {renderForm()}
                 <Button
-                    kind='secondary'
-                    style={{ display: 'flex-end', marginTop: '16px', gap: '16px' }}
-                    onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+                    kind='tertiary'
+                    style={{ marginTop: '16px' }}
+                    onClick={() => {
+                        setMode(mode === 'signin' ? 'signup' : 'signin')
+                        setError(null)
+                    }}
                 >
                     {mode === 'signin' ? t('切换到注册') : t('切换到登录')}
                 </Button>
