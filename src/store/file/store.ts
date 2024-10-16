@@ -12,6 +12,8 @@ import { chatWord, ChatWordAction } from './slices/word/action'
 import { createHyperStorage } from './middleware/createHyperStorage'
 import { createActionSlice, ActionSlice } from './slices/action/action'
 import { createDevtools } from './middleware/createDevtools'
+import { SavedFile, Word } from '@/common/internal-services/db'
+import toast from 'react-hot-toast'
 
 declare global {
     interface Window {
@@ -48,7 +50,7 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
 
     skipHydration: false,
 
-    version: 10,
+    version: 11,
 
     storage: createHyperStorage({
         localStorage: {
@@ -66,6 +68,27 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
             ],
         },
     }),
+    migrate: (persistedState: any, version: number) => {
+        try {
+            if (version === 10) {
+                // 从版本 10 迁移到版本 11
+                return {
+                    ...persistedState,
+                    files: persistedState.files.map((file: SavedFile) => ({
+                        ...file,
+                        words: file.words.map((word: Word) => {
+                            const { fileId, ...restWord } = word
+                            return restWord
+                        }),
+                    })),
+                }
+            }
+        } catch (error) {
+            toast.error('数据迁移失败，请联系支持团队。')
+            console.error('Error migrating state:', error)
+        }
+        return persistedState
+    },
 }
 
 //  ===============  实装 useStore ============ //

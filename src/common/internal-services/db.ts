@@ -18,6 +18,8 @@ export interface Action {
     createdAt: string
     parentIds?: number[]
     childrenIds?: number[]
+    useBackgroundInfo?: boolean
+    uselanguageLevelInfo?: boolean
 }
 
 export interface FollowUpAnswer {
@@ -53,7 +55,6 @@ export interface Word {
     lastReviewed?: Date
     nextReview?: Date
     reviewCount: number
-    fileId?: number
     completed?: boolean
     inHistory?: boolean
     inReview?: boolean
