@@ -108,7 +108,6 @@ const CategorySelector = () => {
             const category = activeKey.toString()
             if (category === 'more') return
             setSelectedGroup(category)
-            localStorage.setItem('selectedGroup', category)
             loadFiles(category)
             setTimeout(updateVisibleTabs, 0)
         },

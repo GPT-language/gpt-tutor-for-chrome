@@ -17,15 +17,7 @@ export interface ChatState {
     reviewIntervals: number[]
 }
 
-function getFromStorage(key: string, defaultValue: unknown) {
-    const item = localStorage.getItem(key)
-    try {
-        return item ? JSON.parse(item) : defaultValue
-    } catch (error) {
-        console.error('Error parsing JSON from localStorage for key:', key, error)
-        return defaultValue // 返回默认值或执行其他错误处理
-    }
-}
+
 
 export const initialChatState: ChatState = {
     editableText: '',
@@ -41,5 +33,5 @@ export const initialChatState: ChatState = {
     activatedProvider: '',
     accessToken: '',
     actionStr: '',
-    reviewIntervals: getFromStorage('reviewIntervals', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+    reviewIntervals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 }

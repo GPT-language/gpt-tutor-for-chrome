@@ -93,11 +93,10 @@ async function updateExtensionUserState(data) {
 
 export async function fetchUserInfo() {
     const userId = await getUserIdFromStorage()
-    const fetcher = getUniversalFetch()
     const url = `http://localhost:3000/api/user/${userId}`
 
     try {
-        const response = await fetcher(url, {
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

@@ -14,9 +14,8 @@ export class Groq extends AbstractOpenAI {
         if (!apiKey) {
             return []
         }
-        const fetcher = getUniversalFetch()
         const settings = await getSettings()
-        const resp = await fetcher(`${settings.groqAPIURL}/openai/v1/models`, {
+        const resp = await fetch(`${settings.groqAPIURL}/openai/v1/models`, {
             cache: 'no-cache',
             headers: {
                 'Content-Type': 'application/json',

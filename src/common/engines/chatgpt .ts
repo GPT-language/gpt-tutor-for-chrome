@@ -27,8 +27,7 @@ export async function getArkoseToken() {
                 "Please keep https://chat.openai.com open and try again. If it still doesn't work, type some characters in the input box of chatgpt web page and try again."
         )
     }
-    const fetcher = getUniversalFetch()
-    const arkoseToken = await fetcher(config[keyChatgptArkoseReqUrl] + '?' + chatgptArkoseReqParams, {
+    const arkoseToken = await fetch(config[keyChatgptArkoseReqUrl] + '?' + chatgptArkoseReqParams, {
         method: 'POST',
         body: config[keyChatgptArkoseReqForm],
         headers: {
@@ -52,8 +51,7 @@ export async function getArkoseToken() {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body?: any) {
-    const fetcher = getUniversalFetch() // Assuming getUniversalFetch returns the global fetch
-    const response = await fetcher(`https://chatgpt.com/backend-api${endpoint}`, {
+    const response = await fetch(`https://chatgpt.com/backend-api${endpoint}`, {
         method: method,
         headers: {
             'Content-Type': 'application/json',
@@ -154,13 +152,12 @@ export async function registerWebsocket(accessToken: string): Promise<{ wss_url:
 }
 
 export async function listModels(): Promise<IModel[]> {
-    const fetcher = getUniversalFetch()
     const accessToken = await utils.getAccessToken(true)
 
     const headers: Record<string, string> = {
         Authorization: `Bearer ${accessToken}`,
     }
-    const modelsResp = await fetcher(`${utils.defaultChatGPTWebAPI}/models`, {
+    const modelsResp = await fetch(`${utils.defaultChatGPTWebAPI}/models`, {
         cache: 'no-cache',
         headers,
     })
@@ -275,13 +272,12 @@ export class ChatGPT extends AbstractEngine {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async listModels(apiKey_: string | undefined): Promise<IModel[]> {
-        const fetcher = getUniversalFetch()
         const accessToken = await utils.getAccessToken(true)
 
         const headers: Record<string, string> = {
             Authorization: `Bearer ${accessToken}`,
         }
-        const modelsResp = await fetcher(`${utils.defaultChatGPTWebAPI}/models`, {
+        const modelsResp = await fetch(`${utils.defaultChatGPTWebAPI}/models`, {
             cache: 'no-cache',
             headers,
         })

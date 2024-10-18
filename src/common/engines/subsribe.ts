@@ -3,7 +3,7 @@ import { fetchSSE, getSettings } from '../utils'
 import { AbstractEngine } from './abstract-engine'
 import { IModel, IMessageRequest } from './interfaces'
 
-export class Subscribe extends AbstractEngine {
+export class OneAPI extends AbstractEngine {
     supportCustomModel(): boolean {
         return true
     }
@@ -22,7 +22,7 @@ export class Subscribe extends AbstractEngine {
 
     async getModel(): Promise<string> {
         const settings = await getSettings()
-        return settings.subscribeAPIModel || 'gpt-3.5-turbo'
+        return settings.OneAPIAPIModel || 'gpt-3.5-turbo'
     }
 
     async listModels(apiKey: string | undefined): Promise<IModel[]> {
@@ -30,13 +30,12 @@ export class Subscribe extends AbstractEngine {
         // TODO: use correct url
         const url = 'http://localhost:3000/api/models'
         const headers = {
-            Authorization: `Bearer ${apiKey || settings.subscribeAPIKey}`,
+            Authorization: `Bearer ${apiKey || settings.OneAPIAPIKey}`,
         }
 
-        const fetcher = getUniversalFetch()
 
         try {
-            const response = await fetcher(url, { headers })
+            const response = await fetch(url, { headers })
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
@@ -49,14 +48,14 @@ export class Subscribe extends AbstractEngine {
                 }
             })
         } catch (error) {
-            console.error('Error fetching Subscribe models:', error)
+            console.error('Error fetching OneAPI models:', error)
             return []
         }
     }
 
     async sendMessage(req: IMessageRequest): Promise<void> {
         const settings = await getSettings()
-        const apiKey = settings.subscribeAPIKey
+        const apiKey = settings.OneAPIAPIKey
         const model = await this.getModel()
         // TODO: use correct url
         const url = 'https://tutor-chatgpt.zeabur.app/v1/chat/completions'

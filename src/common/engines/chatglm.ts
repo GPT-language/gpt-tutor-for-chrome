@@ -43,10 +43,9 @@ export class ChatGLM extends AbstractEngine {
 
         const headers = await this.getHeaders()
 
-        const fetcher = getUniversalFetch()
 
         headers['Authorization'] = `Bearer ${settings.chatglmRefreshToken}`
-        const refreshResp = await fetcher('https://chatglm.cn/chatglm/backend-api/v1/user/refresh', {
+        const refreshResp = await fetch('https://chatglm.cn/chatglm/backend-api/v1/user/refresh', {
             method: 'POST',
             headers,
             body: JSON.stringify({}),
@@ -69,7 +68,6 @@ export class ChatGLM extends AbstractEngine {
     async sendMessage(req: IMessageRequest): Promise<void> {
         const settings = await getSettings()
         const refreshToken = settings.chatglmRefreshToken
-        const fetcher = getUniversalFetch()
 
         const assistantID = '65940acff94777010aa6b796'
         const conversationTitle = 'OpenAI Translator'
@@ -78,7 +76,7 @@ export class ChatGLM extends AbstractEngine {
 
         const headers = await this.getHeaders()
 
-        const conversationListResp = await fetcher(
+        const conversationListResp = await fetch(
             `https://chatglm.cn/chatglm/backend-api/assistant/conversation/list?${qs.stringify({
                 assistant_id: assistantID,
                 page: 1,

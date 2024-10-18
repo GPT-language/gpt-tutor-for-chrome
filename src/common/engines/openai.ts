@@ -25,16 +25,23 @@ export class OpenAI extends AbstractOpenAI {
         }
         const settings = await getSettings()
         const url = 'https://api.openai.com/v1/models'
-        console.log('apiKey', apiKey)
-        console.log('settings.apiKey', settings.apiKey)
+        console.log('OpenAI - API Key:', apiKey ? '设置了' : '未设置')
+        console.log('OpenAI - Settings API Key:', settings.apiKey ? '设置了' : '未设置')
         const headers = {
             Authorization: `Bearer ${apiKey || settings.apiKey}`,
         }
 
-        const fetcher = getUniversalFetch()
+        console.log('OpenAI - 请求 URL:', url)
+        console.log('OpenAI - 请求头:', headers)
+
 
         try {
-            const response = await fetcher(url, { headers })
+            console.log('OpenAI - 开始请求模型列表')
+            const response = await new Promise<Response>((resolve, reject) => {
+                fetch(url, { headers }).then(resolve).catch(reject)
+                console.log('OpenAI - Fetch 请求已发出')
+            })
+            console.log('OpenAI - 收到响应，状态码:', response.status)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
@@ -44,7 +51,7 @@ export class OpenAI extends AbstractOpenAI {
                 name: model.id,
             }))
         } catch (error) {
-            console.error('Error fetching models:', error)
+            console.error('OpenAI - 获取模型时出错:', error)
             throw error
         }
     }

@@ -13,28 +13,33 @@ export class OpenRouter extends AbstractEngine {
         return settings.openRouterAPIModel
     }
 
-    async listModels(apiKey: string | undefined): Promise<IModel[]> {
+    async listModels(apiKey_: string | undefined): Promise<IModel[]> {
+        const apiKey = apiKey_
         const settings = await getSettings()
         const url = 'https://openrouter.ai/api/v1/models'
+        console.log('OpenAI - API Key:', apiKey ? '设置了' : '未设置')
+        console.log('OpenAI - Settings API Key:', settings.apiKey ? '设置了' : '未设置')
         const headers = {
-            Authorization: `Bearer ${apiKey || settings.openRouterAPIKey}`,
+            Authorization: `Bearer ${apiKey || settings.apiKey}`,
         }
 
-        const fetcher = getUniversalFetch()
+
 
         try {
-            const response = await fetcher(url, { headers })
+            console.log('OpenAI - 开始请求模型列表')
+            const response = await fetch(url, { headers })
+            console.log('OpenAI - 收到响应，状态码:', response.status)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             const data = await response.json()
             return data.data.map((model: IModel) => ({
                 id: model.id,
-                name: model.name,
+                name: model.id,
             }))
         } catch (error) {
-            console.error('Error fetching OpenRouter models:', error)
-            return []
+            console.error('OpenAI - 获取模型时出错:', error)
+            throw error
         }
     }
 

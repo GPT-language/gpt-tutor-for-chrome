@@ -9,11 +9,10 @@ export const keyKimiRefreshToken = 'kimi-refresh-token'
 
 export class Kimi extends AbstractEngine {
     async checkLogin(): Promise<boolean> {
-        const fetcher = getUniversalFetch()
 
         const headers = await this.getHeaders()
 
-        const resp = await fetcher('https://kimi.moonshot.cn/api/user', {
+        const resp = await fetch('https://kimi.moonshot.cn/api/user', {
             method: 'GET',
             headers,
         })
@@ -56,13 +55,12 @@ export class Kimi extends AbstractEngine {
 
     async sendMessage(req: IMessageRequest): Promise<void> {
         const settings = await getSettings()
-        const fetcher = getUniversalFetch()
 
         req.onStatusCode?.(200)
 
         const headers = await this.getHeaders()
 
-        let createChatResp = await fetcher('https://kimi.moonshot.cn/api/chat', {
+        let createChatResp = await fetch('https://kimi.moonshot.cn/api/chat', {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -74,7 +72,7 @@ export class Kimi extends AbstractEngine {
         if (createChatResp.status === 401) {
             if (isDesktopApp() && settings.kimiRefreshToken) {
                 headers['Authorization'] = `Bearer ${settings.kimiRefreshToken}`
-                const refreshResp = await fetcher('https://kimi.moonshot.cn/api/auth/token/refresh', {
+                const refreshResp = await fetch('https://kimi.moonshot.cn/api/auth/token/refresh', {
                     method: 'GET',
                     headers,
                 })
@@ -87,7 +85,7 @@ export class Kimi extends AbstractEngine {
                         kimiRefreshToken: data.refresh_token,
                         kimiAccessToken: data.access_token,
                     })
-                    createChatResp = await fetcher('https://kimi.moonshot.cn/api/chat', {
+                    createChatResp = await fetch('https://kimi.moonshot.cn/api/chat', {
                         method: 'POST',
                         headers,
                         body: JSON.stringify({

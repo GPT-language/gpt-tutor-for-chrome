@@ -25,7 +25,8 @@ import { DeepSeekIcon } from '@/common/components/icons/DeepSeekIcon'
 import { DeepSeek } from './deepseek'
 import { OpenRouter } from './openrouter'
 import { OpenRouterIcon } from '@/common/components/icons/OpenRouterIcon'
-import { Subscribe } from './subsribe'
+import { OneAPIIcon } from '@/common/components/icons/OneAPIIcon'
+import { OneAPI } from './subsribe'
 export type Provider =
     | 'OpenAI'
     | 'ChatGPT'
@@ -40,7 +41,7 @@ export type Provider =
     | 'ChatGLM'
     | 'DeepSeek'
     | 'OpenRouter'
-    | 'Subscribe'
+    | 'OneAPI'
 export const engineIcons: Record<Provider, IconType> = {
     OpenAI: RiOperaFill,
     ChatGPT: RiOperaFill,
@@ -55,7 +56,7 @@ export const engineIcons: Record<Provider, IconType> = {
     ChatGLM: ChatGLMIcon,
     DeepSeek: DeepSeekIcon,
     OpenRouter: OpenRouterIcon,
-    Subscribe: OpenRouterIcon,
+    OneAPI: OneAPIIcon,
 }
 
 export const providerToEngine: Record<Provider, { new (): IEngine }> = {
@@ -72,7 +73,7 @@ export const providerToEngine: Record<Provider, { new (): IEngine }> = {
     ChatGLM: ChatGLM,
     DeepSeek: DeepSeek,
     OpenRouter: OpenRouter,
-    Subscribe: Subscribe,
+    OneAPI: OneAPI,
 }
 
 export function getEngine(provider: Provider): IEngine {
