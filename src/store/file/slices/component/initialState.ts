@@ -1,4 +1,4 @@
-import { ISettings } from "@/common/types"
+import { ISettings } from '@/common/types'
 
 export interface ComponentState {
     showSettings: boolean
@@ -18,6 +18,8 @@ export interface ComponentState {
 }
 
 const defaultSettings: ISettings = {
+    chatContext: false,
+    defaultYouglishLanguage: 'en',
     isFirstTimeUse: true,
     chatgptArkoseReqUrl: '',
     chatgptArkoseReqForm: '',
@@ -25,7 +27,7 @@ const defaultSettings: ISettings = {
     apiURL: 'https://api.openai.com',
     apiURLPath: '/v1/chat/completions',
     apiModel: 'gpt-3.5-turbo',
-    provider: 'Subscribe',
+    provider: 'OneAPI',
     chatgptModel: 'text-davinci-002-render-sha',
     azureAPIKeys: '',
     azureAPIURL: '',
@@ -47,7 +49,7 @@ const defaultSettings: ISettings = {
     defaultTargetLanguage: 'zh-Hans',
     defaultSourceLanguage: ['en'],
     languageLevel: '',
-    userPrompt: '',
+    userBackground: '',
     alwaysShowIcons: true,
     hotkey: '',
     displayWindowHotkey: '',
@@ -102,8 +104,8 @@ const defaultSettings: ISettings = {
     deepSeekAPIModel: '',
     openRouterAPIKey: '',
     openRouterAPIModel: '',
-    subscribeAPIKey: '',
-    subscribeAPIModel: 'gpt-4o',
+    OneAPIAPIKey: '',
+    OneAPIAPIModel: 'gpt-4o',
     fontSize: 15,
     uiFontSize: 12,
     iconSize: 15,

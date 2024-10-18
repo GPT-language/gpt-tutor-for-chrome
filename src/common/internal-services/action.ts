@@ -12,6 +12,8 @@ export interface ICreateActionOption {
     rolePrompt?: string
     commandPrompt?: string
     outputRenderingFormat?: ActionOutputRenderingFormat
+    useBackgroundInfo?: boolean
+    useLanguageLevelInfo?: boolean
 }
 
 export interface IUpdateActionOption {
@@ -25,4 +27,6 @@ export interface IUpdateActionOption {
     rolePrompt?: string
     commandPrompt?: string
     outputRenderingFormat?: ActionOutputRenderingFormat
+    useBackgroundInfo?: boolean
+    useLanguageLevelInfo?: boolean
 }

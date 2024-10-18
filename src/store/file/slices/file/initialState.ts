@@ -6,17 +6,7 @@ export interface ChatFileState {
     files: SavedFile[]
 }
 
-function getFromStorage(key: string, defaultValue: unknown) {
-    const item = localStorage.getItem(key)
-    if (item === null) return defaultValue
-    if (typeof defaultValue === 'string') return item
-    try {
-        return JSON.parse(item)
-    } catch (error) {
-        console.error('Error parsing JSON from localStorage for key:', key, error)
-        return defaultValue
-    }
-}
+
 
 function getFromChromeStorage<T>(key: string, defaultValue: T): Promise<T> {
     return new Promise((resolve) => {
@@ -58,7 +48,7 @@ function getObjectFromChromeStorage<T>(key: string, defaultValue: T): Promise<T>
 
 export const initialFileState: ChatFileState = {
     selectedFiles: [],
-    currentFileId: getNumberFromStorage('currentFileId', 0),
+    currentFileId: 0,
     currentPage: 1,
     files: [],
 }

@@ -99,21 +99,21 @@ const specifiedLangCodes = [
 ]
 
 const inputLanguageLevels: Value = [
-    { id: 'level0', label: t('完全零基础') },
-    { id: 'level1', label: t('幼儿园') },
-    { id: 'level2', label: t('小学') },
-    { id: 'level3', label: t('中学') },
-    { id: 'level4', label: t('大学') },
-    { id: 'level5', label: t('研究生') },
+    { id: 'Level0', label: t('完全零基础') },
+    { id: 'Level1', label: t('幼儿园') },
+    { id: 'Level2', label: t('小学') },
+    { id: 'Level3', label: t('中学') },
+    { id: 'Level4', label: t('大学') },
+    { id: 'Level5', label: t('研究生') },
 ]
 
 const outputLanguageLevels: Value = [
-    { id: 'level0', label: t('完全零基础') },
-    { id: 'level1', label: t('幼儿园') },
-    { id: 'level2', label: t('小学') },
-    { id: 'level3', label: t('中学') },
-    { id: 'level4', label: t('大学') },
-    { id: 'level5', label: t('研究生') },
+    { id: 'Level0', label: t('完全零基础') },
+    { id: 'Level1', label: t('幼儿园') },
+    { id: 'Level2', label: t('小学') },
+    { id: 'Level3', label: t('中学') },
+    { id: 'Level4', label: t('大学') },
+    { id: 'Level5', label: t('研究生') },
 ]
 
 const yourglishLangOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
@@ -717,7 +717,7 @@ function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) 
                             setShowLangSelector(true)
                         }}
                     >
-                        {t('Add')}
+                        {t('Add Voice')}
                     </Button>
                 </div>
             </div>
@@ -1082,7 +1082,14 @@ function SpacedButton(props: ButtonProps) {
 function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorProps) {
     const { theme } = useTheme()
 
-    let overrides: SelectProps['overrides'] = undefined
+    let overrides: SelectProps['overrides'] = {
+        Dropdown: {
+            props: {
+                // 强制下拉菜单向下显示
+                popoverMargin: 0,
+            },
+        },
+    }
     if (hasPromotion && value !== 'OpenAI') {
         overrides = {
             ControlContainer: {
@@ -1095,7 +1102,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
 
     const options = utils.isDesktopApp()
         ? ([
-            { label: 'Subscribe', id: 'Subscribe' },
+              { label: 'OneAPI', id: 'OneAPI' },
               { label: 'OpenAI', id: 'OpenAI' },
               { label: `Kimi`, id: 'Kimi' },
               { label: `ChatGLM`, id: 'ChatGLM' },
@@ -1114,7 +1121,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
               id: Provider
           }[])
         : ([
-            { label: 'Subscribe', id: 'Subscribe' },
+              { label: 'OneAPI', id: 'OneAPI' },
               { label: 'OpenAI', id: 'OpenAI' },
               { label: `Kimi`, id: 'Kimi' },
               { label: `ChatGLM`, id: 'ChatGLM' },
@@ -1207,7 +1214,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         inputLanguageLevel:'',
         outputLanguageLevel:'',
         languageLevel: '',
-        userPrompt: '',
+        userBackground: '',
         alwaysShowIcons: !isTauri,
         hotkey: '',
         i18n: utils.defaulti18n,
@@ -1231,8 +1238,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         deepSeekAPIModel: '',
         openRouterAPIKey: '',
         openRouterAPIModel: '',
-        subscribeAPIKey: '',
-        subscribeAPIModel: '',
+        OneAPIAPIKey: '',
+        OneAPIAPIModel: '',
     })
 
     const [prevValues, setPrevValues] = useState<ISettings>(values)
@@ -1332,21 +1339,19 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
          // 更新本地状态
          setValues((prevValues) => ({
             ...prevValues,
-            provider: 'Subscribe'
+            provider: 'OneAPI'
         }))
 
         // 保存到设置
         await utils.setSettings({
             ...values,
-            provider: 'Subscribe',
+            provider: 'OneAPI',
         })
         window.open('https://tutor-chatgpt.zeabur.app/login', '_blank')
     }, [currentStep])
 
     const {chatUser} = useChatStore()
     const [loadingAPIKey, setLoadingAPIKey] = useState(false)
-
-
 
     const isDesktopApp = utils.isDesktopApp()
     const isMacOS = navigator.userAgent.includes('Mac OS X')
@@ -1469,44 +1474,44 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 </>
             ),
         },
-        {
-            title: t('Language Level (Input) '),
-            content: (
-                <>
-                <Form form={form} initialValues={values} onValuesChange={onStepChange}>
-                    <StyledBody>
-                    <strong>{t('输入量是指你学习的关于这门语言的内容，比如词汇量，语法，阅读量。输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')} </strong> 
-                    </StyledBody>
-                    <FormItem name='languageLevel'>
-                        <LanguageLevelSelector onBlur={onStepBlur} type='input' />
-                    </FormItem>
-                </Form>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
-                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
-                    </div>
-                </>
-            ),
-        },
-        {
-            title: t('Language Level (Output) '),
-            content: (
-                <>
-                <Form form={form} initialValues={values} onValuesChange={onStepChange}>
-                    <StyledBody>
-                        <strong>{t('输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')}</strong>
-                    </StyledBody>
-                    <FormItem name='languageLevel'>
-                        <LanguageLevelSelector onBlur={onStepBlur} type='output' />
-                    </FormItem>
-                </Form>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
-                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
-                    </div>
-                </>
-            ),
-        },
+        // {
+        //     title: t('Language Level (Input) '),
+        //     content: (
+        //         <>
+        //         <Form form={form} initialValues={values} onValuesChange={onStepChange}>
+        //             <StyledBody>
+        //             <strong>{t('输入量是指你学习的关于这门语言的内容，比如词汇量，语法，阅读量。输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')} </strong> 
+        //             </StyledBody>
+        //             <FormItem name='languageLevel'>
+        //                 <LanguageLevelSelector onBlur={onStepBlur} type='input' />
+        //             </FormItem>
+        //         </Form>
+        //         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        //                 <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+        //                 <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+        //             </div>
+        //         </>
+        //     ),
+        // },
+        // {
+        //     title: t('Language Level (Output) '),
+        //     content: (
+        //         <>
+        //         <Form form={form} initialValues={values} onValuesChange={onStepChange}>
+        //             <StyledBody>
+        //                 <strong>{t('输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')}</strong>
+        //             </StyledBody>
+        //             <FormItem name='languageLevel'>
+        //                 <LanguageLevelSelector onBlur={onStepBlur} type='output' />
+        //             </FormItem>
+        //         </Form>
+        //         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        //                 <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+        //                 <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+        //             </div>
+        //         </>
+        //     ),
+        // },
         {
             title: t('About You'),
             content: (
@@ -1529,7 +1534,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             </li>
                         </ul>
                     </StyledBody>
-                    <FormItem name='userPrompt'>
+                    <FormItem name='userBackground'>
                         <Input
                             size='compact'
                             onBlur={onStepBlur}
@@ -1597,22 +1602,22 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 <Notification closeable>{t('输入复制的API Key，选择模型，完成设置')}</Notification>
                 <Form form={form} initialValues={values} onValuesChange={onInputChange}>
                 <FormItem
-                                required={values.provider === 'Subscribe'}
-                                name='subscribeAPIKey'
-                                label='Subscribe API Key'
+                                required={values.provider === 'OneAPI'}
+                                name='OneAPIAPIKey'
+                                label='OneAPI API Key'
                             >
                                 <Input autoFocus type='password' size='compact' onBlur={onBlur} aria-hidden={false} />
                             </FormItem>
                     <FormItem
-                        name='subscribeAPIModel'
+                        name='OneAPIAPIModel'
                         label={t('API Model')}
-                        required={values.provider === 'Subscribe'}
+                        required={values.provider === 'OneAPI'}
                     >
                         <APIModelSelector
-                            provider='Subscribe'
+                            provider='OneAPI'
                             currentProvider={values.provider}
-                            apiKey={values.subscribeAPIKey}
-                            value={values.subscribeAPIModel}
+                            apiKey={values.OneAPIAPIKey}
+                            value={values.OneAPIAPIModel}
                             onBlur={onBlur}
                         />
                     </FormItem>
@@ -2297,25 +2302,25 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                         </div>
                         <div
                             style={{
-                                display: values.provider === 'Subscribe' ? 'block' : 'none',
+                                display: values.provider === 'OneAPI' ? 'block' : 'none',
                             }}
                         >
                             <FormItem
-                                required={values.provider === 'Subscribe'}
-                                name='subscribeAPIKey'
-                                label='Subscribe API Key'
+                                required={values.provider === 'OneAPI'}
+                                name='OneAPIAPIKey'
+                                label='OneAPI API Key'
                             >
                                 <Input autoFocus type='password' size='compact' onBlur={onBlur} />
                             </FormItem>
                             <FormItem
-                                name='subscribeAPIModel'
+                                name='OneAPIAPIModel'
                                 label={t('API Model')}
-                                required={values.provider === 'Subscribe'}
+                                required={values.provider === 'OneAPI'}
                             >
                                 <APIModelSelector
-                                    provider='Subscribe'
+                                    provider='OneAPI'
                                     currentProvider={values.provider}
-                                    apiKey={values.subscribeAPIKey}
+                                    apiKey={values.OneAPIAPIKey}
                                     onBlur={onBlur}
                                 />
                             </FormItem>
@@ -2354,12 +2359,13 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
     return (
         <div
             style={{
-                paddingTop: chatUser.isFirstTimeUse || utils.isBrowserExtensionOptions() ? undefined : '136px',
-                paddingBottom: utils.isBrowserExtensionOptions() ? undefined : '32px',
+                paddingTop: chatUser.isFirstTimeUse || utils.isBrowserExtensionOptions() ? undefined : '121px',
+                paddingBottom: utils.isBrowserExtensionOptions() ? undefined : '21px',
                 background: isDesktopApp ? 'transparent' : theme.colors.backgroundPrimary,
                 minWidth: isDesktopApp ? 450 : 400,
                 maxHeight: utils.isUserscript() ? 'calc(100vh - 32px)' : undefined,
-                overflow: utils.isUserscript() ? 'auto' : undefined,
+                overflow: utils.isUserscript() ? 'auto' : 'hidden',
+                height: '100%',
             }}
             data-testid='settings-container'
         >
@@ -2474,8 +2480,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                         overrides={tabOverrides}
                     />
                     <Tab
-                        title={t('Shortcuts')}
-                        key='shortcuts'
+                        title={t('My Settings')}
+                        key='mySettings'
                         artwork={() => {
                             return <BsKeyboard size={14} />
                         }}
@@ -2484,7 +2490,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             Tab: {
                                 ...tabOverrides.Tab,
                                 props: {
-                                    'data-testid': 'shortcuts',
+                                    'data-testid': 'mySettings',
                                 },
                             },
                         }}
@@ -2546,7 +2552,18 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             }
                         >
                             <ProviderSelector />
+                        </FormItem>‘
+                        <div style={{display: values.provider ==='OneAPI' ? 'block' : 'none'}}>
+                        <FormItem>
+                            <Button
+                                onClick={() => window.open('https://openai-translator.com/account', '_blank')}
+                                kind="secondary"
+                                size="compact"
+                            >
+                                {t('Check API Key Balance')}
+                            </Button>
                         </FormItem>
+                        </div>
                         <div
                             style={{
                                 display: values.provider === 'Ollama' ? 'block' : 'none',
@@ -3187,30 +3204,29 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                         </div>
                         <div
                             style={{
-                                display: values.provider === 'Subscribe' ? 'block' : 'none',
+                                display: values.provider === 'OneAPI' ? 'block' : 'none',
                             }}
                         >
                             <FormItem
-                                required={values.provider === 'Subscribe'}
-                                name='subscribeAPIKey'
-                                label='Subscribe API Key'
+                                required={values.provider === 'OneAPI'}
+                                name='OneAPIAPIKey'
+                                label='OneAPI API Key'
                             >
                                 <Input autoFocus type='password' size='compact' onBlur={onBlur} />
                             </FormItem>
                             <FormItem
-                                name='subscribeAPIModel'
+                                name='OneAPIAPIModel'
                                 label={t('API Model')}
-                                required={values.provider === 'Subscribe'}
+                                required={values.provider === 'OneAPI'}
                             >
                                 <APIModelSelector
-                                    provider='Subscribe'
+                                    provider='OneAPI'
                                     currentProvider={values.provider}
-                                    apiKey={values.subscribeAPIKey}
+                                    apiKey={values.OneAPIAPIKey}
                                     onBlur={onBlur}
                                 />
                             </FormItem>
                         </div>
-                    </div>
                     <FormItem name='defaultTranslateMode' label={t('Default Action')}>
                         <TranslateModeSelector onBlur={onBlur} />
                     </FormItem>
@@ -3255,8 +3271,27 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     >
                         <MyCheckbox onBlur={onBlur} />
                     </FormItem>
-                    <FormItem name='defaultYouglishLanguage' label={t('The Language of Youglish')}>
-                        <YouglishLanguageSelector onBlur={onBlur} />
+                </div>
+                <div  style={{
+                            display: activeTab === 'mySettings' ? 'block' : 'none',
+                        }}>
+                    {/* <FormItem name='languageLevel' label={t('Language Level')}>
+                        <LanguageLevelSelector onBlur={onStepBlur} type='input' />
+                    </FormItem> */}
+                                            <FormItem name='i18n' label={t('i18n')}>
+                            <Ii18nSelector onBlur={onBlur} />
+                        </FormItem>
+                            <FormItem name='defaultYouglishLanguage' label={t('The Language of Youglish')}>
+                                <YouglishLanguageSelector onBlur={onBlur} />
+                            </FormItem>
+                    <FormItem name='userBackground' label={t('About You')}>
+                        <Input
+                            size='compact'
+                            onBlur={onStepBlur}
+                            onKeyPress={(e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                                onKeyPress(e)
+                            }
+                        />
                     </FormItem>
                     <div style={{ display: 'flex', flexDirection: 'row', gap: 10 }}>
                         <FormItem name='defaultTargetLanguage' label={t('The Language You are Using')}>
@@ -3269,12 +3304,14 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             <MultipleLanguageSelector value={values.defaultSourceLanguage} onBlur={onBlur} />
                         </FormItem>
                     </div>
-                    <FormItem name='i18n' label={t('i18n')}>
-                        <Ii18nSelector onBlur={onBlur} />
-                    </FormItem>
+                </div>
+                <div  style={{
+                            display: activeTab === 'tts' ? 'block' : 'none',
+                        }}>
                     <FormItem name='tts' label={t('TTS')}>
                         <TTSVoicesSettings onBlur={onBlur} />
                     </FormItem>
+                </div>
                     <FormItem
                         style={{
                             display: isDesktopApp ? 'block' : 'none',

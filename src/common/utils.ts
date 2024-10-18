@@ -4,8 +4,10 @@ import { IBrowser, ISettings } from './types'
 import { getUniversalFetch } from './universal-fetch'
 import { Action } from './internal-services/db'
 import Browser from 'webextension-polyfill'
-import { Provider } from './engines'
+import { getEngine, Provider } from './engines'
 import { IModel } from './engines/interfaces'
+import { useChatStore } from '@/store/file/store'
+declare const chrome: typeof Browser
 
 export const defaultAPIURL = 'https://api.openai.com'
 export const defaultAPIURLPath = '/v1/chat/completions'
@@ -75,12 +77,12 @@ export async function getAzureApiKey(): Promise<string> {
 }
 
 function isTokenExpired() {
-    const expiresAt = Number(localStorage.getItem('expiresAt'))
+    const expiresAt = Number(chrome.storage.local.get('expiresAt'))
     return new Date() >= new Date(expiresAt)
 }
 
 function isTokenExists() {
-    if (localStorage.getItem('accessToken') === null) {
+    if (chrome.storage.local.get('accessToken') === null) {
         return false
     } else {
         return true
@@ -104,13 +106,14 @@ export async function getAccessToken(refresh = false): Promise<string> {
 
             // 转换并保存过期时间为时间戳（毫秒）
             const expiresAtTimestamp = new Date(expires).getTime()
-            localStorage.setItem('accessToken', apiKey)
-            localStorage.setItem('expiresAt', expiresAtTimestamp.toString())
+            await chrome.storage.local.set({ accessToken: apiKey })
+            await chrome.storage.local.set({ expiresAt: expiresAtTimestamp.toString() })
 
             return apiKey
         } else {
             // Token 未过期，直接从 localStorage 返回
-            return localStorage.getItem('accessToken') || '' // 确保返回类型一致，避免 null
+            const result = await chrome.storage.local.get(['accessToken'])
+            return result.accessToken || '' // 确保返回类型一致，避免 null
         }
     } catch (error) {
         console.error('Error fetching accessToken:', error)
@@ -168,7 +171,7 @@ const settingKeys: Record<keyof ISettings, number> = {
     defaultTargetLanguage: 1,
     defaultSourceLanguage: 1,
     languageLevel: 1,
-    userPrompt: 1,
+    userBackground: 1,
     alwaysShowIcons: 1,
     hotkey: 1,
     displayWindowHotkey: 1,
@@ -213,8 +216,8 @@ const settingKeys: Record<keyof ISettings, number> = {
     deepSeekAPIModel: 1,
     openRouterAPIKey: 1,
     openRouterAPIModel: 1,
-    subscribeAPIKey: 1,
-    subscribeAPIModel: 1,
+    OneAPIAPIKey: 1,
+    OneAPIAPIModel: 1,
     fontSize: 1,
     uiFontSize: 1,
     iconSize: 1,
@@ -492,13 +495,12 @@ interface FetchSSEOptions extends RequestInit {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError(error: any): void
     onStatusCode?: (statusCode: number) => void
-    fetcher?: (input: string, options: RequestInit) => Promise<Response>
 }
 
 export async function fetchSSE(input: string, options: FetchSSEOptions) {
-    const { onMessage, onError, onStatusCode, fetcher = getUniversalFetch(), ...fetchOptions } = options
+    const { onMessage, onError, onStatusCode, ...fetchOptions } = options
 
-    const resp = await fetcher(input, fetchOptions)
+    const resp = await fetch(input, fetchOptions)
     onStatusCode?.(resp.status)
     if (resp.status !== 200) {
         onError(await resp.json())
@@ -573,8 +575,7 @@ export async function isNeedWebsocket(accessToken: string) {
 }
 
 export async function callBackendAPIWithToken(token: string, method: string, endpoint: string, body?: any) {
-    const fetcher = getUniversalFetch() // Assuming getUniversalFetch returns the global fetch
-    const response = await fetcher(`https://chatgpt.com/backend-api${endpoint}`, {
+    const response = await fetch(`https://chatgpt.com/backend-api${endpoint}`, {
         method: method,
         headers: {
             'Content-Type': 'application/json',
@@ -585,41 +586,15 @@ export async function callBackendAPIWithToken(token: string, method: string, end
 
     if (response.status === 401) {
         // Token might be expired or invalid
-        localStorage.removeItem('accessToken')
+        Browser.storage.local.remove('accessToken')
         throw new Error('Token expired or invalid, please try again.')
     }
     return response
 }
 
-export async function getModels(provider: Provider): Promise<IModel[]> {
-    switch (provider) {
-        case 'OpenAI':
-            return [
-                { name: 'gpt-3.5-turbo-1106', id: 'OpenAI&gpt-3.5-turbo-1106' },
-                { name: 'gpt-3.5-turbo', id: 'OpenAI&gpt-3.5-turbo' },
-                { name: 'gpt-3.5-turbo-0613', id: 'OpenAI&gpt-3.5-turbo-0613' },
-                { name: 'gpt-3.5-turbo-0301', id: 'OpenAI&gpt-3.5-turbo-0301' },
-                { name: 'gpt-3.5-turbo-16k', id: 'OpenAI&gpt-3.5-turbo-16k' },
-                { name: 'gpt-3.5-turbo-16k-0613', id: 'OpenAI-gpt-3.5-turbo-16k-0613' },
-                { name: 'gpt-4', id: 'OpenAI-gpt-4' },
-                { name: 'gpt-4-turbo (recommended)', id: 'OpenAI&gpt-4-turbo' },
-                { name: 'gpt-4-turbo-2024-04-09', id: 'OpenAI&gpt-4-turbo-2024-04-09' },
-                { name: 'gpt-4-turbo-preview', id: 'OpenAI&gpt-4-turbo-preview' },
-                { name: 'gpt-4-0125-preview ', id: 'OpenAI&gpt-4-0125-preview' },
-                { name: 'gpt-4-1106-preview', id: 'OpenAI&gpt-4-1106-preview' },
-                { name: 'gpt-4-0314', id: 'OpenAI&gpt-4-0314' },
-                { name: 'gpt-4-0613', id: 'OpenAI&gpt-4-0613' },
-                { name: 'gpt-4-32k', id: 'OpenAI&gpt-4-32k' },
-                { name: 'gpt-4-32k-0314', id: 'OpenAI&gpt-4-32k-0314' },
-                { name: 'gpt-4-32k-0613', id: 'OpenAI&gpt-4-32k-0613' },
-            ]
-        case 'ChatGPT':
-            return [
-                { name: 'gpt-3.5', id: 'ChatGPT&text-davinci-003' },
-                { name: 'gpt-4', id: 'ChatGPT&gpt-4' },
-                { name: 'gpt-4o', id: 'ChatGPT&gpt-4o' },
-            ]
-        default:
-            throw new Error('Unsupported provider')
-    }
+export async function getModels(): Promise<IModel[]> {
+    const settings = await getSettings()
+    const engine = getEngine(settings.provider)
+    return await engine.listModels(settings.apiKey)
 }
+        

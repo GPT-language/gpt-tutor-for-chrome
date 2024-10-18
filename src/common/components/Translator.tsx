@@ -454,13 +454,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
     }, [i18n, settings?.i18n])
 
-    useEffect(() => {
-        const savedAction = localStorage.getItem('savedAction')
-        if (savedAction) {
-            const action = JSON.parse(savedAction)
-            setAction(action)
-        }
-    }, [setAction])
 
     const [autoFocus, setAutoFocus] = useState(false)
 
@@ -569,7 +562,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             let languageCode = settings.i18n
             console.log('Loading language data for:', languageCode)
     
-            const lastLoadedLanguage = localStorage.getItem('lastLoadedLanguage')
+            const lastLoadedLanguage = localStorage.getItem('lastLoadedLanguage') 
     
             const githubToken = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN
             const baseUrl = 'https://api.github.com/repos/GPT-language/gpt-tutor-resources/contents/default'
@@ -794,9 +787,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const isTranslate = currentTranslateMode === 'translate'
 
-    useEffect(() => {
-        localStorage.setItem('selectedGroup', selectedGroup)
-    }, [selectedGroup])
 
     useEffect(() => {
         const handleRuntimeMessage = (message: { type: string; text: string }) => {
@@ -804,6 +794,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 if (selectedWord) {
                     deleteSelectedWord()
                 }
+                console.log('message.text', message.text)
                 const text = message.text
                 setQuoteText(text)
             }
@@ -1156,9 +1147,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [activateAction])
 
     useEffect(() => {
-        const newText = quoteText || editableText || selectedWord?.text || ''
+        const newText = editableText || selectedWord?.text || ''
         setFinalText(newText)
-    }, [quoteText, editableText, selectedWord])
+    }, [editableText, selectedWord])
 
     const finalTextRef = useRef(finalText)
 
@@ -1246,6 +1237,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                         detectFrom: sourceLang[0],
                         detectTo: targetLang,
                         context: quoteText,
+                        languageLevel: settings?.languageLevel,
+                        userBackground: settings?.userBackground,
+                        useBackgroundInfo: activateAction ? activateAction.useBackgroundInfo : false,
+                        languageLevelInfo: activateAction ? activateAction.uselanguageLevelInfo : false,
                         signal,
                         text,
                         onStatusCode: (statusCode) => {
@@ -1324,7 +1319,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             }                
                             setActionStr('Error')
                             console.log('error in translateText:', error)
-                            if (settings?.provider === 'Subscribe' && error && typeof error === 'object') {
+                            if (settings?.provider === 'OneAPI' && error && typeof error === 'object') {
                                 setIsNotLogin(true)
                                 setErrorMessage(t('余额不足或者时间到期，请在one-api中进行充值和设置') || '余额不足或者时间到期，请在one-api中进行充值和设置')
                             } else {
@@ -1520,9 +1515,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 'yetone-dark': themeType === 'dark',
             })}
             style={{
-                minHeight: '600px',
+                minHeight: '100vh',
+                height: '100%',
                 background: theme.colors.backgroundPrimary,
-                paddingBottom: showSettings ? '0px' : '30px',
             }}
         >
             <div
@@ -1804,7 +1799,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                         </>
                                     </div>
                                 )}
-                                {isNotLogin && settings?.provider === 'Subscribe' && (
+                                {isNotLogin && settings?.provider === 'OneAPI' && (
                                     <div
                                         style={{
                                             fontSize: '12px',

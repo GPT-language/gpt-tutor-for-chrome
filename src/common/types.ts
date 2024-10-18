@@ -73,7 +73,7 @@ export interface ISettings {
     defaultSourceLanguage: string[]
     defaultYouglishLanguage: string
     languageLevel: string
-    userPrompt: string
+    userBackground: string
     alwaysShowIcons: boolean
     hotkey?: string
     ocrHotkey?: string
