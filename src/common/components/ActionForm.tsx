@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { ICreateActionOption } from ''
+import { ICreateActionOption } from '../internal-services/action'
 import { Action } from '../internal-services/db'
 import { createForm } from './Form'
 import { Input } from 'baseui-sd/input'
@@ -15,6 +15,7 @@ import ModelSelect from './ModelSelect'
 import GroupSelect from './GroupSelect'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
 import { useChatStore } from '@/store/file/store'
+import { CheckBox } from './CheckBox'
 
 const useStyles = createUseStyles({
     placeholder: (props: IThemedStyleProps) => ({
@@ -51,7 +52,6 @@ export function ActionForm(props: IActionFormProps) {
     const { t } = useTranslation()
     const [loading, setLoading] = useState(false)
     const [actionGroups, setActionGroups] = useState<string[]>([])
-
     const onSubmit = useCallback(
         async (values: ICreateActionOption) => {
             setLoading(true)
@@ -66,7 +66,6 @@ export function ActionForm(props: IActionFormProps) {
         },
         [props, createAction, updateAction]
     )
-
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -172,6 +171,12 @@ export function ActionForm(props: IActionFormProps) {
             </FormItem>
             <FormItem required name='commandPrompt' label={t('Command Prompt')} caption={commandPromptCaption}>
                 <Textarea size='compact' />
+            </FormItem>
+            <FormItem name='useBackgroundInfo' label={t('Use Background Info')}>
+                <CheckBox />
+            </FormItem>
+            <FormItem name='useLanguageLevelInfo' label={t('Use Language Level')}>
+                <CheckBox />
             </FormItem>
             <FormItem name='model' label={t('API Model')}>
                 <ModelSelect></ModelSelect>

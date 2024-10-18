@@ -1,17 +1,16 @@
 import * as React from 'react'
 import { Checkbox, LABEL_PLACEMENT } from 'baseui-sd/checkbox'
-import { useTranslation } from 'react-i18next'
 
 export interface ICheckBox {
+    label?: string
     value?: boolean
     onChange?: (value: boolean) => void
 }
 
-export function CheckBox({ value, onChange }: ICheckBox) {
-    const { t } = useTranslation()
+export function CheckBox({ label, value, onChange }: ICheckBox) {
     return (
         <Checkbox checked={value} onChange={() => onChange?.(!value)} labelPlacement={LABEL_PLACEMENT.right}>
-            {t('Use better model')}
+            {label || ''}
         </Checkbox>
     )
 }
