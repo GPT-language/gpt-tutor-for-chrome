@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Select, TYPE, OnChangeParams } from 'baseui-sd/select'
-import { Provider } from '../engines'
 import { getModels } from '../utils'
 import { IModel } from '../engines/interfaces'
 
@@ -10,26 +9,15 @@ export interface IModelSelectProps {
 }
 
 export default function ModelSelect({ value, onChange }: IModelSelectProps) {
-    const [groupedModels, setGroupedModels] = useState<Record<string, IModel[]>>({})
-    const providers: Provider[] = ['OpenAI', 'ChatGPT']
+    const [groupedModels, setGroupedModels] = useState<IModel[]>([])
     // Function to group actions into options
     // 将actions根据group属性分组
     useEffect(() => {
         // Fetch all models for each provider
         const fetchAllModels = async () => {
-            const promises = providers.map(async (provider) => {
-                const models = await getModels(provider)
-                console.log('models', models)
-                return { provider, models }
-            })
-            const results = await Promise.all(promises)
-            const newGroupedModels = results.reduce((acc: Record<string, IModel[]>, { provider, models }) => {
-                acc[provider] = models
-                console.log('acc is', acc)
-
-                return acc
-            }, {})
-            setGroupedModels(newGroupedModels)
+            const models = await getModels()
+            console.log('models', models)
+            setGroupedModels(models)
         }
         fetchAllModels()
     }, [])
