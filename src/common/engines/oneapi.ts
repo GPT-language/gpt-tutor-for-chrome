@@ -33,7 +33,6 @@ export class OneAPI extends AbstractEngine {
             Authorization: `Bearer ${apiKey || settings.OneAPIAPIKey}`,
         }
 
-
         try {
             const response = await fetch(url, { headers })
             if (!response.ok) {

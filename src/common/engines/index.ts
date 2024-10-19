@@ -26,7 +26,7 @@ import { DeepSeek } from './deepseek'
 import { OpenRouter } from './openrouter'
 import { OpenRouterIcon } from '@/common/components/icons/OpenRouterIcon'
 import { OneAPIIcon } from '@/common/components/icons/OneAPIIcon'
-import { OneAPI } from './subsribe'
+import { OneAPI } from './oneapi'
 export type Provider =
     | 'OpenAI'
     | 'ChatGPT'
