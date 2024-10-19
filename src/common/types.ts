@@ -72,7 +72,8 @@ export interface ISettings {
     defaultTargetLanguage: string
     defaultSourceLanguage: string[]
     defaultYouglishLanguage: string
-    languageLevel: string
+    inputLanguageLevel: string
+    outputLanguageLevel: string
     userBackground: string
     alwaysShowIcons: boolean
     hotkey?: string

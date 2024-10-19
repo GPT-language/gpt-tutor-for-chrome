@@ -9,7 +9,6 @@ export const keyKimiRefreshToken = 'kimi-refresh-token'
 
 export class Kimi extends AbstractEngine {
     async checkLogin(): Promise<boolean> {
-
         const headers = await this.getHeaders()
 
         const resp = await fetch('https://kimi.moonshot.cn/api/user', {

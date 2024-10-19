@@ -17,8 +17,6 @@ export interface ChatState {
     reviewIntervals: number[]
 }
 
-
-
 export const initialChatState: ChatState = {
     editableText: '',
     isLoading: false,

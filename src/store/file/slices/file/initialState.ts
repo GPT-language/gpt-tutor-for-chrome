@@ -6,8 +6,6 @@ export interface ChatFileState {
     files: SavedFile[]
 }
 
-
-
 function getFromChromeStorage<T>(key: string, defaultValue: T): Promise<T> {
     return new Promise((resolve) => {
         chrome.storage.local.get(key, (result) => {
@@ -44,7 +42,6 @@ function getObjectFromChromeStorage<T>(key: string, defaultValue: T): Promise<T>
         })
     })
 }
-
 
 export const initialFileState: ChatFileState = {
     selectedFiles: [],

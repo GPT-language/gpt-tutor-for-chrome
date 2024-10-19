@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createParser } from 'eventsource-parser'
 import { IBrowser, ISettings } from './types'
-import { getUniversalFetch } from './universal-fetch'
 import { Action } from './internal-services/db'
 import Browser from 'webextension-polyfill'
-import { getEngine, Provider } from './engines'
+import { getEngine } from './engines'
 import { IModel } from './engines/interfaces'
-import { useChatStore } from '@/store/file/store'
 declare const chrome: typeof Browser
 
 export const defaultAPIURL = 'https://api.openai.com'
@@ -170,7 +168,8 @@ const settingKeys: Record<keyof ISettings, number> = {
     defaultTranslateMode: 1,
     defaultTargetLanguage: 1,
     defaultSourceLanguage: 1,
-    languageLevel: 1,
+    inputLanguageLevel: 1,
+    outputLanguageLevel: 1,
     userBackground: 1,
     alwaysShowIcons: 1,
     hotkey: 1,
@@ -597,4 +596,3 @@ export async function getModels(): Promise<IModel[]> {
     const engine = getEngine(settings.provider)
     return await engine.listModels(settings.apiKey)
 }
-        

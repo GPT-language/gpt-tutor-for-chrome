@@ -350,7 +350,7 @@ export class ChatGPT extends AbstractEngine {
             let lastConversationId
             let lastMessageId
 
-            if (req.activateAction.model) {
+            if (req.activateAction?.model) {
                 const [provider, modelName] = req.activateAction.model.split('&')
                 if (provider === 'ChatGPT') {
                     model = modelName
@@ -365,7 +365,7 @@ export class ChatGPT extends AbstractEngine {
                 lastConversationId = await this.getConversationId(req.parentAction.name, model)
                 lastMessageId = await this.getMessageId(req.parentAction.name, model)
             } else {
-                lastConversationId = await this.getConversationId(req.activateAction.name, model)
+                lastConversationId = await this.getConversationId(req.activateAction?.name, model)
                 lastMessageId = uuidv4()
             }
 

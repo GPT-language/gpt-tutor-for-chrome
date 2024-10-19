@@ -47,6 +47,7 @@ import { BsKeyboard } from 'react-icons/bs'
 import SpeakerMotion from './SpeakerMotion'
 import { Block } from 'baseui-sd/block'
 import { t } from 'i18next'
+import { FileUploader } from 'baseui-sd/file-uploader'
 
 const langOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
     return [
@@ -104,7 +105,6 @@ const inputLanguageLevels: Value = [
     { id: 'Level2', label: t('小学') },
     { id: 'Level3', label: t('中学') },
     { id: 'Level4', label: t('大学') },
-    { id: 'Level5', label: t('研究生') },
 ]
 
 const outputLanguageLevels: Value = [
@@ -113,7 +113,6 @@ const outputLanguageLevels: Value = [
     { id: 'Level2', label: t('小学') },
     { id: 'Level3', label: t('中学') },
     { id: 'Level4', label: t('大学') },
-    { id: 'Level5', label: t('研究生') },
 ]
 
 const yourglishLangOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
@@ -1167,7 +1166,6 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
 
 const { Form, FormItem, useForm } = createForm<ISettings>()
 
-
 interface IInnerSettingsProps {
     onSave?: (oldSettings: ISettings) => void
 }
@@ -1194,6 +1192,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
     const { setThemeType } = useThemeType()
     const { t } = useTranslation()
     const [currentStep, setCurrentStep] = useState(0)
+    const [errorMessage, setErrorMessage] = useState('')
 
     const isTauri = utils.isTauri()
     const [loading, setLoading] = useState(false)
@@ -1211,9 +1210,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         defaultYouglishLanguage: utils.defaultYouglishLanguage,
         defaultSourceLanguage: utils.defaultSourceLanguage,
         defaultTargetLanguage: utils.defaultTargetLanguage,
-        inputLanguageLevel:'',
-        outputLanguageLevel:'',
-        languageLevel: '',
+        inputLanguageLevel: '',
+        outputLanguageLevel: '',
         userBackground: '',
         alwaysShowIcons: !isTauri,
         hotkey: '',
@@ -1306,6 +1304,13 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 duration: 3000,
             })
             setLoading(false)
+            useChatStore.setState((state) => ({
+                showSettings: false,
+                chatUser: {
+                    ...state.chatUser,
+                    isFirstTimeUse: false,
+                },
+            }))
             setSettings(data)
             onSave?.(oldSettings)
         },
@@ -1335,11 +1340,48 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         setCurrentStep(currentStep + 2)
     }, [currentStep])
 
+    const exportSettings = () => {
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(values, null, 2))
+        const downloadAnchorNode = document.createElement('a')
+        downloadAnchorNode.setAttribute('href', dataStr)
+        downloadAnchorNode.setAttribute('download', 'settings.json')
+        document.body.appendChild(downloadAnchorNode) // required for firefox
+        downloadAnchorNode.click()
+        downloadAnchorNode.remove()
+    }
+
+    const importSettings = useCallback(
+        (acceptedFiles: File[], rejectedFiles: File[]) => {
+            if (rejectedFiles.length > 0) {
+                setErrorMessage(t('Only JSON files are allowed') || 'Only JSON files are allowed')
+                return
+            }
+
+            const file = acceptedFiles[0]
+            if (file) {
+                const reader = new FileReader()
+                reader.onload = async (e) => {
+                    try {
+                        const text = e.target?.result as string
+                        const importedValues = JSON.parse(text) as ISettings
+                        setValues(importedValues)
+                        await onSubmit(importedValues)
+                        toast.success(t('Settings imported successfully'))
+                    } catch (error) {
+                        setErrorMessage(t('Invalid JSON file') || 'Invalid JSON file')
+                    }
+                }
+                reader.readAsText(file)
+            }
+        },
+        [setValues, onSubmit, t]
+    )
+
     const handleGetAPIKey = useCallback(async () => {
-         // 更新本地状态
-         setValues((prevValues) => ({
+        // 更新本地状态
+        setValues((prevValues) => ({
             ...prevValues,
-            provider: 'OneAPI'
+            provider: 'OneAPI',
         }))
 
         // 保存到设置
@@ -1350,7 +1392,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         window.open('https://tutor-chatgpt.zeabur.app/login', '_blank')
     }, [currentStep])
 
-    const {chatUser} = useChatStore()
+    const { chatUser } = useChatStore()
     const [loadingAPIKey, setLoadingAPIKey] = useState(false)
 
     const isDesktopApp = utils.isDesktopApp()
@@ -1361,7 +1403,6 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
     const [activeTab, setActiveTab] = useState('general')
 
     const [isScrolled, setIsScrolled] = useState(window.scrollY > 0)
-
 
     useEffect(() => {
         const onScroll = () => {
@@ -1436,7 +1477,40 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                         </FormItem>
                     </Form>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <SpacedButton disabled={currentStep === 0} onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton disabled={currentStep === 0} onClick={() => setCurrentStep(currentStep - 1)}>
+                            {t('Previous')}
+                        </SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
+            ),
+        },
+        {
+            title: t('存在设置？一键导入'),
+            content: (
+                <>
+                    <FileUploader
+                        accept='.json'
+                        maxSize={1000000}
+                        onDrop={importSettings}
+                        errorMessage={errorMessage}
+                        overrides={{
+                            ContentMessage: {
+                                style: {
+                                    color: theme.colors.contentPrimary,
+                                },
+                            },
+                            ErrorMessage: {
+                                style: {
+                                    color: theme.colors.negative,
+                                },
+                            },
+                        }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton disabled={currentStep === 0} onClick={() => setCurrentStep(currentStep - 1)}>
+                            {t('Previous')}
+                        </SpacedButton>
                         <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                     </div>
                 </>
@@ -1446,12 +1520,12 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             title: t('The Language You are Using'),
             content: (
                 <>
-                <Form form={form} initialValues={values} onValuesChange={onStepChange}>
-                    <FormItem name='defaultTargetLanguage'>
-                        <LanguageSelector onBlur={onStepBlur} />
-                    </FormItem>
-                </Form>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Form form={form} initialValues={values} onValuesChange={onStepChange}>
+                        <FormItem name='defaultTargetLanguage'>
+                            <LanguageSelector onBlur={onStepBlur} />
+                        </FormItem>
+                    </Form>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
                         <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                     </div>
@@ -1462,89 +1536,31 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             title: t('The Language You Want to Learn'),
             content: (
                 <>
-                <Form form={form} initialValues={values} onValuesChange={onInputChange}>
-                    <FormItem name='defaultSourceLanguage'>
-                        <MultipleLanguageSelector value={values.defaultSourceLanguage} onBlur={onStepBlur} />
-                    </FormItem>
-                </Form>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Form form={form} initialValues={values} onValuesChange={onInputChange}>
+                        <FormItem name='defaultSourceLanguage'>
+                            <MultipleLanguageSelector value={values.defaultSourceLanguage} onBlur={onStepBlur} />
+                        </FormItem>
+                    </Form>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
                         <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                     </div>
                 </>
             ),
         },
-        // {
-        //     title: t('Language Level (Input) '),
-        //     content: (
-        //         <>
-        //         <Form form={form} initialValues={values} onValuesChange={onStepChange}>
-        //             <StyledBody>
-        //             <strong>{t('输入量是指你学习的关于这门语言的内容，比如词汇量，语法，阅读量。输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')} </strong> 
-        //             </StyledBody>
-        //             <FormItem name='languageLevel'>
-        //                 <LanguageLevelSelector onBlur={onStepBlur} type='input' />
-        //             </FormItem>
-        //         </Form>
-        //         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        //                 <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
-        //                 <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
-        //             </div>
-        //         </>
-        //     ),
-        // },
-        // {
-        //     title: t('Language Level (Output) '),
-        //     content: (
-        //         <>
-        //         <Form form={form} initialValues={values} onValuesChange={onStepChange}>
-        //             <StyledBody>
-        //                 <strong>{t('输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')}</strong>
-        //             </StyledBody>
-        //             <FormItem name='languageLevel'>
-        //                 <LanguageLevelSelector onBlur={onStepBlur} type='output' />
-        //             </FormItem>
-        //         </Form>
-        //         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        //                 <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
-        //                 <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
-        //             </div>
-        //         </>
-        //     ),
-        // },
         {
-            title: t('About You'),
+            title: t('语言水平（输入）'),
             content: (
                 <>
-                <Form form={form} initialValues={values} onValuesChange={onInputChange}>
-                    <StyledBody>
-                        <ul>
-                            <li>
-                                <strong>{t('你希望让GPT-Tutor知道的需求和偏好，GPT-Tutor会根据这些信息来调整。')}</strong>
-                            </li>
-                            <li>
-                                {t(
-                                    '例如：我是一名七岁的小孩，我希望你在解释时使用尽量简单的语言，不要使用复杂的词汇和句子。'
-                                )}
-                            </li>
-                            <li>
-                                {t(
-                                    '例如：我是一名医生，我希望你在解释单词时，如果这个词与医学相关，请解释它在医学中的含义，并使用医学相关的例句和语境。'
-                                )}
-                            </li>
-                        </ul>
-                    </StyledBody>
-                    <FormItem name='userBackground'>
-                        <Input
-                            size='compact'
-                            onBlur={onStepBlur}
-                            onKeyPress={(e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                                onKeyPress(e)
-                            }
-                        />
-                    </FormItem>
-                </Form>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Form form={form} initialValues={values} onValuesChange={onStepChange}>
+                        <StyledBody>
+                            <strong>{t('输入是指你学习的关于这门语言的内容，比如词汇量，语法，阅读量。')} </strong>
+                        </StyledBody>
+                        <FormItem name='inputLanguageLevel'>
+                            <LanguageLevelSelector onBlur={onStepBlur} type='input' />
+                        </FormItem>
+                    </Form>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
                         <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                     </div>
@@ -1552,18 +1568,18 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             ),
         },
         {
-            title: t('设置如何发音'),
+            title: t('语言水平（输出）'),
             content: (
                 <>
-                <Form form={form} initialValues={values} onValuesChange={onInputChange}>
-                    <StyledBody>
-                        <strong>{t('设置GPT-Tutor中不同语言朗读时的人声、速度和音量。')}</strong>
-                    </StyledBody>
-                    <FormItem name='tts' label={t('TTS')}>
-                        <TTSVoicesSettings onBlur={onBlur} />
-                    </FormItem>
-                </Form>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Form form={form} initialValues={values} onValuesChange={onStepChange}>
+                        <StyledBody>
+                            <strong>{t('输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')}</strong>
+                        </StyledBody>
+                        <FormItem name='outputLanguageLevel'>
+                            <LanguageLevelSelector onBlur={onStepBlur} type='output' />
+                        </FormItem>
+                    </Form>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
                         <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                     </div>
@@ -1571,16 +1587,80 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             ),
         },
         {
+            title: t('关于你'),
+            content: (
+                <>
+                    <Form form={form} initialValues={values} onValuesChange={onInputChange}>
+                        <StyledBody>
+                            <ul>
+                                <li>
+                                    <strong>
+                                        {t('你希望让GPT-Tutor知道的需求和偏好，GPT-Tutor会根据这些信息来调整。')}
+                                    </strong>
+                                </li>
+                                <li>
+                                    {t(
+                                        '例如：我是一名七岁的小孩，我希望你在解释时使用尽量简单的语言，不要使用复杂的词汇和句子。'
+                                    )}
+                                </li>
+                                <li>
+                                    {t(
+                                        '例如：我是一名医生，我希望你在解释单词时，如果这个词与医学相关，请解释它在医学中的含义，并使用医学相关的例句和语境。'
+                                    )}
+                                </li>
+                            </ul>
+                        </StyledBody>
+                        <FormItem name='userBackground'>
+                            <Input
+                                size='compact'
+                                onBlur={onStepBlur}
+                                onKeyPress={(e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                                    onKeyPress(e)
+                                }
+                            />
+                        </FormItem>
+                    </Form>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
+            ),
+        },
+        {
+            title: t('Speak'),
+            content: (
+                <>
+                    <Form form={form} initialValues={values} onValuesChange={onInputChange}>
+                        <StyledBody>
+                            <strong>{t('设置GPT-Tutor中不同语言朗读时的人声、速度和音量。')}</strong>
+                        </StyledBody>
+                        <FormItem name='tts' label={t('TTS')}>
+                            <TTSVoicesSettings onBlur={onBlur} />
+                        </FormItem>
+                    </Form>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
+            ),
+        },
+/*         {
             title: t('是否有自己的API Key?'),
             content: (
                 <>
-                <StyledBody>
-                    <strong>{t('想要完整且正确地使用GPT-Tutor，推荐使用一个具有高级模型（GPT-4o/Claude 3.5 Sonnet/Gemini Pro/LLAMA 3.1 405B）功能的API Key。')}</strong>
-                </StyledBody>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <SpacedButton onClick={handleNoAPIKey}>{t('我没有API Key')}</SpacedButton>
-                    <SpacedButton onClick={handleYesAPIKey}>{t('我有自己的API Key')}</SpacedButton>
-                </div>
+                    <StyledBody>
+                        <strong>
+                            {t(
+                                '想要完整且正确地使用GPT-Tutor所有功能，推荐使用一个具有高级模型（GPT-4o/Claude 3.5 Sonnet/Gemini Pro/LLAMA 3.1 405B）功能的API Key。'
+                            )}
+                        </strong>
+                    </StyledBody>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <SpacedButton onClick={handleNoAPIKey}>{t('我没有API Key')}</SpacedButton>
+                        <SpacedButton onClick={handleYesAPIKey}>{t('我有自己的API Key')}</SpacedButton>
+                    </div>
                 </>
             ),
         },
@@ -1588,56 +1668,50 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             title: t('没有API Key'),
             content: (
                 <div>
-        
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <SpacedButton 
-                    isLoading={loadingAPIKey} 
-                    disabled={loadingAPIKey} 
-                    onClick={() => handleGetAPIKey()}
-                >
-                    {t('点击获取API Key')}
-                </SpacedButton>
-            </div>
-            <>
-                <Notification closeable>{t('输入复制的API Key，选择模型，完成设置')}</Notification>
-                <Form form={form} initialValues={values} onValuesChange={onInputChange}>
-                <FormItem
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <SpacedButton
+                            isLoading={loadingAPIKey}
+                            disabled={loadingAPIKey}
+                            onClick={() => handleGetAPIKey()}
+                        >
+                            {t('点击获取API Key')}
+                        </SpacedButton>
+                    </div>
+                    <>
+                        <Notification closeable>{t('输入复制的API Key，选择模型，完成设置')}</Notification>
+                        <Form form={form} initialValues={values} onValuesChange={onInputChange}>
+                            <FormItem
                                 required={values.provider === 'OneAPI'}
                                 name='OneAPIAPIKey'
                                 label='OneAPI API Key'
                             >
                                 <Input autoFocus type='password' size='compact' onBlur={onBlur} aria-hidden={false} />
                             </FormItem>
-                    <FormItem
-                        name='OneAPIAPIModel'
-                        label={t('API Model')}
-                        required={values.provider === 'OneAPI'}
-                    >
-                        <APIModelSelector
-                            provider='OneAPI'
-                            currentProvider={values.provider}
-                            apiKey={values.OneAPIAPIKey}
-                            value={values.OneAPIAPIModel}
-                            onBlur={onBlur}
-                        />
-                    </FormItem>
-                </Form>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <SpacedButton onClick={async () => await handleSave()}>
-                        {t('完成设置')}
-                    </SpacedButton>
+                            <FormItem
+                                name='OneAPIAPIModel'
+                                label={t('API Model')}
+                                required={values.provider === 'OneAPI'}
+                            >
+                                <APIModelSelector
+                                    provider='OneAPI'
+                                    currentProvider={values.provider}
+                                    apiKey={values.OneAPIAPIKey}
+                                    value={values.OneAPIAPIModel}
+                                    onBlur={onBlur}
+                                />
+                            </FormItem>
+                        </Form>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <SpacedButton onClick={async () => await onSubmit(values)}>{t('完成设置')}</SpacedButton>
+                        </div>
+                    </>
                 </div>
-            </>
-    </div>
-)
-        },
+            ),
+        }, */
         {
-            title: t('填入自己的API Key'),
+            title: t('选择使用的AI'),
             content: (
                 <div>
-                    <StyledBody>
-                        <strong>{t('选择一个服务提供商，GPT-Tutor会根据你选择的服务提供商来调整教学内容和难度。')}</strong>
-                    </StyledBody>
                     <Form form={form} initialValues={values} onValuesChange={onInputChange}>
                         <FormItem
                             name='provider'
@@ -2331,30 +2405,10 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         },
     ]
 
-
-    const handleSave = async () => {
-        try {
-            setLoading(true)
-            await onSubmit({ ...values })
-            useChatStore.setState((state) => ({
-                showSettings: false,
-                chatUser: {
-                    ...state.chatUser,
-                    isFirstTimeUse: false
-                }
-            }))
-        } catch (error) {
-            console.error(error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
     // 设置一个useEffect来检测values的变化
     useEffect(() => {
         console.log('values', values)
     }, [values])
-
 
     return (
         <div
@@ -2509,9 +2563,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             ))}
                         </ProgressSteps>
                         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <SpacedButton onClick={handleSave}>
-                                 {t('Save')}
-                            </SpacedButton>
+                            <SpacedButton onClick={async () => await onSubmit(values)}>{t('Save')}</SpacedButton>
                         </div>
                     </StyledBody>
                 </Card>
@@ -2519,7 +2571,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                 <Form
                     form={form}
                     style={{
-                        padding: '20px 25px',
+                        padding: '40px 45px',
                     }}
                     onFinish={onSubmit}
                     initialValues={values}
@@ -2552,17 +2604,17 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             }
                         >
                             <ProviderSelector />
-                        </FormItem>‘
-                        <div style={{display: values.provider ==='OneAPI' ? 'block' : 'none'}}>
-                        <FormItem>
-                            <Button
-                                onClick={() => window.open('https://openai-translator.com/account', '_blank')}
-                                kind="secondary"
-                                size="compact"
-                            >
-                                {t('Check API Key Balance')}
-                            </Button>
                         </FormItem>
+                        <div style={{ display: values.provider === 'OneAPI' ? 'block' : 'none' }}>
+                            <FormItem>
+                                <Button
+                                    onClick={() => window.open('https://openai-translator.com/account', '_blank')}
+                                    kind='secondary'
+                                    size='compact'
+                                >
+                                    {t('Check API Key Balance')}
+                                </Button>
+                            </FormItem>
                         </div>
                         <div
                             style={{
@@ -3227,91 +3279,105 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                                 />
                             </FormItem>
                         </div>
-                    <FormItem name='defaultTranslateMode' label={t('Default Action')}>
-                        <TranslateModeSelector onBlur={onBlur} />
-                    </FormItem>
-                    <FormItem
-                        name='alwaysShowIcons'
-                        label={t('Show icon when text is selected')}
-                        caption={
-                            isDesktopApp && (
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 6,
-                                    }}
-                                >
-                                    {t('It is highly recommended to disable this feature and use the Clip Extension')}
-                                    <a
-                                        href='https://github.com/openai-translator/openai-translator/blob/main/CLIP-EXTENSIONS.md'
-                                        target='_blank'
-                                        rel='noreferrer'
+                        <FormItem name='defaultTranslateMode' label={t('Default Action')}>
+                            <TranslateModeSelector onBlur={onBlur} />
+                        </FormItem>
+                        <FormItem
+                            name='alwaysShowIcons'
+                            label={t('Show icon when text is selected')}
+                            caption={
+                                isDesktopApp && (
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 6,
+                                        }}
                                     >
-                                        {t('Clip Extension')}
-                                    </a>
-                                </div>
-                            )
-                        }
-                    >
-                        <AlwaysShowIconsCheckbox onBlur={onBlur} />
-                    </FormItem>
-                    <FormItem name='autoTranslate' label={t('Auto Translate')}>
-                        <AutoTranslateCheckbox onBlur={onBlur} />
-                    </FormItem>
-                    <FormItem
-                        style={{
-                            display: isDesktopApp && isMacOS ? 'block' : 'none',
-                        }}
-                        name='allowUsingClipboardWhenSelectedTextNotAvailable'
-                        label={t('Using clipboard')}
-                        caption={t(
-                            'Allow using the clipboard to get the selected text when the selected text is not available'
-                        )}
-                    >
-                        <MyCheckbox onBlur={onBlur} />
-                    </FormItem>
-                </div>
-                <div  style={{
-                            display: activeTab === 'mySettings' ? 'block' : 'none',
-                        }}>
-                    {/* <FormItem name='languageLevel' label={t('Language Level')}>
-                        <LanguageLevelSelector onBlur={onStepBlur} type='input' />
-                    </FormItem> */}
-                                            <FormItem name='i18n' label={t('i18n')}>
-                            <Ii18nSelector onBlur={onBlur} />
-                        </FormItem>
-                            <FormItem name='defaultYouglishLanguage' label={t('The Language of Youglish')}>
-                                <YouglishLanguageSelector onBlur={onBlur} />
-                            </FormItem>
-                    <FormItem name='userBackground' label={t('About You')}>
-                        <Input
-                            size='compact'
-                            onBlur={onStepBlur}
-                            onKeyPress={(e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                                onKeyPress(e)
+                                        {t(
+                                            'It is highly recommended to disable this feature and use the Clip Extension'
+                                        )}
+                                        <a
+                                            href='https://github.com/openai-translator/openai-translator/blob/main/CLIP-EXTENSIONS.md'
+                                            target='_blank'
+                                            rel='noreferrer'
+                                        >
+                                            {t('Clip Extension')}
+                                        </a>
+                                    </div>
+                                )
                             }
-                        />
-                    </FormItem>
-                    <div style={{ display: 'flex', flexDirection: 'row', gap: 10 }}>
-                        <FormItem name='defaultTargetLanguage' label={t('The Language You are Using')}>
-                            <LanguageSelector onBlur={onBlur} />
+                        >
+                            <AlwaysShowIconsCheckbox onBlur={onBlur} />
                         </FormItem>
-                        <div style={{ marginTop: '10px' }}>
-                            <TbDirectionSign size={18} />
-                        </div>
-                        <FormItem name='defaultSourceLanguage' label={t('The Language You Want to Learn')}>
-                            <MultipleLanguageSelector value={values.defaultSourceLanguage} onBlur={onBlur} />
+                        <FormItem name='autoTranslate' label={t('Auto Translate')}>
+                            <AutoTranslateCheckbox onBlur={onBlur} />
+                        </FormItem>
+                        <FormItem
+                            style={{
+                                display: isDesktopApp && isMacOS ? 'block' : 'none',
+                            }}
+                            name='allowUsingClipboardWhenSelectedTextNotAvailable'
+                            label={t('Using clipboard')}
+                            caption={t(
+                                'Allow using the clipboard to get the selected text when the selected text is not available'
+                            )}
+                        >
+                            <MyCheckbox onBlur={onBlur} />
                         </FormItem>
                     </div>
-                </div>
-                <div  style={{
+                    <div
+                        style={{
+                            display: activeTab === 'mySettings' ? 'block' : 'none',
+                        }}
+                    >
+                        <FormItem name='i18n' label={t('i18n')}>
+                            <Ii18nSelector onBlur={onBlur} />
+                        </FormItem>
+                        <FormItem name='defaultYouglishLanguage' label={t('The Language of Youglish')}>
+                            <YouglishLanguageSelector onBlur={onBlur} />
+                        </FormItem>
+                        <FormItem name='inputLanguageLevel' label={t('Language Level (Input)')}>
+                            <LanguageLevelSelector onBlur={onStepBlur} type='output' />
+                        </FormItem>
+                        <FormItem name='outputLanguageLevel' label={t('Language Level (Output)')} >
+                            <LanguageLevelSelector onBlur={onStepBlur} type='output' />
+                        </FormItem>
+                        <FormItem name='userBackground' label={t('About You')}>
+                            <Input
+                                size='compact'
+                                onBlur={onStepBlur}
+                                onKeyPress={(e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+                                    onKeyPress(e)
+                                }
+                            />
+                        </FormItem>
+                        <div style={{ display: 'flex', flexDirection: 'row', gap: 10 }}>
+                            <FormItem name='defaultTargetLanguage' label={t('The Language You are Using')}>
+                                <LanguageSelector onBlur={onBlur} />
+                            </FormItem>
+                            <div style={{ marginTop: '10px' }}>
+                                <TbDirectionSign size={18} />
+                            </div>
+                            <FormItem name='defaultSourceLanguage' label={t('The Language You Want to Learn')}>
+                                <MultipleLanguageSelector value={values.defaultSourceLanguage} onBlur={onBlur} />
+                            </FormItem>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: '10px' }}>
+                        <Button size='compact' kind='secondary' onClick={exportSettings}>
+                            {t('Export Settings')}
+                        </Button>
+                        </div>
+                    </div>
+                    <div
+                        style={{
                             display: activeTab === 'tts' ? 'block' : 'none',
-                        }}>
-                    <FormItem name='tts' label={t('TTS')}>
-                        <TTSVoicesSettings onBlur={onBlur} />
-                    </FormItem>
-                </div>
+                        }}
+                    >
+                        <FormItem name='tts' label={t('TTS')}>
+                            <TTSVoicesSettings onBlur={onBlur} />
+                        </FormItem>
+                    </div>
                     <FormItem
                         style={{
                             display: isDesktopApp ? 'block' : 'none',
@@ -3325,16 +3391,11 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                         style={{
                             display: 'flex',
                             alignItems: 'center',
-                            flexDirection: 'row',
+                            justifyContent: 'flex-end',
                             gap: 10,
                         }}
                     >
-                        <div
-                            style={{
-                                marginRight: 'auto',
-                            }}
-                        />
-                        <Button isLoading={loading} size='compact'>
+                        <Button isLoading={loading} size='compact' kind='secondary'>
                             {t('Save')}
                         </Button>
                     </div>

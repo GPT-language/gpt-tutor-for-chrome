@@ -43,7 +43,6 @@ export class ChatGLM extends AbstractEngine {
 
         const headers = await this.getHeaders()
 
-
         headers['Authorization'] = `Bearer ${settings.chatglmRefreshToken}`
         const refreshResp = await fetch('https://chatglm.cn/chatglm/backend-api/v1/user/refresh', {
             method: 'POST',

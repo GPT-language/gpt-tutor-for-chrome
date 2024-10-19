@@ -1,6 +1,5 @@
 /* eslint-disable camelcase */
 import { CUSTOM_MODEL_ID } from '../constants'
-import { getUniversalFetch } from '../universal-fetch'
 import { getSettings } from '../utils'
 import { AbstractOpenAI } from './abstract-openai'
 import { IModel } from './interfaces'
@@ -22,18 +21,15 @@ export class OpenAI extends AbstractOpenAI {
         let apiKey = apiKey_
         if (!apiKey) {
             apiKey = await this.getAPIKey()
+            if (!apiKey) {
+                return []
+            }
         }
         const settings = await getSettings()
         const url = 'https://api.openai.com/v1/models'
-        console.log('OpenAI - API Key:', apiKey ? '设置了' : '未设置')
-        console.log('OpenAI - Settings API Key:', settings.apiKey ? '设置了' : '未设置')
         const headers = {
             Authorization: `Bearer ${apiKey || settings.apiKey}`,
         }
-
-        console.log('OpenAI - 请求 URL:', url)
-        console.log('OpenAI - 请求头:', headers)
-
 
         try {
             console.log('OpenAI - 开始请求模型列表')
