@@ -1,9 +1,8 @@
-import { getUniversalFetch } from '../universal-fetch'
 import { fetchSSE, getSettings } from '../utils'
-import { AbstractEngine } from './abstract-engine'
-import { IModel, IMessageRequest } from './interfaces'
+import { AbstractOpenAI } from './abstract-openai'
+import { IModel } from './interfaces'
 
-export class OpenRouter extends AbstractEngine {
+export class OpenRouter extends AbstractOpenAI {
     supportCustomModel(): boolean {
         return true
     }
@@ -17,18 +16,16 @@ export class OpenRouter extends AbstractEngine {
         const apiKey = apiKey_
         const settings = await getSettings()
         const url = 'https://openrouter.ai/api/v1/models'
-        console.log('OpenAI - API Key:', apiKey ? '设置了' : '未设置')
-        console.log('OpenAI - Settings API Key:', settings.apiKey ? '设置了' : '未设置')
+        console.log('OpenRouter - API Key:', apiKey ? '设置了' : '未设置')
+        console.log('OpenRouter - Settings API Key:', settings.openRouterAPIKey ? '设置了' : '未设置')
         const headers = {
-            Authorization: `Bearer ${apiKey || settings.apiKey}`,
+            Authorization: `Bearer ${apiKey || settings.openRouterAPIKey}`,
         }
 
-
-
         try {
-            console.log('OpenAI - 开始请求模型列表')
+            console.log('OpenRouter - 开始请求模型列表')
             const response = await fetch(url, { headers })
-            console.log('OpenAI - 收到响应，状态码:', response.status)
+            console.log('OpenRouter - 收到响应，状态码:', response.status)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
@@ -38,67 +35,26 @@ export class OpenRouter extends AbstractEngine {
                 name: model.id,
             }))
         } catch (error) {
-            console.error('OpenAI - 获取模型时出错:', error)
+            console.error('OpenRouter - 获取模型时出错:', error)
             throw error
         }
     }
 
-    async sendMessage(req: IMessageRequest): Promise<void> {
+    async getAPIModel(): Promise<string> {
         const settings = await getSettings()
-        const apiKey = settings.openRouterAPIKey
-        const model = await this.getModel()
-        const url = 'https://openrouter.ai/api/v1/chat/completions'
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-        }
-        const body = {
-            model,
-            messages: [
-                { role: 'system', content: req.rolePrompt },
-                { role: 'user', content: req.commandPrompt },
-            ],
-            stream: true,
-        }
+        return settings.openRouterAPIModel
+    }
 
-        let hasError = false
-        let finished = false
-        await fetchSSE(url, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(body),
-            signal: req.signal,
-            onMessage: async (msg) => {
-                if (finished) return
-                try {
-                    const resp = JSON.parse(msg)
-                    if (resp.choices && resp.choices[0].delta.content) {
-                        await req.onMessage({ content: resp.choices[0].delta.content, role: '' })
-                    }
-                    if (resp.choices && resp.choices[0].finish_reason === 'stop') {
-                        finished = true
-                        req.onFinished('stop')
-                    }
-                } catch (e) {
-                    hasError = true
-                    finished = true
-                    req.onError(JSON.stringify(e))
-                }
-            },
-            onError: (err) => {
-                hasError = true
-                if (err instanceof Error) {
-                    req.onError(err.message)
-                } else if (typeof err === 'string') {
-                    req.onError(err)
-                } else {
-                    req.onError('Unknown error')
-                }
-            },
-        })
+    async getAPIKey(): Promise<string> {
+        const settings = await getSettings()
+        return settings.openRouterAPIKey
+    }
 
-        if (!finished && !hasError) {
-            req.onFinished('stop')
-        }
+    async getAPIURL(): Promise<string> {
+        return 'https://openrouter.ai/api/v1'
+    }
+
+    async getAPIURLPath(): Promise<string> {
+        return '/chat/completions'
     }
 }
