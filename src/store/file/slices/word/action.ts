@@ -225,7 +225,7 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 const file = draft.files.find((f: SavedFile) => f.id === fileId)
                 if (!file) console.error('File not found')
 
-                const word = file.words.find((w: Content) => w.idx === wordIdx)
+                const word = file.words.find((w: Content) => w.idx === wordIdx) || draft.selectedWord
                 if (!word) console.error('Word not found')
 
                 if (!word.sentenceAnswers) {
@@ -242,6 +242,8 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                         text: existingAnswer.text + (newContent ? '\n\n' + newContent : ''),
                         updatedAt: new Date(),
                     }
+                    // 更新selectedWord
+                    draft.selectedWord = word
                 } else {
                     // 添加新答案
                     word.sentenceAnswers.push({
@@ -250,6 +252,8 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                         createdAt: new Date(),
                         updatedAt: new Date(),
                     })
+                    // 更新selectedWord
+                    draft.selectedWord = word
                 }
             })
         )
@@ -268,7 +272,7 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 const file = draft.files.find((f: SavedFile) => f.id === fileId)
                 if (!file) console.error('File not found')
 
-                const word = file.words.find((w: Content) => w.idx === wordIdx)
+                const word = file.words.find((w: Content) => w.idx === wordIdx) || draft.selectedWord
                 if (!word) console.error('Word not found')
 
                 if (!word.answers) {
@@ -291,6 +295,8 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                         text: existingAnswer.text + (newContent ? '\n\n' + newContent : ''),
                         updatedAt: new Date(),
                     }
+                    // 更新selectedWord
+                    draft.selectedWord = word
                 } else {
                     // 添加新答案
                     answer.followUpAnswers.push({
@@ -299,6 +305,8 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                         createdAt: new Date(),
                         updatedAt: new Date(),
                     })
+                    // 更新selectedWord
+                    draft.selectedWord = word
                 }
             })
         )

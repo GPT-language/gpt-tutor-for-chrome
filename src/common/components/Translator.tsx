@@ -792,6 +792,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 console.log('message.text', message.text)
                 const text = message.text
                 setQuoteText(text)
+                const historyFileName = t('History')
+                const word: Content = { idx: 0, text: text, reviewCount: 0, answers: {} }
+                addWordToFile(word, historyFileName)
             }
         }
 
@@ -801,7 +804,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return () => {
             chrome.runtime.onMessage.removeListener(handleRuntimeMessage)
         }
-    }, [quoteText, props.text, props.uuid, selectedWord, deleteSelectedWord, setQuoteText])
+    }, [quoteText, props.text, props.uuid, selectedWord, deleteSelectedWord, setQuoteText, t, addWordToFile])
 
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
@@ -1092,16 +1095,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const activateActionRef = useRef(activateAction)
     useEffect(() => {
-        activateActionRef.current = activateAction
-    }, [activateAction])
+        const unsubscribe = useChatStore.subscribe(
+            (state) => state.activateAction,
+            (activateAction) => {
+                activateActionRef.current = activateAction
+            }
+        )
+
+        return () => unsubscribe()
+    }, [])
 
     useEffect(() => {
         const newText = editableText || selectedWord?.text || ''
         setFinalText(newText)
-        if (selectedWord && selectedWord.answers) {
-            setAnswers(selectedWord.answers)
-        }
-    }, [editableText, selectedWord, setAnswers])
+    }, [editableText, selectedWord])
 
     const finalTextRef = useRef(finalText)
 
@@ -1120,43 +1127,26 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 console.error('No text to translate')
                 return
             }
-            if (text) {
-                if (text !== selectedWord?.text) {
-                    // 情况1：用户输入了新内容
-                    const word: Content = { idx: 0, text: text, reviewCount: 0, answers: {} }
-                    const result = await addWordToFile(word, historyFileName)
-                    if (result) {
-                        fileId = result.fileId
-                        wordIdx = result.wordIdx
-                    } else {
-                        console.error('Failed to add word to history file')
-                        return // 如果添加失败，提前返回
-                    }
-                } else {
-                    // 情况2：使用选择的word的text
-                    fileId = currentFileId || 0
-                    wordIdx = selectedWord?.idx || 0
-                }
-            } else if (quoteText) {
-                // 情况3：使用quoteText作为word的text
-                const word: Content = { idx: 0, text: quoteText, reviewCount: 0, answers: {} }
+            // 如果存在quoteText，则不添加到历史文件中，因为quoteText在quote时就已经添加
+            if (text && text !== selectedWord?.text && !quoteText) {
+                const word: Content = { idx: 0, text: text, reviewCount: 0, answers: {} }
                 const result = await addWordToFile(word, historyFileName)
                 if (result) {
                     fileId = result.fileId
                     wordIdx = result.wordIdx
                 } else {
-                    console.error('Failed to add quoted text to history file')
-                    return // 如果添加失败，提前返回
+                    console.error('Failed to add word to history file')
+                    return // 如果添加失败，可能需要提前返回或采取其他措施
                 }
             } else {
-                console.error('No text or quoteText provided')
-                return // 如果既没有text也没有quoteText，提前返回
+                fileId = currentFileId || 0
+                wordIdx = selectedWord?.idx || 0
             }
 
             // 确保 fileId 和 wordIdx 都是有效的
-            if (!fileId || wordIdx === undefined) {
-                console.error('Invalid fileId or wordIdx')
-                return
+            if (!fileId || !wordIdx) {
+                fileId = currentFileId || 0
+                wordIdx = selectedWord?.idx || 0
             }
 
             if (actionName) {
@@ -1218,7 +1208,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             try {
                 await translate(
                     {
-                        activateAction: activateAction ? activateAction : undefined,
+                        activateAction: activateActionRef.current ? activateActionRef.current : undefined,
                         parentAction: parentAction,
                         detectFrom: sourceLang[0],
                         detectTo: targetLang,
@@ -1226,8 +1216,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                         inputLanguageLevel: settings?.inputLanguageLevel,
                         outputLanguageLevel: settings?.outputLanguageLevel,
                         userBackground: settings?.userBackground,
-                        useBackgroundInfo: activateAction ? activateAction.useBackgroundInfo : false,
-                        languageLevelInfo: activateAction ? activateAction.useLanguageLevelInfo : false,
+                        useBackgroundInfo: activateActionRef.current
+                            ? activateActionRef.current.useBackgroundInfo
+                            : false,
+                        languageLevelInfo: activateActionRef.current
+                            ? activateActionRef.current.useLanguageLevelInfo
+                            : false,
                         signal,
                         text,
                         onStatusCode: (statusCode) => {
@@ -1248,7 +1242,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     ? message.content
                                     : translatedText + message.content
 
-                                const actionName = useChatStore.getState().activateAction?.name || question
+                                const actionName = activateActionRef.current?.name || question
                                 if (actionName) {
                                     // 更新 answers
                                     const newAnswers = {
@@ -1269,7 +1263,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             setTranslatedText((translatedText) => {
                                 const result = translatedText
                                 cache.set(cachedKey, result)
-                                const actionName = useChatStore.getState().activateAction?.name || question
+                                const actionName = activateActionRef.current?.name || question
 
                                 updateWordAnswer(
                                     actionName,
@@ -1414,14 +1408,31 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }
 
     const handlesetEditableText = (text: string) => {
+        // 去除首尾空格
+        const trimmedText = text.trim()
+
+        // 如果去除空格后的文本与当前 editableText 相同，则不做任何操作
+        if (trimmedText === editableText.trim()) {
+            return
+        }
+
         // 如果text以@开头，为选择动作而不是输入文本，不修改editableText
-        if (text.includes('@')) {
+        if (trimmedText.startsWith('@')) {
             console.log('Choose action')
             return
         }
-        if (selectedWord && text !== selectedWord.text) {
+
+        // 如果没有@，则清除选择的action
+        if (!trimmedText.startsWith('@')) {
+            setAction(undefined)
+        }
+        // 如果存在selectedWord，且去除空格后的新文本与selectedWord.text不同，则删除selectedWord
+        // 如果存在quoteText，则不删除selectedWord，因为此时输入的内容为指令而非文本，需要保留selectedWord.text作为上下文文本
+        if (selectedWord && trimmedText !== selectedWord.text.trim() && !quoteText) {
             deleteSelectedWord()
         }
+
+        // 设置新的editableText，保留原始的空格
         setEditableText(text)
     }
 
