@@ -19,11 +19,12 @@ export interface Action {
     parentIds?: number[]
     childrenIds?: number[]
     useBackgroundInfo?: boolean
-    uselanguageLevelInfo?: boolean
+    useLanguageLevelInfo?: boolean
 }
 
 export interface FollowUpAnswer {
     idx: number
+    question: string
     text: string
     createdAt: Date
     updatedAt: Date
@@ -47,10 +48,11 @@ export interface ReviewSettings {
     startTime: Date
 }
 
-export interface Word {
+export interface Content {
     idx: number
     text: string
     answers?: Answers
+    sentenceAnswers?: FollowUpAnswer[]
     isNew?: boolean
     lastReviewed?: Date
     nextReview?: Date
@@ -65,6 +67,6 @@ export interface SavedFile {
     category: string
     id?: number
     name: string
-    words: Word[]
+    words: Content[]
     reviewSettings?: ReviewSettings
 }

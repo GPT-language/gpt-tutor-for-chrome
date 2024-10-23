@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand'
 import { produce } from 'immer'
 import { parse } from 'papaparse'
 import { ChatStore } from '../../store'
-import { ReviewSettings, SavedFile, Answers, Word } from '@/common/internal-services/db'
+import { ReviewSettings, SavedFile, Answers, Content } from '@/common/internal-services/db'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any
@@ -12,7 +12,7 @@ export interface ChatFileAction {
     createFile: (file: SavedFile) => void
     selectFile: (fileId: number) => void
     updateFile: (updatedFile: SavedFile) => void
-    updateFileWords: (fileId: number, updater: (words: Word[]) => Word[]) => void
+    updateFileWords: (fileId: number, updater: (words: Content[]) => Content[]) => void
     deleteFile: (fileId: number) => Promise<void>
     loadFiles: (selectedGroup: string) => void
     setCurrentFileId: (fileId: number) => void
@@ -72,7 +72,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
         })),
 
     // 更新 files 中的单词
-    updateFileWords: (fileId: number, updater: (words: Word[]) => Word[]) => {
+    updateFileWords: (fileId: number, updater: (words: Content[]) => Content[]) => {
         set(
             produce((draft: ChatStore) => {
                 const fileIndex = draft.files.findIndex((file) => file.id === fileId)

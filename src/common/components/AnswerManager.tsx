@@ -9,7 +9,6 @@ import { Textarea } from 'baseui-sd/textarea'
 import { Tooltip } from './Tooltip'
 import { RxCopy, RxReload, RxSpeakerLoud } from 'react-icons/rx'
 import { CopyButton } from './CopyButton'
-import { Word } from '../internal-services/db'
 import { AiOutlinePlusSquare, AiOutlineQuestionCircle } from 'react-icons/ai'
 import SpeakerMotion from './SpeakerMotion'
 import { useTranslation } from 'react-i18next'
@@ -60,9 +59,9 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         selectedWord,
         selectedGroup,
         toggleMessageCard,
-        editableText,
         updateWordAnswer,
         updateFollowUpAnswer,
+        updateSentenceAnswer,
     } = useChatStore()
     const [hoveredParagraph, setHoveredParagraph] = useState<number | null>(null)
     const { t } = useTranslation()
@@ -71,10 +70,16 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     const [currentAiAnswer, setCurrentAiAnswer] = useState<string>('')
 
     const handleAsk = useCallback(
-        (index: number, actionName: string) => {
-            const followUpAnswers = selectedWord?.answers?.[actionName]?.followUpAnswers || []
-            const existingAnswer = followUpAnswers.find((followUpAnswer) => followUpAnswer.idx === index)
-
+        (index: number, actionName?: string) => {
+            let existingAnswer
+            console.log('actionName when ask', actionName)
+            console.log('index', index)
+            if (actionName) {
+                const followUpAnswers = selectedWord?.answers?.[actionName]?.followUpAnswers || []
+                existingAnswer = followUpAnswers.find((followUpAnswer) => followUpAnswer.idx === index)
+            } else {
+                existingAnswer = selectedWord?.sentenceAnswers?.find((sentenceAnswer) => sentenceAnswer.idx === index)
+            }
             if (existingAnswer) {
                 setCurrentAiAnswer(existingAnswer.text)
             } else {
@@ -87,7 +92,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     )
 
     const handleAskSubmit = useCallback(
-        async (text: string, actionName: string, index: number) => {
+        async (text: string, index: number, actionName?: string) => {
             if (!engine) {
                 console.error('引擎未定义')
                 return
@@ -108,22 +113,37 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 return prevAnswer + message.content
                             })
                         },
-                        onFinish: () => {
-                            setCurrentAiAnswer((prevAnswer) => {
-                                const separator = prevAnswer ? '\n\n---\n\n' : ''
+                        onFinish: async () => {
+                            const finalAnswer = await new Promise<string>((resolve) => {
+                                setCurrentAiAnswer((prevAnswer) => {
+                                    const separator = prevAnswer ? '\n\n---\n\n' : ''
+                                    const finalAnswer = prevAnswer + separator
+                                    resolve(finalAnswer)
+                                    return finalAnswer
+                                })
+                            })
 
-                                if (selectedWord && currentFileId) {
-                                    updateFollowUpAnswer(
+                            if (selectedWord && currentFileId && actionName) {
+                                try {
+                                    await updateFollowUpAnswer(
                                         currentFileId,
                                         selectedWord.idx,
-                                        actionName,
                                         index,
-                                        prevAnswer + separator
+                                        finalAnswer,
+                                        actionName
                                     )
+                                    console.log('Follow-up answer updated successfully')
+                                } catch (error) {
+                                    console.error('Failed to update follow-up answer:', error)
                                 }
-
-                                return prevAnswer + separator
-                            })
+                            } else if (selectedWord && currentFileId) {
+                                try {
+                                    await updateSentenceAnswer(currentFileId, selectedWord.idx, index, finalAnswer)
+                                    console.log('Sentence answer updated successfully')
+                                } catch (error) {
+                                    console.error('Failed to update sentence answer:', error)
+                                }
+                            }
                         },
                         onError: (error) => {
                             setCurrentAiAnswer((prevAnswer) => {
@@ -142,7 +162,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 // 显示错误提示
             }
         },
-        [askQuestion, currentFileId, engine, selectedWord, updateFollowUpAnswer]
+        [askQuestion, currentFileId, engine, selectedWord, updateFollowUpAnswer, updateSentenceAnswer]
     )
 
     const handleCopy = useCallback(
@@ -156,8 +176,10 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         },
         [t]
     )
-    const handleEdit = (actionName: string, paragraphIndex: number, text: string) => {
-        setEditingAction(actionName)
+    const handleEdit = (paragraphIndex: number, text: string, actionName?: string) => {
+        if (actionName) {
+            setEditingAction(actionName)
+        }
         setEditingParagraph(paragraphIndex)
         setEditedText(text)
     }
@@ -180,7 +202,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
 
             if (selectedWord && currentFileId) {
                 try {
-                    updateWordAnswer(currentFileId, selectedWord.idx, actionName, updatedText)
+                    updateWordAnswer(actionName, updatedText)
                     // 只在成功更新后设置状态
                     setAnswers(updateWordAnswers)
                 } catch (error) {
@@ -216,12 +238,31 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         })
     }
 
-    const renderContent = useMemo(
-        () => (actionName: string, text: string, format: string) => {
-            const paragraphs = text
-                .split('\n')
-                .flatMap((paragraph) => paragraph.split(/(?<=\.)/).map((sentence) => sentence.trim()))
+    const splitIntoParagraphsAndSentences = (text: string): string[] => {
+        // 首先按段落分割
+        const paragraphs = text.split('\n').filter(Boolean)
+
+        // 然后对每个段落进行句子分割
+        return paragraphs.flatMap((paragraph) => {
+            // 检查是否为编号列表项
+            if (/^\d+\.\s/.test(paragraph)) {
+                return paragraph // 如果是编号列表项，直接返回整个段落
+            }
+            // 使用正则表达式来分割句子，但避免分割常见的缩写和数字后的句号
+            const sentences = paragraph
+                .split(/(?<=[.!?])\s+(?=[A-Z])/)
+                .map((sentence) => sentence.trim())
                 .filter(Boolean)
+            // todo: 实现其它语言的分句
+
+            // 如果段落只有一个句子，直接返回；否则返回分割后的句子
+            return sentences.length === 1 ? paragraph : sentences
+        })
+    }
+
+    const renderContent = useMemo(
+        () => (text: string, format: string, actionName?: string) => {
+            const paragraphs = splitIntoParagraphsAndSentences(text)
 
             switch (format) {
                 case 'markdown':
@@ -290,7 +331,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                             onChange={(e) => setAskQuestion(e.currentTarget.value)}
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
-                                                    handleAskSubmit(paragraph, actionName, index)
+                                                    handleAskSubmit(paragraph, index, actionName)
                                                 }
                                             }}
                                             placeholder={t('Input your question') || 'Input your question'}
@@ -306,7 +347,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                             <Button
                                                 kind='primary'
                                                 size='mini'
-                                                onClick={() => handleAskSubmit(paragraph, actionName, index)}
+                                                onClick={() => handleAskSubmit(paragraph, index, actionName)}
                                             >
                                                 {t('Submit')}
                                             </Button>
@@ -361,7 +402,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                         kind='tertiary'
                                                         onClick={(e) => {
                                                             e.stopPropagation()
-                                                            handleEdit(actionName, index, paragraph)
+                                                            handleEdit(index, paragraph, actionName)
                                                         }}
                                                     >
                                                         <CiEdit size={13} />
@@ -444,7 +485,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     )
 
     if (showFullQuoteText) {
-        return <Block>{renderContent(selectedGroup, quoteText, 'markdown')}</Block>
+        return <Block>{renderContent(quoteText, 'markdown', undefined)}</Block>
     }
 
     return (
@@ -464,7 +505,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                     </Block>
                     {expandedActions.has(actionName) && (
                         <Block width='100%'>
-                            {renderContent(actionName, answer.text, answer.format)}
+                            {renderContent(answer.text, answer.format, actionName)}
                             <Block className={styles.actionButtonsContainer}>
                                 {!isLoading && (
                                     <Tooltip content={t('Retry')} placement='bottom'>

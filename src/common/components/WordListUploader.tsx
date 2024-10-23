@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react'
 import { useChatStore } from '@/store/file/store'
-import { Word } from '../internal-services/db'
+import { Content } from '../internal-services/db'
 import { Button, SIZE } from 'baseui-sd/button'
 import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { rgb } from 'polished'
@@ -53,7 +53,7 @@ const WordListUploader = () => {
     const itemsPerPage = 10
     const { t } = useTranslation()
     const [numPages, setNumPages] = useState<number>(1)
-    const [displayWords, setDisplayWords] = useState<Word[]>(words)
+    const [displayWords, setDisplayWords] = useState<Content[]>(words)
     const [isGridView, setIsGridView] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const options = [
@@ -91,7 +91,7 @@ const WordListUploader = () => {
         }
     }
 
-    const handleWordClick = (word: Word) => {
+    const handleWordClick = (word: Content) => {
         selectWord(word)
         refreshTextArea()
         setIsShowActionList(false)
@@ -127,7 +127,6 @@ const WordListUploader = () => {
     useEffect(() => {
         setDisplayWords(words.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage))
     }, [words, currentPage, itemsPerPage])
-
 
     const nextPageHandler = () => {
         const newPage = currentPage + 1
@@ -165,15 +164,14 @@ const WordListUploader = () => {
         loadFiles(selectedGroup)
     }, [selectedGroup, loadFiles])
 
-
     const GridView = ({
         words,
         selectedWord,
         onWordClick,
     }: {
-        words: Word[]
-        selectedWord: Word
-        onWordClick: (word: Word) => void
+        words: Content[]
+        selectedWord: Content
+        onWordClick: (word: Content) => void
     }) => {
         const containerRef = useRef(null)
         const [itemsPerRow, setItemsPerRow] = useState(2)

@@ -12,7 +12,7 @@ import { chatWord, ChatWordAction } from './slices/word/action'
 import { createHyperStorage } from './middleware/createHyperStorage'
 import { createActionSlice, ActionSlice } from './slices/action/action'
 import { createDevtools } from './middleware/createDevtools'
-import { SavedFile, Word } from '@/common/internal-services/db'
+import { SavedFile, Content } from '@/common/internal-services/db'
 import toast from 'react-hot-toast'
 
 declare global {
@@ -76,7 +76,7 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
                     ...persistedState,
                     files: persistedState.files.map((file: SavedFile) => ({
                         ...file,
-                        words: file.words.map((word: Word) => {
+                        words: file.words.map((word: Content) => {
                             const { fileId, ...restWord } = word
                             return restWord
                         }),

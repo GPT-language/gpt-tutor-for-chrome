@@ -26,7 +26,7 @@ export type APIModel =
 interface BaseTranslateQuery {
     activateAction?: Action
     parentAction?: Action
-    text: string
+    text?: string
     context?: string
     detectFrom?: LangCode
     detectTo?: LangCode
@@ -315,7 +315,7 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
     let rolePrompt = ''
     let commandPrompt = ''
     const assistantPrompts: string[] = []
-    let userBackgroundPrompt = 'User background: '
+    let userBackgroundPrompt = ''
     if (query.context) {
         assistantPrompts.push('context: ' + query.context)
     }
@@ -370,17 +370,17 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
     rolePrompt = (query.activateAction?.rolePrompt ?? '')
         .replace('${sourceLang}', sourceLangName)
         .replace('${targetLang}', targetLangName)
-        .replace('${text}', query.text)
+        .replace('${text}', query.text ?? '')
     commandPrompt = (query.activateAction?.commandPrompt ?? '')
         .replace('${sourceLang}', sourceLangName)
         .replace('${targetLang}', targetLangName)
-        .replace('${text}', query.text)
+        .replace('${text}', query.text ?? '')
     if (query.activateAction?.outputRenderingFormat) {
         commandPrompt += `. Format: ${query.activateAction.outputRenderingFormat}`
     }
-
-    // 添加assistantPrompts
-    rolePrompt += '\n' + assistantPrompts.join('\n')
+    if (!commandPrompt.trim() && query.text) {
+        commandPrompt = query.text
+    }
 
     await engine?.sendMessage({
         signal: query.signal,

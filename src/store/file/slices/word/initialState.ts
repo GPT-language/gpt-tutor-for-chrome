@@ -1,11 +1,11 @@
-import { Answers, Word } from '@/common/internal-services/db'
+import { Answers, Content } from '@/common/internal-services/db'
 
 export interface ChatWordState {
-    words: Word[] // 当前文件的所有单词
+    words: Content[] // 当前文件的所有单词
     answers: Answers
     selectedGroup: string
-    selectedWord: Word | null
-    selectedWords: { [fileId: number]: Word | null }
+    selectedWord: Content | null
+    selectedWords: { [fileId: number]: Content | null }
 }
 
 export const initialWordState: ChatWordState = {

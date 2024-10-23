@@ -1,6 +1,7 @@
 import { Action } from '@/common/internal-services/db'
 export interface ChatState {
     editableText: string
+    quoteText: string
     isLoading: boolean
     ttsProvider: string
     conversationId: string
@@ -19,6 +20,7 @@ export interface ChatState {
 
 export const initialChatState: ChatState = {
     editableText: '',
+    quoteText: '',
     isLoading: false,
     actions: [],
     ttsProvider: '',

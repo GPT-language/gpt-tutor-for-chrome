@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand'
 import { produce } from 'immer'
 import { ChatStore } from '../../store'
-import { Answers, Word, SavedFile, ActionOutputRenderingFormat, FollowUpAnswer } from '@/common/internal-services/db'
+import { Answers, Content, SavedFile, ActionOutputRenderingFormat, FollowUpAnswer } from '@/common/internal-services/db'
 import toast from 'react-hot-toast'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,28 +10,29 @@ declare const chrome: any
 export interface ChatWordAction {
     deleteSelectedWord: () => void
     searchWord: (searchTerm: string) => void
-    selectWord: (word: Word) => void
+    selectWord: (word: Content) => void
     deleteWords: () => void
     loadWords: (fileId: number, pageNumber: number, pageSize: number) => Promise<boolean>
-    addWordToFile: (word: Word, fileName: string) => Promise<{ fileId: number; wordIdx: number } | null | undefined>
+    addWordToFile: (word: Content, fileName: string) => Promise<{ fileId: number; wordIdx: number } | null | undefined>
     setAnswers: (answers: Answers) => void
     setSelectedGroup: (group: string) => void
     updateWordAnswer: (
-        fileId: number,
-        wordIdx: number,
         actionName: string,
         answerText: string,
         answerFormat?: ActionOutputRenderingFormat,
         messageId?: string,
-        conversationId?: string
+        conversationId?: string,
+        fileId?: number,
+        wordIdx?: number
     ) => Promise<void>
     updateFollowUpAnswer: (
         fileId: number,
         wordIdx: number,
-        actionName: string,
         index: number,
-        followUpAnswerText: string
+        followUpAnswerText: string,
+        actionName: string
     ) => Promise<void>
+    updateSentenceAnswer: (fileId: number, wordIdx: number, index: number, sentenceAnswerText: string) => Promise<void>
 }
 
 export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatWordAction> = (set, get) => ({
@@ -48,18 +49,18 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     // 添加到历史记录的文件中
-    async addWordToFile(word: Word, fileName: string) {
+    async addWordToFile(word: Content, fileName: string) {
         try {
             console.log('Starting to add word to History file', word)
             console.log('fileName is', fileName)
 
             const currentDate = new Date()
-            const { selectedGroup, words } = get()
+            const { selectedGroup } = get()
             let addedFileId = 0
             let addedWordIdx = 0
             let targetFile = get().selectedFiles.find((file: SavedFile) => file.name === fileName)
             // 创建单词的副本并添加到历史文件
-            const wordCopy: Word = {
+            const wordCopy: Content = {
                 ...word,
                 idx: targetFile?.words.length ? targetFile.words.length + 1 : 1, // 新的索引
                 inHistory: true,
@@ -148,7 +149,7 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
             alert('Word not found')
         }
     },
-    selectWord: (word: Word | null) => {
+    selectWord: (word: Content | null) => {
         const { currentFileId, setAnswers } = get()
 
         set(
@@ -157,7 +158,7 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 if (currentFileId !== null && currentFileId !== undefined) {
                     draft.selectedWords[currentFileId] = word
                 }
-                draft.editableText = word?.text || ''
+                draft.quoteText = word?.text || ''
                 draft.answers = word?.answers || {}
                 setAnswers(draft.answers)
             })
@@ -178,19 +179,27 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
     // 更新单词答案
     updateWordAnswer: async (
-        fileId: number,
-        wordIdx: number,
         actionName: string,
         answerText: string,
-        answerFormat?: ActionOutputRenderingFormat
+        answerFormat?: ActionOutputRenderingFormat,
+        messageId?: string,
+        conversationId?: string
     ) => {
         try {
-            const { updateFileWords } = get()
+            const { updateFileWords, currentFileId, selectedWord } = get()
+            const fileId = currentFileId
+            const wordIdx = selectedWord?.idx
+            if (!fileId || !wordIdx) {
+                console.error('Invalid fileId or wordIdx', { fileId, wordIdx })
+                return
+            }
             updateFileWords(fileId, (words) =>
                 words.map((word) => {
                     if (word.idx === wordIdx) {
                         return {
                             ...word,
+                            messageId,
+                            conversationId,
                             answers: {
                                 ...word.answers,
                                 [actionName]: {
@@ -209,28 +218,61 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
         }
     },
 
-    // 更新单词的 followUpAnswer
+    // 更新content的sentenceAnswers
+    updateSentenceAnswer: async (fileId: number, wordIdx: number, index: number, sentenceAnswerText: string) => {
+        set(
+            produce((draft) => {
+                const file = draft.files.find((f: SavedFile) => f.id === fileId)
+                if (!file) console.error('File not found')
+
+                const word = file.words.find((w: Content) => w.idx === wordIdx)
+                if (!word) console.error('Word not found')
+
+                if (!word.sentenceAnswers) {
+                    word.sentenceAnswers = []
+                }
+                const existingAnswerIndex = word.sentenceAnswers.findIndex((a: FollowUpAnswer) => a.idx === index)
+
+                if (existingAnswerIndex !== -1) {
+                    // 更新现有答案，只添加新内容
+                    const existingAnswer = word.sentenceAnswers[existingAnswerIndex]
+                    const newContent = sentenceAnswerText.replace(existingAnswer.text, '').trim()
+                    word.sentenceAnswers[existingAnswerIndex] = {
+                        ...existingAnswer,
+                        text: existingAnswer.text + (newContent ? '\n\n' + newContent : ''),
+                        updatedAt: new Date(),
+                    }
+                } else {
+                    // 添加新答案
+                    word.sentenceAnswers.push({
+                        idx: index,
+                        text: sentenceAnswerText,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    })
+                }
+            })
+        )
+    },
+
+    // 更新content的 followUpAnswer
     updateFollowUpAnswer: async (
         fileId: number,
         wordIdx: number,
-        actionName: string,
         index: number,
-        followUpAnswerText: string
+        followUpAnswerText: string,
+        actionName: string
     ) => {
         set(
             produce((draft) => {
                 const file = draft.files.find((f: SavedFile) => f.id === fileId)
                 if (!file) console.error('File not found')
 
-                const word = file.words.find((w: Word) => w.idx === wordIdx)
+                const word = file.words.find((w: Content) => w.idx === wordIdx)
                 if (!word) console.error('Word not found')
 
                 if (!word.answers) {
                     word.answers = {}
-                }
-
-                if (!word.answers[actionName]) {
-                    word.answers[actionName] = { text: '', format: 'markdown', followUpAnswers: [] }
                 }
 
                 const answer = word.answers[actionName]
@@ -242,9 +284,11 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
                 if (existingAnswerIndex !== -1) {
                     // 更新现有答案
+                    const existingAnswer = answer.followUpAnswers[existingAnswerIndex]
+                    const newContent = followUpAnswerText.replace(existingAnswer.text, '').trim()
                     answer.followUpAnswers[existingAnswerIndex] = {
-                        ...answer.followUpAnswers[existingAnswerIndex],
-                        text: answer.followUpAnswers[existingAnswerIndex].text + followUpAnswerText,
+                        ...existingAnswer,
+                        text: existingAnswer.text + (newContent ? '\n\n' + newContent : ''),
                         updatedAt: new Date(),
                     }
                 } else {
