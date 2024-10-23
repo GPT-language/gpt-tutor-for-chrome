@@ -8,7 +8,6 @@ import { setUserConfig } from '../../common/utils'
 import { keyKimiAccessToken } from '@/common/engines/kimi'
 import { keyChatGLMAccessToken } from '@/common/engines/chatglm'
 
-
 browser.contextMenus?.create(
     {
         id: 'gpt-tutor',
@@ -234,4 +233,3 @@ browser?.commands?.onCommand.addListener(async (command) => {
 // background.js 或 service-worker.js
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 chrome?.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch((error: any) => console.error(error))
-

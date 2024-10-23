@@ -151,7 +151,6 @@ const ActionList: React.FC<ActionListProps> = memo(({ onActionClick }) => {
         }
     }, [activateAction?.parentIds])
 
-
     const renderButtons = () => {
         if (!selectedWord) {
             return null

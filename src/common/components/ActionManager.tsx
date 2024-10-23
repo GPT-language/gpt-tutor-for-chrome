@@ -410,12 +410,6 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className={styles.metadata}>
-                                                            <div>
-                                                                {t('Created At')}{' '}
-                                                                {format(+action?.createdAt, 'yyyy-MM-dd HH:mm:ss')}
-                                                            </div>
-                                                        </div>
                                                     </div>
                                                     <div className={styles.actionOperation}>
                                                         {!draggable && (

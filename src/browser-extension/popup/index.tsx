@@ -6,14 +6,11 @@ import './index.css'
 import { PREFIX } from '../../common/constants'
 import { useTheme } from '../../common/hooks/useTheme'
 
-
 const root = createRoot(document.getElementById('root') as HTMLElement)
-
 
 const engine = new Styletron({
     prefix: `${PREFIX}-styletron-`,
 })
-
 
 function App() {
     const { theme } = useTheme()

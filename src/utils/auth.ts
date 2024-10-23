@@ -2,17 +2,9 @@ import { ISettings } from '@/common/types'
 import { getUniversalFetch } from '@/common/universal-fetch'
 import { useChatStore } from '@/store/file/store'
 
-
-
-
-
-
-
 export function isCreditEnough(credit: number, price: number): boolean {
     return credit >= price
 }
-
-
 
 export const isSettingsComplete = (
     settings: ISettings | undefined,
@@ -89,7 +81,6 @@ async function updateExtensionUserState(data) {
     // 这可能涉及将数据保存到扩展的存储中
     console.log('updateExtensionUserState', data)
 }
-
 
 export async function fetchUserInfo() {
     const userId = await getUserIdFromStorage()
