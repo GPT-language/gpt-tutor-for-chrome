@@ -43,11 +43,12 @@ import { Card, StyledBody } from 'baseui-sd/card'
 import { StyledTabList, StyledTabPanel, Tab, Tabs } from 'baseui-sd/tabs-motion'
 import { Cell, Grid } from 'baseui-sd/layout-grid'
 import { RxSpeakerLoud } from 'react-icons/rx'
-import { BsKeyboard } from 'react-icons/bs'
 import SpeakerMotion from './SpeakerMotion'
 import { Block } from 'baseui-sd/block'
 import { t } from 'i18next'
 import { FileUploader } from 'baseui-sd/file-uploader'
+import { BsKeyboard } from 'react-icons/bs'
+import dragToResizeGif from '@/common/assets/gif/drag_to_resize.gif'
 
 const langOptions: Value = supportedLanguages.reduce((acc, [id, label]) => {
     return [
@@ -577,59 +578,6 @@ function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) 
             </div>
             <div className={styles.formControl}>
                 <label className={styles.settingsLabel}>{t('Voice')}</label>
-                <div style={{ marginTop: '20px' }}>
-                    <Block onClick={() => setIsEditing(true)} style={{ cursor: 'pointer', marginBottom: '10px' }}>
-                        {isEditing ? (
-                            <Block
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '8px 12px',
-                                }}
-                            >
-                                <Input
-                                    value={testText}
-                                    onChange={(e) => setTestText(e.target.value)}
-                                    onBlur={() => setIsEditing(false)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            setIsEditing(false)
-                                        }
-                                    }}
-                                    autoFocus
-                                    placeholder={t('Enter Text Here to Test') || 'Enter Text Here to Test'}
-                                    size='compact'
-                                />
-                                <Button size='mini' kind='secondary' onClick={() => setIsEditing(false)}>
-                                    {t('Save')}
-                                </Button>
-                            </Block>
-                        ) : (
-                            <Block
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '8px 12px',
-                                }}
-                            >
-                                <span style={{ fontWeight: 'bold' }}>{t('Test Text:')}</span>
-                                <span
-                                    style={{
-                                        color: testText ? 'inherit' : theme.colors.contentSecondary,
-                                        padding: '4px 8px',
-                                    }}
-                                >
-                                    {testText || t('Enter Text Here to Test') || 'Enter Text Here to Test'}
-                                </span>
-                                <Button size='mini' kind='secondary' onClick={() => setIsEditing(true)}>
-                                    {t('Edit')}
-                                </Button>
-                            </Block>
-                        )}
-                    </Block>
-                </div>
                 {(value?.voices ?? []).map(({ lang, voice }) => (
                     <div className={styles.voiceSelector} key={lang}>
                         <Select
@@ -718,6 +666,59 @@ function TTSVoicesSettings({ value, onChange, onBlur }: TTSVoicesSettingsProps) 
                     >
                         {t('Add Voice')}
                     </Button>
+                </div>
+                <div style={{ marginTop: '20px' }}>
+                    <Block onClick={() => setIsEditing(true)} style={{ cursor: 'pointer', marginBottom: '10px' }}>
+                        {isEditing ? (
+                            <Block
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 12px',
+                                }}
+                            >
+                                <Input
+                                    value={testText}
+                                    onChange={(e) => setTestText(e.target.value)}
+                                    onBlur={() => setIsEditing(false)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            setIsEditing(false)
+                                        }
+                                    }}
+                                    autoFocus
+                                    placeholder={t('Input Text Here to Test') || 'Input Text Here to Test'}
+                                    size='compact'
+                                />
+                                <Button size='mini' kind='secondary' onClick={() => setIsEditing(false)}>
+                                    {t('Save')}
+                                </Button>
+                            </Block>
+                        ) : (
+                            <Block
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 12px',
+                                }}
+                            >
+                                <span style={{ fontWeight: 'bold' }}>{t('Test Text:')}</span>
+                                <span
+                                    style={{
+                                        color: testText ? 'inherit' : theme.colors.contentSecondary,
+                                        padding: '4px 8px',
+                                    }}
+                                >
+                                    {testText || t('Input Text Here to Test') || 'Input Text Here to Test'}
+                                </span>
+                                <Button size='mini' kind='secondary' onClick={() => setIsEditing(true)}>
+                                    {t('Input')}
+                                </Button>
+                            </Block>
+                        )}
+                    </Block>
                 </div>
             </div>
         </div>
@@ -1101,13 +1102,13 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
 
     const options = utils.isDesktopApp()
         ? ([
-              { label: 'OneAPI', id: 'OneAPI' },
+              /*               { label: 'OneAPI', id: 'OneAPI' }, */
               { label: 'OpenAI', id: 'OpenAI' },
               { label: `Kimi`, id: 'Kimi' },
               { label: `ChatGLM`, id: 'ChatGLM' },
               { label: `Ollama`, id: 'Ollama' },
               { label: 'Gemini', id: 'Gemini' },
-              // { label: 'ChatGPT (Web)', id: 'ChatGPT' },
+              { label: 'ChatGPT (Web)', id: 'ChatGPT' },
               { label: 'Azure', id: 'Azure' },
               { label: 'MiniMax', id: 'MiniMax' },
               { label: 'Moonshot', id: 'Moonshot' },
@@ -1120,7 +1121,7 @@ function ProviderSelector({ value, onChange, hasPromotion }: IProviderSelectorPr
               id: Provider
           }[])
         : ([
-              { label: 'OneAPI', id: 'OneAPI' },
+              /*               { label: 'OneAPI', id: 'OneAPI' }, */
               { label: 'OpenAI', id: 'OpenAI' },
               { label: `Kimi`, id: 'Kimi' },
               { label: `ChatGLM`, id: 'ChatGLM' },
@@ -1330,7 +1331,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             setPrevValues(values)
         }
         setCurrentStep(currentStep + 1)
-    }, [prevValues, values])
+    }, [currentStep, prevValues, values])
 
     const handleNoAPIKey = useCallback(() => {
         setCurrentStep(currentStep + 1)
@@ -1476,7 +1477,15 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             <Ii18nSelector onBlur={onStepBlur} />
                         </FormItem>
                     </Form>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap', // 允许按钮换行
+                            gap: '8px', // 按钮间距
+                            marginTop: '12px',
+                        }}
+                    >
                         <SpacedButton disabled={currentStep === 0} onClick={() => setCurrentStep(currentStep - 1)}>
                             {t('Previous')}
                         </SpacedButton>
@@ -1486,7 +1495,45 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             ),
         },
         {
-            title: t('存在设置？一键导入'),
+            title: t('Drag to resize'),
+            content: (
+                <>
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap', // 允许按钮换行
+                            gap: '8px', // 按钮间距
+                            marginTop: '12px',
+                        }}
+                    >
+                        <StyledBody>
+                            <strong>
+                                {t('Move your mouse to the left edge, click and drag to adjust to a suitable width')}
+                            </strong>
+                        </StyledBody>
+                        <img
+                            src={dragToResizeGif}
+                            alt='Drag to resize'
+                            style={{
+                                width: '100%', // 占满容器宽度
+                                maxWidth: '280px', // 但不超过280px
+                                height: 'auto',
+                                display: 'block',
+                                margin: '10px auto',
+                                borderRadius: '8px',
+                            }}
+                        />
+                        <SpacedButton disabled={currentStep === 0} onClick={() => setCurrentStep(currentStep - 1)}>
+                            {t('Previous')}
+                        </SpacedButton>
+                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                    </div>
+                </>
+            ),
+        },
+        {
+            title: t('Have existing settings? Import now'),
             content: (
                 <>
                     <FileUploader
@@ -1549,12 +1596,16 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             ),
         },
         {
-            title: t('语言水平（输入）'),
+            title: t('Input Language Level'),
             content: (
                 <>
                     <Form form={form} initialValues={values} onValuesChange={onStepChange}>
                         <StyledBody>
-                            <strong>{t('输入是指你学习的关于这门语言的内容，比如词汇量，语法，阅读量。')} </strong>
+                            <strong>
+                                {t(
+                                    'Input refers to the content you learn about this language, such as vocabulary, grammar, and reading.'
+                                )}
+                            </strong>
                         </StyledBody>
                         <FormItem name='inputLanguageLevel'>
                             <LanguageLevelSelector onBlur={onStepBlur} type='input' />
@@ -1568,12 +1619,16 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             ),
         },
         {
-            title: t('语言水平（输出）'),
+            title: t('Output Language Level'),
             content: (
                 <>
                     <Form form={form} initialValues={values} onValuesChange={onStepChange}>
                         <StyledBody>
-                            <strong>{t('输出量是指你如何使用这门语言，比如和人交流，使用这门语言写作或翻译。')}</strong>
+                            <strong>
+                                {t(
+                                    'Output refers to how you use this language, such as communication, writing, or translation.'
+                                )}
+                            </strong>
                         </StyledBody>
                         <FormItem name='outputLanguageLevel'>
                             <LanguageLevelSelector onBlur={onStepBlur} type='output' />
@@ -1587,7 +1642,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             ),
         },
         {
-            title: t('关于你'),
+            title: t('Profile'),
             content: (
                 <>
                     <Form form={form} initialValues={values} onValuesChange={onInputChange}>
@@ -1595,17 +1650,19 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             <ul>
                                 <li>
                                     <strong>
-                                        {t('你希望让GPT-Tutor知道的需求和偏好，GPT-Tutor会根据这些信息来调整。')}
+                                        {t(
+                                            'Tell GPT-Tutor what you need and prefer, and it will adjust according to these information.'
+                                        )}
                                     </strong>
                                 </li>
                                 <li>
                                     {t(
-                                        '例如：我是一名七岁的小孩，我希望你在解释时使用尽量简单的语言，不要使用复杂的词汇和句子。'
+                                        'For example: I am a seven-year-old child, I hope you use language as simple as possible when explaining, do not use complex vocabulary and sentences.'
                                     )}
                                 </li>
                                 <li>
                                     {t(
-                                        '例如：我是一名医生，我希望你在解释单词时，如果这个词与医学相关，请解释它在医学中的含义，并使用医学相关的例句和语境。'
+                                        'For example: I am a doctor, I hope you explain the meaning of the word in medical terms and use medical examples and contexts when explaining.'
                                     )}
                                 </li>
                             </ul>
@@ -1630,10 +1687,17 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         {
             title: t('Speak'),
             content: (
-                <>
+                <div
+                    style={{
+                        width: '100%',
+                        overflow: 'hidden', // 防止内容溢出
+                    }}
+                >
                     <Form form={form} initialValues={values} onValuesChange={onInputChange}>
                         <StyledBody>
-                            <strong>{t('设置GPT-Tutor中不同语言朗读时的人声、速度和音量。')}</strong>
+                            <strong>
+                                {t('Set the voice, speed, and volume of different languages in GPT-Tutor.')}
+                            </strong>
                         </StyledBody>
                         <FormItem name='tts' label={t('TTS')}>
                             <TTSVoicesSettings onBlur={onBlur} />
@@ -1643,10 +1707,10 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                         <SpacedButton onClick={() => setCurrentStep(currentStep - 1)}>{t('Previous')}</SpacedButton>
                         <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
                     </div>
-                </>
+                </div>
             ),
         },
-/*         {
+        /*         {
             title: t('是否有自己的API Key?'),
             content: (
                 <>
@@ -1709,7 +1773,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             ),
         }, */
         {
-            title: t('选择使用的AI'),
+            title: t('Select the AI you want to use'),
             content: (
                 <div>
                     <Form form={form} initialValues={values} onValuesChange={onInputChange}>
@@ -2555,14 +2619,36 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             {chatUser.isFirstTimeUse ? (
                 <Card>
                     <StyledBody>
-                        <ProgressSteps current={currentStep}>
+                        <ProgressSteps
+                            current={currentStep}
+                            overrides={{
+                                Root: {
+                                    style: {
+                                        width: '100%',
+                                        minWidth: 'auto', // 移除最小宽度限制
+                                        margin: '0',
+                                        padding: '16px 0', // 减少内边距
+                                        overflow: 'hidden', // 防止内容溢出
+                                        marginLeft: '-40px',
+                                    },
+                                },
+                            }}
+                        >
                             {steps.map((step, index) => (
                                 <Step key={index} title={step.title}>
                                     {step.content}
                                 </Step>
                             ))}
                         </ProgressSteps>
-                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <div
+                            style={{
+                                marginTop: '20px',
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                flexWrap: 'wrap', // 允许按钮换行
+                                gap: '8px', // 按钮之间的间距
+                            }}
+                        >
                             <SpacedButton onClick={async () => await onSubmit(values)}>{t('Save')}</SpacedButton>
                         </div>
                     </StyledBody>
@@ -3340,7 +3426,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                         <FormItem name='inputLanguageLevel' label={t('Language Level (Input)')}>
                             <LanguageLevelSelector onBlur={onStepBlur} type='output' />
                         </FormItem>
-                        <FormItem name='outputLanguageLevel' label={t('Language Level (Output)')} >
+                        <FormItem name='outputLanguageLevel' label={t('Language Level (Output)')}>
                             <LanguageLevelSelector onBlur={onStepBlur} type='output' />
                         </FormItem>
                         <FormItem name='userBackground' label={t('About You')}>
@@ -3364,9 +3450,9 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             </FormItem>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: '10px' }}>
-                        <Button size='compact' kind='secondary' onClick={exportSettings}>
-                            {t('Export Settings')}
-                        </Button>
+                            <Button size='compact' kind='secondary' onClick={exportSettings}>
+                                {t('Export Settings')}
+                            </Button>
                         </div>
                     </div>
                     <div
