@@ -11,14 +11,14 @@ import { OnGroupDataMessageArgs, OnServerDataMessageArgs, WebPubSubClient } from
 import { createParser } from 'eventsource-parser'
 import { PubSubPayload } from '../types'
 import { Base64 } from 'js-base64'
-import Browser from 'webextension-polyfill'
+import browser from 'webextension-polyfill'
 import { useChatStore } from '@/store/file/store'
+
 
 export const keyChatgptArkoseReqUrl = 'chatgptArkoseReqUrl'
 export const keyChatgptArkoseReqForm = 'chatgptArkoseReqForm'
 
 export async function getArkoseToken() {
-    const browser = (await import('webextension-polyfill')).default
     const config = await browser.storage.local.get([keyChatgptArkoseReqUrl, keyChatgptArkoseReqForm])
     if (!config[keyChatgptArkoseReqUrl] || !config[keyChatgptArkoseReqForm]) {
         throw new Error(
@@ -380,41 +380,11 @@ export class ChatGPT extends AbstractEngine {
                 userAgent
             )
 
-            let cookie
-            let oaiDeviceId
-
-            if (Browser.cookies && Browser.cookies.getAll) {
-                try {
-                    const cookies = await Browser.cookies.getAll({ url: 'https://chatgpt.com/' })
-                    if (cookies.length > 0) {
-                        cookie = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ')
-                    } else {
-                        console.log('No cookies returned for the URL')
-                    }
-                } catch (error) {
-                    console.error('Failed to get cookies:', error)
-                }
-
-                try {
-                    const oaiCookie = await Browser.cookies.get({
-                        url: 'https://chatgpt.com/',
-                        name: 'oai-did',
-                    })
-                    if (oaiCookie) {
-                        oaiDeviceId = oaiCookie.value
-                    } else {
-                        console.log('oai-did cookie not found or not accessible')
-                    }
-                } catch (error) {
-                    console.error('Failed to get oai-did cookie:', error)
-                }
-            }
 
             let headers
             type ResponseMode = 'sse' | 'websocket'
             const responseMode: ResponseMode = (await utils.isNeedWebsocket(accessToken)) ? 'websocket' : 'sse'
 
-            console.log('oaiDeviceId:', oaiDeviceId)
 
             if (responseMode === 'websocket') {
                 headers = {
@@ -423,7 +393,6 @@ export class ChatGPT extends AbstractEngine {
                     'Openai-Sentinel-Arkose-Token': arkoseToken,
                     'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
                     'openai-sentinel-proof-token': proofToken,
-                    'Oai-Device-Id': oaiDeviceId!,
                     'Oai-Language': 'en-US',
                 }
             }
@@ -435,7 +404,6 @@ export class ChatGPT extends AbstractEngine {
                     'Openai-Sentinel-Arkose-Token': arkoseToken,
                     'Openai-Sentinel-Chat-Requirements-Token': requirements.token,
                     'openai-sentinel-proof-token': proofToken,
-                    'Oai-Device-Id': oaiDeviceId!,
                     'Oai-Language': 'en-US',
                 }
             }
