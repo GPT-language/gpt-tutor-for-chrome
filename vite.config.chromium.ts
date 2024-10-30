@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
             svgr(),
             webExtension({
                 manifest: manifest as chrome.runtime.Manifest,
+                useDynamicUrlWebAccessibleResources: false,
             }),
         ],
         build: {
