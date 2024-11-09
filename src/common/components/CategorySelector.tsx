@@ -1,268 +1,239 @@
-import { useState, useRef, ChangeEvent, useEffect } from 'react'
-import { Select } from 'baseui-sd/select'
-import { AiOutlineUpload, AiOutlineDelete } from 'react-icons/ai'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { Tabs, Tab, FILL } from 'baseui-sd/tabs-motion'
+import { StatefulPopover, PLACEMENT } from 'baseui-sd/popover'
+import { StatefulMenu } from 'baseui-sd/menu'
+import { useStyletron } from 'baseui-sd'
+import { AiOutlineDown } from 'react-icons/ai'
 import { useChatStore } from '@/store/file/store'
-import { LuArrowLeftFromLine, LuArrowRightToLine } from 'react-icons/lu'
-import { Button, KIND, SIZE } from 'baseui-sd/button'
-import { fileService } from '../internal-services/file'
 import { useTranslation } from 'react-i18next'
+import { Action } from '../internal-services/db'
+import debounce from 'lodash-es/debounce'
+import { Button, KIND, SIZE } from 'baseui-sd/button'
+import { BiFirstPage, BiLastPage } from 'react-icons/bi'
+
+const MAX_TAB_WIDTH = 120
+const MORE_TAB_WIDTH = 80
+const MENU_BUTTON_WIDTH = 40
 
 const CategorySelector = () => {
-    const {
-        files,
-        categories,
-        currentFileId,
-        selectedCategory,
-        addFile,
-        selectFile,
-        deleteFile,
-        addCategory,
-        deleteCategory,
-        loadFiles,
-        setSelectedCategory,
-        setShowWordBookManager,
-    } = useChatStore()
-    const [showNewCategoryInput, setShowNewCategoryInput] = useState(false)
-    const [newCategory, setNewCategory] = useState('')
-    const [hoverCategory, setHoverCategory] = useState<string | null>(null)
-    const [showSelectBox, setShowSelectBox] = useState(false)
-    const [showCategories, setShowCategories] = useState(true)
-    const fileInputRef = useRef<HTMLInputElement>(null)
-    const [isHovering, setIsHovering] = useState(false)
-    const { t } = useTranslation()
+  const [css] = useStyletron()
+  const {
+    actions,
+    selectedGroup,
+    loadFiles,
+    setSelectedGroup,
+    setShowActionManager,
+    setShowReviewManager,
+    setShowWordBookManager,
+    setShowSidebar,
+    showSidebar,
+  } = useChatStore()
+  const { t } = useTranslation()
+  const containerRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        setShowSelectBox(!currentFileId)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+  const actionGroups = useMemo(() => {
+    return actions?.reduce((groups: { [key: string]: Action[] }, action) => {
+      if (!action.groups) return groups
+      action.groups.forEach((group) => {
+        if (!groups[group]) groups[group] = []
+        groups[group].push(action)
+      })
+      return groups
+    }, {})
+  }, [actions])
 
-    const toggleCategories = () => setShowCategories(!showCategories)
+  const [visibleTabs, setVisibleTabs] = useState<string[]>([])
+  const [hiddenTabs, setHiddenTabs] = useState<string[]>([])
 
-    const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files ? event.target.files[0] : null
-        if (file && selectedCategory) {
-            addFile(file, selectedCategory)
-        }
-        setShowSelectBox(false)
+  const toggleSidebar = () => {
+    setShowSidebar(!showSidebar)
+  }
+
+  const renderToggleButton = () => (
+    <>
+      <Button onClick={toggleSidebar} kind={KIND.tertiary} size={SIZE.compact} style={{ backgroundColor: 'white' }}>
+        {showSidebar ? <BiFirstPage /> : <BiLastPage />}
+      </Button>
+    </>
+  )
+
+  const updateVisibleTabs = useCallback(() => {
+    if (!containerRef.current || !actionGroups) return
+
+    const containerWidth = containerRef.current.offsetWidth
+    const availableWidth = containerWidth - MORE_TAB_WIDTH - MENU_BUTTON_WIDTH
+    const allTabs = Object.keys(actionGroups)
+    const visible: string[] = []
+    const hidden: string[] = []
+
+    let totalWidth = 0
+    allTabs.forEach((tab) => {
+      if (tab === selectedGroup || totalWidth + MAX_TAB_WIDTH <= availableWidth) {
+        visible.push(tab)
+        totalWidth += MAX_TAB_WIDTH
+      } else {
+        hidden.push(tab)
+      }
+    })
+
+    setVisibleTabs(visible)
+    setHiddenTabs(hidden)
+  }, [actionGroups, selectedGroup])
+
+  const debouncedUpdateVisibleTabs = useMemo(() => debounce(updateVisibleTabs, 100), [updateVisibleTabs])
+
+  useEffect(() => {
+    const resizeObserver = new ResizeObserver(debouncedUpdateVisibleTabs)
+    if (containerRef.current) resizeObserver.observe(containerRef.current)
+    return () => {
+      resizeObserver.disconnect()
+      debouncedUpdateVisibleTabs.cancel()
     }
+  }, [debouncedUpdateVisibleTabs])
 
-    const handleCategoryChange = async (cat: string) => {
-        setShowSelectBox(true)
-        setSelectedCategory(cat)
-        setHoverCategory(cat)
-        localStorage.setItem('currentCategory', JSON.stringify(cat))
-        loadFiles(cat)
-    }
+  useEffect(() => {
+    updateVisibleTabs()
+  }, [updateVisibleTabs])
 
-    const handleAddCategory = () => {
-        if (newCategory?.trim()) {
-            addCategory(newCategory)
-        }
-        setShowNewCategoryInput(false)
-    }
+  const handleTabChange = useCallback(
+    ({ activeKey }: { activeKey: React.Key }) => {
+      const category = activeKey.toString()
+      if (category === 'more') return
+      setSelectedGroup(category)
+      localStorage.setItem('selectedGroup', category)
+      loadFiles(category)
+      setTimeout(updateVisibleTabs, 0)
+    },
+    [loadFiles, setSelectedGroup, updateVisibleTabs]
+  )
 
-    const handleDeleteCategory = async (cat: string) => {
-        deleteCategory(cat)
-        await fileService.deleteFilesByCategory(cat)
-    }
+  const onManagerSelect = (id: string) => {
+    if (id === '__manager__') setShowActionManager(true)
+    else if (id === '__review__') setShowReviewManager(true)
+    else if (id === '__wordbook__') setShowWordBookManager(true)
+  }
 
-    const options = [
-        ...files.map((file) => ({
-            id: file.id,
-            label: file.name,
-        })),
-        { id: 0, label: t('Download') }
-    ]
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div
+        ref={containerRef}
+        className={css({
+          width: '100%',
+          borderBottom: '1px solid #e0e0e0',
+          backgroundColor: 'white',
+          boxSizing: 'border-box',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: 0,
+        })}
+      >
+        {renderToggleButton()}
+        <Tabs
+          activeKey={selectedGroup}
+          onChange={handleTabChange}
+          fill={FILL.fixed}
+          renderAll={false}
+          overrides={{
+            Root: {
+              style: { flexGrow: 1, padding: 0, margin: 0 },
+              props: {
+                activateOnFocus: true,
+              },
+            },
+            TabList: {
+              style: { flexWrap: 'nowrap', padding: 0, margin: 0 },
+            },
+            TabBorder: {
+              style: { display: 'none' },
+            },
+          }}
+        >
+          {showSidebar && (
+            <Tab
+              key='History'
+              title={t('History')}
+              overrides={{
+                TabPanel: {
+                  style: { display: 'none' }, // 隐藏 TabPanel
+                },
+              }}
+            />
+          )}
 
-    const onChange = (params: { value: { id: number; label: string }[] }) => {
-        const { value } = params
-        if (value.length > 0 && value[0].id === 0) {
-            setShowWordBookManager(true)
-        } else {
-            selectFile(value[0].id)
-        }
-    }
-
-    // 在渲染前检查 currentFileId 和 files 是否有效
-    const validValue = files.some((file) => file.id === currentFileId)
-        ? options.filter((option) => option.id === currentFileId)
-        : []
-
-    return (
-        <div style={{ minHeight: '14px' }}>
-            <div
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
-                style={{ minHeight: '14px', cursor: 'pointer', backgroundColor: 'rgba(0, 0, 0, 0)' }}
-            >
-                {isHovering &&
-                    (showCategories ? (
-                        <LuArrowLeftFromLine onClick={toggleCategories} style={{ fontSize: '14px' }} />
-                    ) : (
-                        <LuArrowRightToLine onClick={toggleCategories} style={{ fontSize: '14px' }} />
-                    ))}
-
-                {showCategories &&
-                    categories.map((cat) => (
-                        <div
-                            key={cat}
-                            onMouseEnter={() => setHoverCategory(cat)}
-                            onMouseLeave={() => setHoverCategory(null)}
-                            style={{ display: 'inline-block', position: 'relative' }}
-                        >
-                            <Button
-                                onClick={() => handleCategoryChange(cat)}
-                                kind={KIND.tertiary}
-                                size={SIZE.compact}
-                                style={{ fontWeight: selectedCategory === cat ? 'bold' : 'normal' }}
-                            >
-                                <u>{t(cat)}</u>
-                                {hoverCategory === cat && cat !== 'History' && cat !== 'Review' && (
-                                    <span
-                                        onClick={(e) => {
-                                            e.stopPropagation() // 阻止点击事件冒泡到 Button
-                                            handleDeleteCategory(cat)
-                                        }}
-                                        style={{
-                                            position: 'absolute',
-                                            right: '2px',
-                                            top: '-5px',
-                                            cursor: 'pointer',
-                                            color: 'black',
-                                        }}
-                                    >
-                                        x
-                                    </span>
-                                )}
-                            </Button>
-                        </div>
-                    ))}
-                {showCategories && (
-                    <Button
-                        onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
-                        kind={KIND.tertiary}
-                        size={SIZE.compact}
-                    >
-                        +
-                    </Button>
-                )}
-                {showNewCategoryInput && (
-                    <div style={{ display: 'flex', flexDirection: 'row', maxWidth: '50%', maxHeight: '28px' }}>
-                        <input
-                            type='text'
-                            value={newCategory}
-                            onChange={(e) => setNewCategory(e.target.value)}
-                            placeholder={t('Create a new category') ?? 'Create a new category'}
-                        />
-                        <Button
-                            kind={KIND.tertiary}
-                            size={SIZE.mini}
-                            onClick={() => {
-                                handleAddCategory()
-                                setShowNewCategoryInput(false)
-                            }}
-                        >
-                            √
-                        </Button>
-                    </div>
-                )}
-                {showSelectBox && showCategories && (
-                    <div style={{ display: 'flex', alignItems: 'center', width: '50%', maxWidth: '300px' }}>
-                        <Select
-                            size={SIZE.compact}
-                            options={options}
-                            labelKey='label'
-                            valueKey='id'
-                            onChange={onChange}
-                            value={validValue}
-                            placeholder={t('Select a file') ?? 'Select a file'}
-                            overrides={{
-                                Root: {
-                                    style: ({ $theme }) => ({
-                                        flexGrow: 1,
-                                        flexShrink: 1,
-                                        flexBasis: '0%', // 允许Select缩减至极小的宽度
-                                    }),
-                                },
-                                ControlContainer: {
-                                    style: ({ $theme }) => ({
-                                        'fontSize': '14px', // 调整字体大小
-                                        'lineHeight': '12px', // 调整行高
-                                        'height': '38px',
-                                        'maxWidth': '300px',
-                                        'backgroundColor': 'rgba(255, 255, 255, 0.5)',
-                                        ':hover': {
-                                            borderColor: $theme.colors.borderPositive,
-                                        },
-                                    }),
-                                },
-                                DropdownListItem: {
-                                    style: ({ $theme }) => ({
-                                        'maxWidth': '300px',
-                                        'backgroundColor': $theme.colors.backgroundSecondary,
-                                        ':hover': {
-                                            backgroundColor: $theme.colors.backgroundTertiary,
-                                        },
-                                    }),
-                                },
-                                Placeholder: {
-                                    style: ({ $theme }) => ({
-                                        color: $theme.colors.contentSecondary,
-                                    }),
-                                },
-                                SingleValue: {
-                                    style: ({ $theme }) => ({
-                                        color: $theme.colors.contentPrimary,
-                                    }),
-                                },
-                            }}
-                        />
-
-                        <AiOutlineUpload
-                            title={t('Upload a file') ?? 'Upload a file'}
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                if (fileInputRef.current) {
-                                    fileInputRef.current.click()
-                                }
-                            }}
-                            style={{
-                                marginLeft: '5px',
-                                cursor: 'pointer',
-                                color: 'green',
-                                fontSize: '18px',
-                                flexShrink: 0,
-                            }}
-                        />
-
-                        <AiOutlineDelete
-                            title={t('Delete this file') ?? 'Delete this file'}
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                deleteFile(currentFileId)
-                                loadFiles(t(selectedCategory))
-                            }}
-                            style={{
-                                marginLeft: '5px',
-                                cursor: 'pointer',
-                                color: 'black',
-                                fontSize: '18px',
-                                flexShrink: 0,
-                            }}
-                        />
-                        <input
-                            ref={fileInputRef}
-                            type='file'
-                            onChange={handleFileChange}
-                            accept='.csv'
-                            style={{ display: 'none' }}
-                        />
-                        <div></div>
-                    </div>
-                )}
-            </div>
-        </div>
-    )
+          {showSidebar && (
+            <Tab
+              key='Review'
+              title={t('Review')}
+              overrides={{
+                TabPanel: {
+                  style: { display: 'none' }, // 隐藏 TabPanel
+                },
+              }}
+            />
+          )}
+          {visibleTabs.map((tab) => (
+            <Tab
+              key={tab}
+              title={t(tab)}
+              overrides={{
+                TabPanel: {
+                  style: { display: 'none' }, // 隐藏 TabPanel
+                },
+              }}
+            />
+          ))}
+          {(hiddenTabs.length > 0 || true) && ( // 始终显示 "More" 选项
+            <Tab
+              key='more'
+              overrides={{
+                TabPanel: {
+                  style: { display: 'none' }, // 隐藏 TabPanel
+                },
+              }}
+              title={
+                <StatefulPopover
+                  content={({ close }) => (
+                    <StatefulMenu
+                      items={[
+                        ...hiddenTabs.map((tab) => ({ label: t(tab) })),
+                        { divider: true },
+                        { id: '__manager__', label: t('Action Manager') },
+                        { id: '__review__', label: t('Review Manager') },
+                        { id: '__wordbook__', label: t('Word Book Manager') },
+                      ]}
+                      onItemSelect={({ item }) => {
+                        if (item.id) {
+                          onManagerSelect(item.id)
+                        } else {
+                          handleTabChange({ activeKey: item.label })
+                        }
+                        close()
+                      }}
+                    />
+                  )}
+                  placement={PLACEMENT.bottom}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      height: '100%',
+                      cursor: 'pointer', // 添加指针样式
+                    }}
+                  >
+                    {t('More')} <AiOutlineDown style={{ marginLeft: '4px' }} />
+                  </div>
+                </StatefulPopover>
+              }
+            />
+          )}
+        </Tabs>
+      </div>
+    </div>
+  )
 }
 
 export default CategorySelector

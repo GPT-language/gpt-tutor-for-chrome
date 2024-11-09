@@ -5,18 +5,18 @@ import { useTheme } from '@/common/hooks/useTheme'
 import { IThemedStyleProps } from '@/common/types'
 
 const useStyles = createUseStyles({
-    icon: ({ theme }: IThemedStyleProps) => ({
-        '& rect': {
-            fill: 'currentColor',
-        },
-        '& path': {
-            fill: theme.colors.backgroundPrimary,
-        },
-    }),
+  icon: ({ theme }: IThemedStyleProps) => ({
+    '& rect': {
+      fill: 'currentColor',
+    },
+    '& path': {
+      fill: theme.colors.backgroundPrimary,
+    },
+  }),
 })
 
 export function ClaudeIcon(props: IconBaseProps) {
-    const { theme, themeType } = useTheme()
-    const styles = useStyles({ theme, themeType })
-    return <Logo className={styles.icon} width={props.size} height={props.size} />
+  const { theme, themeType } = useTheme()
+  const styles = useStyles({ theme, themeType })
+  return <Logo className={styles.icon} width={props.size} height={props.size} />
 }

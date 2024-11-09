@@ -23,52 +23,55 @@ import { ChatGLMIcon } from '../components/icons/ChatGLMIcon'
 import { ChatGLM } from './chatglm'
 import { DeepSeekIcon } from '@/common/components/icons/DeepSeekIcon'
 import { DeepSeek } from './deepseek'
-
+import { OpenRouter } from './openrouter'
+import { OpenRouterIcon } from '@/common/components/icons/OpenRouterIcon'
 export type Provider =
-    | 'OpenAI'
-    | 'ChatGPT'
-    | 'Azure'
-    | 'MiniMax'
-    | 'Moonshot'
-    | 'Gemini'
-    | 'Ollama'
-    | 'Groq'
-    | 'Claude'
-    | 'Kimi'
-    | 'ChatGLM'
-    | 'DeepSeek'
-
+  | 'OpenAI'
+  | 'ChatGPT'
+  | 'Azure'
+  | 'MiniMax'
+  | 'Moonshot'
+  | 'Gemini'
+  | 'Ollama'
+  | 'Groq'
+  | 'Claude'
+  | 'Kimi'
+  | 'ChatGLM'
+  | 'DeepSeek'
+  | 'OpenRouter'
 export const engineIcons: Record<Provider, IconType> = {
-    OpenAI: RiOperaFill,
-    ChatGPT: RiOperaFill,
-    Azure: VscAzureDevops,
-    MiniMax: GiArtificialIntelligence,
-    Moonshot: MoonshotIcon,
-    Gemini: FaGoogle,
-    Ollama: OllamaIcon,
-    Groq: GroqIcon,
-    Claude: ClaudeIcon,
-    Kimi: KimiIcon,
-    ChatGLM: ChatGLMIcon,
-    DeepSeek: DeepSeekIcon,
+  OpenAI: RiOperaFill,
+  ChatGPT: RiOperaFill,
+  Azure: VscAzureDevops,
+  MiniMax: GiArtificialIntelligence,
+  Moonshot: MoonshotIcon,
+  Gemini: FaGoogle,
+  Ollama: OllamaIcon,
+  Groq: GroqIcon,
+  Claude: ClaudeIcon,
+  Kimi: KimiIcon,
+  ChatGLM: ChatGLMIcon,
+  DeepSeek: DeepSeekIcon,
+  OpenRouter: OpenRouterIcon,
 }
 
 export const providerToEngine: Record<Provider, { new (): IEngine }> = {
-    OpenAI: OpenAI,
-    ChatGPT: ChatGPT,
-    Azure: Azure,
-    MiniMax: MiniMax,
-    Moonshot: Moonshot,
-    Gemini: Gemini,
-    Ollama: Ollama,
-    Groq: Groq,
-    Claude: Claude,
-    Kimi: Kimi,
-    ChatGLM: ChatGLM,
-    DeepSeek: DeepSeek,
+  OpenAI: OpenAI,
+  ChatGPT: ChatGPT,
+  Azure: Azure,
+  MiniMax: MiniMax,
+  Moonshot: Moonshot,
+  Gemini: Gemini,
+  Ollama: Ollama,
+  Groq: Groq,
+  Claude: Claude,
+  Kimi: Kimi,
+  ChatGLM: ChatGLM,
+  DeepSeek: DeepSeek,
+  OpenRouter: OpenRouter,
 }
 
 export function getEngine(provider: Provider): IEngine {
-    const cls = providerToEngine[provider]
-    return new cls()
+  const cls = providerToEngine[provider]
+  return new cls()
 }

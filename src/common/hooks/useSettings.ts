@@ -5,20 +5,20 @@ import { getSettings } from '../utils'
 import { useCallback } from 'react'
 
 export function useSettings() {
-    const { data: settings, mutate } = useSWR<ISettings>(['settings', getSettings], getSettings, { suspense: true })
+  const { data: settings, mutate } = useSWR<ISettings>(['settings', getSettings], getSettings, { suspense: true })
 
-    const setSettings = useCallback(
-        (newSettings: ISettings) => {
-            mutate(newSettings, {
-                optimisticData: newSettings,
-                revalidate: false,
-            })
-        },
-        [mutate]
-    )
+  const setSettings = useCallback(
+    (newSettings: ISettings) => {
+      mutate(newSettings, {
+        optimisticData: newSettings,
+        revalidate: false,
+      })
+    },
+    [mutate]
+  )
 
-    return {
-        settings,
-        setSettings,
-    }
+  return {
+    settings,
+    setSettings,
+  }
 }

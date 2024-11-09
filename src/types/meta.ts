@@ -1,16 +1,16 @@
 export interface BaseDataModel {
-    /**
-     * @deprecated
-     */
-    createAt?: number
+  /**
+   * @deprecated
+   */
+  createAt?: number
 
-    createdAt: number
+  createdAt: number
 
-    id: string
+  id: string
 
-    /**
-     * @deprecated
-     */
-    updateAt?: number
-    updatedAt: number
+  /**
+   * @deprecated
+   */
+  updateAt?: number
+  updatedAt: number
 }

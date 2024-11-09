@@ -64,5 +64,23 @@
       "requestDomains": ["https://tcr9i.chat.openai.com"],
       "resourceTypes": ["xmlhttprequest"]
     }
+  },
+  {
+    "id": 4,
+    "priority": 1000,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "operation": "set",
+          "header": "origin",
+          "value": "http://127.0.0.1:11434"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "http://127.0.0.1:11434/*",
+      "resourceTypes": ["xmlhttprequest"]
+    }
   }
 ]

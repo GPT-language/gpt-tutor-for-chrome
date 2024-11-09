@@ -5,6 +5,10 @@
     GPT-Tutor is a practical tool that uses AI to provide comprehensive language learning assistance. 
 </p>
 
+## Change Log
+
+[Change Log](./CHANGELOG.md)
+
 ## What is GPT-Tutor?
 
 Imagine having a teacher who is available 24/7, unconditionally patient, and ready to explain any learning issue you might have. This teacher can help you with pronunciation, vocabulary learning and review, grammar explanations, in-depth reading of articles, and writing practice. That's **GPT-Tutor** for you.
@@ -69,6 +73,25 @@ You can directly download it via the [Chrome Web Store](https://chromewebstore.g
 
 ![alt text](./public/image-7.png)
 
+## 3. Developer Guide
+
+1. Clone the repository.
+
+2. Install the dependencies.
+
+```bash
+pnpm install
+```
+
+3. make chrome extension.
+
+```bash
+make build-browser-extension
+```
+
+4. Open the Extensions page, and then click on **Manage Extensions** at the bottom.
+5. load the extension from the `dist/browser-extension/chromium` folder.
+   
 
 # License
 
