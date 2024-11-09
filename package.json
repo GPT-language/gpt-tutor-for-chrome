@@ -93,7 +93,7 @@
     "react-jss": "^10.10.0",
     "react-latex-next": "^2.2.0",
     "react-layout-kit": "^1.9.0",
-    "react-markdown": "^8.0.7",
+    "react-markdown": "^9.0.1",
     "react-router-dom": "^6.22.3",
     "react-syntax-highlighter": "npm:@fengkx/react-syntax-highlighter@15.6.1",
     "react-virtuoso": "^4.7.8",
