@@ -195,8 +195,8 @@ importers:
         specifier: ^4.3.7
         version: 4.3.7(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-i18next:
-        specifier: ^12.2.0
-        version: 12.2.0(i18next@22.4.11)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        specifier: ^12.3.1
+        version: 12.3.1(i18next@22.4.11)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-icons:
         specifier: ^5.2.0
         version: 5.2.0(react@18.2.0)
@@ -6046,8 +6046,8 @@ packages:
       react: '>=16.8.1'
       react-dom: '>=16.8.1'
 
-  react-i18next@12.2.0:
-    resolution: {integrity: sha512-5XeVgSygaGfyFmDd2WcXvINRw2WEC1XviW1LXY/xLOEMzsCFRwKqfnHN+hUjla8ZipbVJR27GCMSuTr0BhBBBQ==}
+  react-i18next@12.3.1:
+    resolution: {integrity: sha512-5v8E2XjZDFzK7K87eSwC7AJcAkcLt5xYZ4+yTPDAW1i7C93oOY1dnr4BaQM7un4Hm+GmghuiPvevWwlca5PwDA==}
     peerDependencies:
       i18next: '>= 19.0.0'
       react: '>= 16.8.0'
@@ -9068,7 +9068,7 @@ snapshots:
 
   '@radix-ui/react-primitive@1.0.3(@types/react-dom@18.2.4)(@types/react@18.2.6)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@babel/runtime': 7.24.1
+      '@babel/runtime': 7.24.4
       '@radix-ui/react-slot': 1.0.2(@types/react@18.2.6)(react@18.2.0)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
@@ -10531,7 +10531,7 @@ snapshots:
 
   css-jss@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
       jss-preset-default: 10.10.0
 
@@ -12696,69 +12696,69 @@ snapshots:
 
   jss-plugin-camel-case@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       hyphenate-style-name: 1.0.4
       jss: 10.10.0
 
   jss-plugin-compose@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
       tiny-warning: 1.0.3
 
   jss-plugin-default-unit@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
 
   jss-plugin-expand@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
 
   jss-plugin-extend@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
       tiny-warning: 1.0.3
 
   jss-plugin-global@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
 
   jss-plugin-nested@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
       tiny-warning: 1.0.3
 
   jss-plugin-props-sort@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
 
   jss-plugin-rule-value-function@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
       tiny-warning: 1.0.3
 
   jss-plugin-rule-value-observable@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
       symbol-observable: 1.2.0
 
   jss-plugin-template@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       jss: 10.10.0
       tiny-warning: 1.0.3
 
   jss-plugin-vendor-prefixer@10.10.0:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       css-vendor: 2.0.8
       jss: 10.10.0
 
@@ -13636,7 +13636,7 @@ snapshots:
 
   polished@3.7.2:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
 
   polished@4.3.1:
     dependencies:
@@ -14121,7 +14121,7 @@ snapshots:
 
   rc-util@5.34.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       react-is: 16.13.1
@@ -14242,7 +14242,7 @@ snapshots:
 
   react-focus-lock@2.9.4(@types/react@18.2.6)(react@18.2.0):
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       focus-lock: 0.11.6
       prop-types: 15.8.1
       react: 18.2.0
@@ -14272,9 +14272,9 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  react-i18next@12.2.0(i18next@22.4.11)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+  react-i18next@12.3.1(i18next@22.4.11)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       html-parse-stringify: 3.0.1
       i18next: 22.4.11
       react: 18.2.0
@@ -14359,7 +14359,7 @@ snapshots:
 
   react-multi-ref@1.0.1:
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
 
   react-range@1.8.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
@@ -14407,7 +14407,7 @@ snapshots:
 
   react-virtualized@9.22.5(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
-      '@babel/runtime': 7.22.5
+      '@babel/runtime': 7.24.4
       clsx: 1.2.1
       dom-helpers: 5.2.1
       loose-envify: 1.4.0
