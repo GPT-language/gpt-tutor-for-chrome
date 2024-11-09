@@ -26,7 +26,7 @@
         "scripts": ["/src/browser-extension/background/index.ts"]
     },
 
-    "permissions": ["storage", "contextMenus"],
+    "permissions": ["tabs", "storage", "contextMenus", "sidePanel","webRequest", "declarativeNetRequestWithHostAccess"],
 
     "host_permissions": [
         "https://*.openai.com/",

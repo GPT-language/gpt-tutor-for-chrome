@@ -3,6 +3,29 @@ import { StateCreator } from 'zustand'
 import { ChatState } from './initialState'
 import { produce } from 'immer'
 import { Action } from '@/common/internal-services/db'
+import { askAI } from '@/common/translate'
+import { IEngine } from '@/common/engines/interfaces'
+import { ISettings } from '@/common/types'
+import { useChatStore } from '../../store'
+
+
+export interface TranslateCallbacks {
+    onBeforeTranslate?: () => void
+    onAfterTranslate?: (reason: string) => void
+    onMessage: (message: { content: string; role: string; isFullText?: boolean }) => void
+    onFinish: (reason: string) => void
+    onError: (error: any) => void
+    onStatusCode: (statusCode: number) => void
+}
+
+export interface TranslateParams {
+    signal: AbortSignal;
+    text?: string;
+    settings: ISettings;
+    engine: IEngine;
+    isOpenToAsk: boolean;
+    callbacks: TranslateCallbacks;
+}
 
 export interface ChatAction {
     setEditableText: (text: string) => void
@@ -16,10 +39,13 @@ export interface ChatAction {
     setAction: (action: Action | undefined) => void
     setAssistantAction: (action: Action | undefined) => void
     setActionStr: (text: string) => void
+    setErrorMessage: (text: string) => void
+    setTranslatedText: (text: string) => void
     setQuoteText: (text: string) => void
+    setIndependentText: (text: string) => void
 }
 
-export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set) => ({
+export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set, get) => ({
     setEditableText: (text) => set({ editableText: text }),
     setConversationId: (id) =>
         set(
@@ -49,4 +75,7 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
     setAssistantAction: (action) => set({ assistantAction: action }),
     setActionStr: (text) => set({ actionStr: text }),
     setQuoteText: (text) => set({ quoteText: text }),
+    setIndependentText: (text) => set({ independentText: text }),
+    setErrorMessage: (text) => set({ errorMessage: text }),
+    setTranslatedText: (text) => set({ translatedText: text }),
 })

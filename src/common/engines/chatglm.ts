@@ -4,6 +4,7 @@ import { fetchSSE, getSettings, isDesktopApp, setSettings } from '@/common/utils
 import { AbstractEngine } from '@/common/engines/abstract-engine'
 import { IModel, IMessageRequest } from '@/common/engines/interfaces'
 import qs from 'qs'
+import browser from 'webextension-polyfill'
 
 export const keyChatGLMAccessToken = 'chatglm-access-token'
 export const keyChatGLMRefreshToken = 'chatglm-refresh-token'
@@ -23,7 +24,6 @@ export class ChatGLM extends AbstractEngine {
         let accessToken = settings.chatglmAccessToken
 
         if (!isDesktopApp()) {
-            const browser = (await import('webextension-polyfill')).default
             const config = await browser.storage.local.get([keyChatGLMAccessToken])
             accessToken = config[keyChatGLMAccessToken]
         }

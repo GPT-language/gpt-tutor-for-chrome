@@ -20,6 +20,7 @@ const CategorySelector = () => {
     const [css] = useStyletron()
     const {
         actions,
+        actionGroups,
         selectedGroup,
         loadFiles,
         setSelectedGroup,
@@ -31,17 +32,6 @@ const CategorySelector = () => {
     } = useChatStore()
     const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
-
-    const actionGroups = useMemo(() => {
-        return actions?.reduce((groups: { [key: string]: Action[] }, action) => {
-            if (!action.groups) return groups
-            action.groups.forEach((group) => {
-                if (!groups[group]) groups[group] = []
-                groups[group].push(action)
-            })
-            return groups
-        }, {})
-    }, [actions])
 
     const [visibleTabs, setVisibleTabs] = useState<string[]>([])
     const [hiddenTabs, setHiddenTabs] = useState<string[]>([])
@@ -183,7 +173,7 @@ const CategorySelector = () => {
                                                 ...hiddenTabs.map((tab) => ({ label: t(tab) })),
                                                 { divider: true },
                                                 { id: '__manager__', label: t('Action Manager') },
-                                                { id: '__review__', label: t('Review Manager') },
+/*                                                 { id: '__review__', label: t('Review Manager') }, */
                                                 { id: '__wordbook__', label: t('Word Book Manager') },
                                             ]}
                                             onItemSelect={({ item }) => {

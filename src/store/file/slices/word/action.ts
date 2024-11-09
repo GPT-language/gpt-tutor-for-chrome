@@ -1,8 +1,16 @@
 import { StateCreator } from 'zustand'
 import { produce } from 'immer'
 import { ChatStore } from '../../store'
-import { Answers, Content, SavedFile, ActionOutputRenderingFormat, FollowUpAnswer } from '@/common/internal-services/db'
+import {
+    Answers,
+    Content,
+    SavedFile,
+    ActionOutputRenderingFormat,
+    FollowUpAnswer,
+    Action,
+} from '@/common/internal-services/db'
 import toast from 'react-hot-toast'
+import { ActionGroups } from './initialState'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any
@@ -16,6 +24,7 @@ export interface ChatWordAction {
     addWordToFile: (word: Content, fileName: string) => Promise<{ fileId: number; wordIdx: number } | null | undefined>
     setAnswers: (answers: Answers) => void
     setSelectedGroup: (group: string) => void
+    setCurrentWordPositions: (fileId: number, wordIdx: number) => void
     updateWordAnswer: (
         actionName: string,
         answerText: string,
@@ -25,6 +34,7 @@ export interface ChatWordAction {
         fileId?: number,
         wordIdx?: number
     ) => Promise<void>
+    updateWordAnswers: (answers: Answers) => void
     updateFollowUpAnswer: (
         fileId: number,
         wordIdx: number,
@@ -33,6 +43,8 @@ export interface ChatWordAction {
         actionName: string
     ) => Promise<void>
     updateSentenceAnswer: (fileId: number, wordIdx: number, index: number, sentenceAnswerText: string) => Promise<void>
+    setActionGroups: (actions: Action[]) => void
+    updateSelectedWordText: (text: string) => void
 }
 
 export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatWordAction> = (set, get) => ({
@@ -55,49 +67,67 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
             console.log('fileName is', fileName)
 
             const currentDate = new Date()
-            const { selectedGroup } = get()
+            const { selectedGroup, setCurrentWordPositions, selectedFiles, currentFileId, files, selectFile } = get()
             let addedFileId = 0
             let addedWordIdx = 0
-            let targetFile = get().selectedFiles.find((file: SavedFile) => file.name === fileName)
+            const currentFile = selectedFiles.find((file: SavedFile) => file.id === currentFileId)
+            let targetFile = currentFile ? currentFile : selectedFiles.find((file: SavedFile) => file.name === fileName)
+
+            // 获取实际文件中的最大 idx
+            const getNextIdx = (fileId: number) => {
+                const file = files.find(f => f.id === fileId)
+                if (!file?.words?.length) return 1
+                return Math.max(...file.words.map(w => w.idx)) + 1
+            }
+
+            // 分两步进行状态更新
+            if (!targetFile) {
+                // 第一步：如果文件不存在，先创建文件
+                targetFile = {
+                    id: get().files.length > 0 ? Math.max(...get().files.map((f: SavedFile) => f.id || 0)) + 1 : 1,
+                    name: fileName,
+                    category: selectedGroup,
+                    words: [],
+                }
+
+                set(
+                    produce((draft) => {
+                        draft.files.push(targetFile)
+                        draft.selectedFiles.push(targetFile)
+                    })
+                )
+            }
+
+            // 获取新单词的 idx
+            const nextIdx = targetFile?.id ? getNextIdx(targetFile.id) : 1
+
             // 创建单词的副本并添加到历史文件
             const wordCopy: Content = {
                 ...word,
-                idx: targetFile?.words.length ? targetFile.words.length + 1 : 1, // 新的索引
+                idx: nextIdx,
                 inHistory: true,
                 lastReviewed: currentDate,
             }
 
+            // 第二步：添加单词到文件
             set(
                 produce((draft) => {
-                    // 搜索当前类别中是否存在历史文件
-
-                    if (!targetFile) {
-                        // 如果历史文件不存在，创建新文件
-                        targetFile = {
-                            // 获取最大的 fileId 并加 1，保证文件的唯一性
-                            id:
-                                draft.files.length > 0
-                                    ? Math.max(...draft.files.map((f: SavedFile) => f.id || 0)) + 1
-                                    : 1,
-                            name: fileName,
-                            category: selectedGroup,
-                            words: [],
+                    const fileToUpdate = draft.files.find((file: SavedFile) => file.id === targetFile?.id)
+                    if (fileToUpdate) {
+                        if (!fileToUpdate.words) {
+                            fileToUpdate.words = []
                         }
-                        draft.files.push(targetFile)
-                        draft.selectedFiles.push(targetFile)
+                        fileToUpdate.words.push(wordCopy)
+                        addedFileId = fileToUpdate.id || 0
+                        addedWordIdx = wordCopy.idx
                     }
-
-                    // 直接修改 files 数组中的对象
-                    draft.files.find((file: SavedFile) => file.id === targetFile?.id)?.words.push(wordCopy)
-
-                    console.log('Word added to History file:', wordCopy.idx)
-                    addedFileId = targetFile?.id || 0
-                    addedWordIdx = wordCopy.idx
                 })
             )
-            set({ currentFileId: addedFileId, selectedWord: wordCopy })
-            console.log('Word added to History file:', { fileId: addedFileId, wordIdx: addedWordIdx })
 
+            set({ currentFileId: addedFileId, selectedWord: wordCopy })
+            selectFile(addedFileId)
+            console.log('Word added to History file:', { fileId: addedFileId, wordIdx: addedWordIdx })
+            setCurrentWordPositions(addedFileId, addedWordIdx)
             return { fileId: addedFileId, wordIdx: addedWordIdx }
         } catch (error) {
             console.error('Failed to add word to History file:', error)
@@ -137,7 +167,15 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     setSelectedGroup(category: string) {
-        set({ selectedGroup: category, currentFileId: null, selectedWord: null })
+        set({ selectedGroup: category, currentFileId: null })
+    },
+
+    setCurrentWordPositions: (fileId: number, wordIdx: number) => {
+        set(
+            produce((draft) => {
+                draft.currentWordPositions[fileId] = wordIdx
+            })
+        )
     },
 
     searchWord: (searchTerm) => {
@@ -155,8 +193,8 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
         set(
             produce((draft) => {
                 draft.selectedWord = word
-                if (currentFileId !== null && currentFileId !== undefined) {
-                    draft.selectedWords[currentFileId] = word
+                if (currentFileId) {
+                    draft.currentWordPositions[currentFileId] = word?.idx
                 }
                 draft.quoteText = word?.text || ''
                 draft.answers = word?.answers || {}
@@ -186,12 +224,16 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
         conversationId?: string
     ) => {
         try {
-            const { updateFileWords, currentFileId, selectedWord } = get()
-            const fileId = currentFileId
-            const wordIdx = selectedWord?.idx
-            if (!fileId || !wordIdx) {
-                console.error('Invalid fileId or wordIdx', { fileId, wordIdx })
-                return
+            const { updateFileWords, currentFileId, selectedWord, selectedGroup, files } = get()
+            let fileId = currentFileId
+            let wordIdx = selectedWord?.idx
+            if (!fileId) {
+                const targetFiles = files.filter((f: SavedFile) => f.category === selectedGroup)
+                fileId = targetFiles.length + 1
+            }
+            if (!wordIdx) {
+                const targetFile = files.find((f: SavedFile) => f.id === fileId)
+                wordIdx = targetFile?.words.length ? targetFile.words.length + 1 : 1
             }
             updateFileWords(fileId, (words) =>
                 words.map((word) => {
@@ -207,6 +249,36 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                                     format: answerFormat || 'markdown',
                                 },
                             },
+                        }
+                    }
+                    return word
+                })
+            )
+        } catch (error) {
+            console.error('更新单词答案失败:', error)
+            // 这里可以添加错误处理逻辑，如显示错误提示等
+        }
+    },
+
+    updateWordAnswers: (answers: Answers) => {
+        try {
+            const { updateFileWords, currentFileId, selectedWord, selectedGroup, files } = get()
+            let fileId = currentFileId
+            let wordIdx = selectedWord?.idx
+            if (!fileId) {
+                const targetFiles = files.filter((f: SavedFile) => f.category === selectedGroup)
+                fileId = targetFiles.length + 1
+            }
+            if (!wordIdx) {
+                const targetFile = files.find((f: SavedFile) => f.id === fileId)
+                wordIdx = targetFile?.words.length ? targetFile.words.length + 1 : 1
+            }
+            updateFileWords(fileId, (words) =>
+                words.map((word) => {
+                    if (word.idx === wordIdx) {
+                        return {
+                            ...word,
+                            answers: answers,
                         }
                     }
                     return word
@@ -314,5 +386,48 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
     setAnswers: async (answers: Answers) => {
         set({ answers })
+    },
+
+    setActionGroups: (actions: Action[]) => {
+        const groups = actions.reduce((groups: ActionGroups, action) => {
+            if (!action.groups) return groups
+            action.groups.forEach((group) => {
+                if (!groups[group]) groups[group] = []
+                groups[group].push(action)
+            })
+            return groups
+        }, {})
+
+        set({ actionGroups: groups })
+    },
+
+    updateSelectedWordText: (text: string) => {
+        const { currentFileId, selectedWord } = get()
+
+        if (!currentFileId || !selectedWord) {
+            console.warn('No current file or selected word')
+            return
+        }
+
+        set(
+            produce((draft) => {
+                // 更新 files 中的 word
+                const file = draft.files.find((f: SavedFile) => f.id === currentFileId)
+                if (file) {
+                    const word = file.words.find((w: Content) => w.idx === selectedWord.idx)
+                    if (word) {
+                        word.text = text
+                    }
+                }
+
+                // 更新 selectedWord
+                if (draft.selectedWord) {
+                    draft.selectedWord.text = text
+                }
+
+                // 更新 quoteText
+                draft.quoteText = text
+            })
+        )
     },
 })

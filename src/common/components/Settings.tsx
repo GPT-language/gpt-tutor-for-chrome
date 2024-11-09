@@ -1209,8 +1209,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
         chatContext: utils.defaultChatContext,
         defaultTranslateMode: 'translate',
         defaultYouglishLanguage: utils.defaultYouglishLanguage,
-        defaultSourceLanguage: utils.defaultSourceLanguage,
-        defaultTargetLanguage: utils.defaultTargetLanguage,
+        defaultLearningLanguage: utils.defaultLearningLanguage,
+        defaultUserLanguage: utils.defaultUserLanguage,
         inputLanguageLevel: '',
         outputLanguageLevel: '',
         userBackground: '',
@@ -1501,6 +1501,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                     <div
                         style={{
                             display: 'flex',
+                            flexDirection: 'column',
                             justifyContent: 'space-between',
                             flexWrap: 'wrap', // 允许按钮换行
                             gap: '8px', // 按钮间距
@@ -1524,10 +1525,12 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                                 borderRadius: '8px',
                             }}
                         />
-                        <SpacedButton disabled={currentStep === 0} onClick={() => setCurrentStep(currentStep - 1)}>
-                            {t('Previous')}
-                        </SpacedButton>
-                        <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <SpacedButton disabled={currentStep === 0} onClick={() => setCurrentStep(currentStep - 1)}>
+                                {t('Previous')}
+                            </SpacedButton>
+                            <SpacedButton onClick={() => setCurrentStep(currentStep + 1)}>{t('Next')}</SpacedButton>
+                        </div>
                     </div>
                 </>
             ),
@@ -1568,7 +1571,7 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             content: (
                 <>
                     <Form form={form} initialValues={values} onValuesChange={onStepChange}>
-                        <FormItem name='defaultTargetLanguage'>
+                        <FormItem name='defaultUserLanguage'>
                             <LanguageSelector onBlur={onStepBlur} />
                         </FormItem>
                     </Form>
@@ -1584,8 +1587,8 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
             content: (
                 <>
                     <Form form={form} initialValues={values} onValuesChange={onInputChange}>
-                        <FormItem name='defaultSourceLanguage'>
-                            <MultipleLanguageSelector value={values.defaultSourceLanguage} onBlur={onStepBlur} />
+                        <FormItem name='defaultLearningLanguage'>
+                            <MultipleLanguageSelector value={values.defaultLearningLanguage} onBlur={onStepBlur} />
                         </FormItem>
                     </Form>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -2668,6 +2671,12 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             display: activeTab === 'general' ? 'block' : 'none',
                         }}
                     >
+                        <FormItem name='i18n' label={t('i18n')}>
+                            <Ii18nSelector onBlur={onBlur} />
+                        </FormItem>
+                        <FormItem name='defaultYouglishLanguage' label={t('The Language of Youglish')}>
+                            <YouglishLanguageSelector onBlur={onBlur} />
+                        </FormItem>
                         <FormItem
                             name='provider'
                             label={t('Default Service Provider')}
@@ -3417,19 +3426,13 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             display: activeTab === 'mySettings' ? 'block' : 'none',
                         }}
                     >
-                        <FormItem name='i18n' label={t('i18n')}>
-                            <Ii18nSelector onBlur={onBlur} />
-                        </FormItem>
-                        <FormItem name='defaultYouglishLanguage' label={t('The Language of Youglish')}>
-                            <YouglishLanguageSelector onBlur={onBlur} />
-                        </FormItem>
                         <FormItem name='inputLanguageLevel' label={t('Language Level (Input)')}>
                             <LanguageLevelSelector onBlur={onStepBlur} type='output' />
                         </FormItem>
                         <FormItem name='outputLanguageLevel' label={t('Language Level (Output)')}>
                             <LanguageLevelSelector onBlur={onStepBlur} type='output' />
                         </FormItem>
-                        <FormItem name='userBackground' label={t('About You')}>
+                        <FormItem name='userBackground' label={t('Profile')}>
                             <Input
                                 size='compact'
                                 onBlur={onStepBlur}
@@ -3439,14 +3442,14 @@ export function InnerSettings({ onSave }: IInnerSettingsProps) {
                             />
                         </FormItem>
                         <div style={{ display: 'flex', flexDirection: 'row', gap: 10 }}>
-                            <FormItem name='defaultTargetLanguage' label={t('The Language You are Using')}>
+                            <FormItem name='defaultUserLanguage' label={t('The Language You are Using')}>
                                 <LanguageSelector onBlur={onBlur} />
                             </FormItem>
                             <div style={{ marginTop: '10px' }}>
                                 <TbDirectionSign size={18} />
                             </div>
-                            <FormItem name='defaultSourceLanguage' label={t('The Language You Want to Learn')}>
-                                <MultipleLanguageSelector value={values.defaultSourceLanguage} onBlur={onBlur} />
+                            <FormItem name='defaultLearningLanguage' label={t('The Language You Want to Learn')}>
+                                <MultipleLanguageSelector value={values.defaultLearningLanguage} onBlur={onBlur} />
                             </FormItem>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: '10px' }}>

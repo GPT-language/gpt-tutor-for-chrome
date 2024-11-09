@@ -1,6 +1,6 @@
 import { RiOperaFill } from 'react-icons/ri'
 import { Azure } from './azure'
-import { ChatGPT } from './chatgpt '
+import { ChatGPT } from './chatgpt'
 import { Gemini } from './gemini'
 import { IEngine } from './interfaces'
 import { MiniMax } from './minimax'

@@ -1,0 +1,627 @@
+import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { useStyletron } from 'baseui-sd'
+import { StatefulMenu } from 'baseui-sd/menu'
+import { Action } from '../internal-services/db'
+import { Button } from 'baseui-sd/button'
+import { IoIosRocket } from 'react-icons/io'
+import { useTranslation } from 'react-i18next'
+import { useChatStore } from '@/store/file/store'
+import AnswerTabs from '../AnswerTabs'
+
+interface AutocompleteTextareaProps {
+    // 1. 增加更多可配置的属性
+    editableText: string
+    placeholder?: string // 占位符文本
+    minHeight?: string // 最小高度
+    maxHeight?: string // 最大高度
+    backgroundColor?: string // 背景颜色
+    showSubmitButton?: boolean // 是否显示提交按钮
+    showClearButton?: boolean // 是否显示清除按钮
+    submitButtonText?: string // 提交按钮文本
+    clearButtonText?: string // 清除按钮文本
+    disabled?: boolean // 是否禁用
+    paragraph?: string // 当前段落
+
+    // 2. 回调函数
+    onChange: (text: string) => void
+    onSubmit?: () => void // 设为可选
+    onClear?: () => void // 清空回调
+    onFocus?: () => void // 获得焦点回调
+    onBlur?: () => void // 失去焦点回调
+}
+
+// 3. 提取默认值
+const DEFAULT_MIN_HEIGHT = '100px'
+const DEFAULT_BG_COLOR = '#f5f5f5'
+const DEFAULT_PADDING = '8px'
+
+const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
+    editableText,
+    placeholder = '',
+    minHeight = DEFAULT_MIN_HEIGHT,
+    maxHeight,
+    backgroundColor = DEFAULT_BG_COLOR,
+    showSubmitButton = true,
+    showClearButton = true,
+    submitButtonText,
+    clearButtonText,
+    disabled = false,
+    onChange,
+    onSubmit,
+    onClear,
+    onFocus,
+    onBlur,
+}) => {
+    const [css] = useStyletron()
+    const [showActionMenu, setShowActionMenu] = useState(false)
+    const [showGroupMenu, setShowGroupMenu] = useState(false)
+    const [groupSearchTerm, setGroupSearchTerm] = useState('')
+    const {
+        selectedActions,
+        activateAction,
+        setEditableText,
+        setAction,
+        actionGroups,
+        selectedGroup,
+        setSelectedGroup,
+    } = useChatStore()
+    const [searchTerm, setSearchTerm] = useState('')
+    const [filteredActions, setFilteredActions] = useState<Action[]>([])
+    const editorRef = useRef<HTMLDivElement>(null)
+    const menuRef = useRef<HTMLElement>(null)
+    const { t } = useTranslation()
+    const actionTagRef = useRef<HTMLSpanElement>(null)
+    const groupTagRef = useRef<HTMLSpanElement>(null)
+    const [isComposing, setIsComposing] = useState(false) // 添加输入法编辑状态
+
+    // 获取所有可用的 groups
+    const availableGroups = useMemo(() => {
+        return Object.keys(actionGroups).map((group) => ({
+            name: group,
+            id: group,
+        }))
+    }, [actionGroups])
+
+    // 过滤 groups
+    const filteredGroups = useMemo(() => {
+        if (!groupSearchTerm) return availableGroups
+        return availableGroups.filter((group) => group.name.toLowerCase().includes(groupSearchTerm.toLowerCase()))
+    }, [availableGroups, groupSearchTerm])
+
+    const handleSetEditableText = (text: string) => {
+        // 去除首尾空格
+        const trimmedText = text.trim()
+
+        // 如果去除空格后的文本与当前 editableText 相同，则不任何操作
+        if (trimmedText === editableText?.trim()) {
+            return
+        }
+
+        // 如果text以@开头，为选择动作而不是输入文本，不修改editableText
+        if (trimmedText.startsWith('@') || trimmedText.startsWith('/')) {
+            console.log('Choose action')
+            return
+        }
+
+        // 设置新的editableText，保留原始的空格
+        onChange(text)
+    }
+
+    useEffect(() => {
+        console.log('editableText', editableText)
+        onChange(editableText)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editableText])
+
+    useEffect(() => {
+        if (actionTagRef.current && activateAction) {
+            actionTagRef.current.style.display = 'inline-block'
+            actionTagRef.current.setAttribute('data-action-id', activateAction.id?.toString() || '')
+            actionTagRef.current.textContent = `@${activateAction.name}`
+        }
+    }, [activateAction])
+    const handleClear = () => {
+        if (editorRef.current) {
+            editorRef.current.innerHTML = ''
+        }
+
+        if (editableText) {
+            setEditableText('')
+        }
+
+        if (activateAction) {
+            setAction(undefined)
+        }
+    }
+
+    useEffect(() => {
+        // 如果正在使用输入法输入，不触发防抖更新
+        if (isComposing) {
+            return
+        }
+
+        // 创建防抖定时器
+        const debounceTimer = setTimeout(() => {
+            if (!editorRef.current) return
+            console.log('Updating text with debounce:', editableText)
+
+            // 保存现有的 tags
+            const existingActionTag = Array.from(editorRef.current.children).find(
+                (child) => child instanceof HTMLElement && child.hasAttribute('data-action-id')
+            ) as HTMLElement | undefined
+
+            const existingGroupTag = Array.from(editorRef.current.children).find(
+                (child) => child instanceof HTMLElement && child.hasAttribute('data-group-name')
+            ) as HTMLElement | undefined
+
+            // 清空当前内容
+            editorRef.current.innerHTML = ''
+
+            // 按顺序重新插入元素：group tag、空格、action tag、新文本
+            if (existingGroupTag) {
+                editorRef.current.appendChild(existingGroupTag)
+                editorRef.current.appendChild(document.createTextNode(' '))
+            }
+
+            if (existingActionTag) {
+                editorRef.current.appendChild(existingActionTag)
+                editorRef.current.appendChild(document.createTextNode(' '))
+            }
+
+            // 添加新的文本内容
+            editorRef.current.appendChild(document.createTextNode(editableText || ''))
+
+            // 触发 onChange 回调
+            onChange(editableText)
+
+            // 将光标移到文本末尾
+            const selection = window.getSelection()
+            const range = document.createRange()
+            range.selectNodeContents(editorRef.current)
+            range.collapse(false)
+            selection?.removeAllRanges()
+            selection?.addRange(range)
+        }, 300) //
+
+        // 清理定时器
+        return () => {
+            clearTimeout(debounceTimer)
+        }
+    }, [editableText, onChange, isComposing])
+
+    useEffect(() => {
+        if (searchTerm) {
+            const filtered = selectedActions.filter((action) => action.name.includes(searchTerm))
+            setFilteredActions(filtered)
+        } else {
+            setFilteredActions(selectedActions)
+        }
+    }, [searchTerm, selectedActions])
+
+    const getTextWithoutMentions = (text: string) => {
+        if (editorRef.current) {
+            // 获取纯文本内容，忽略 action tags
+            const textNodes = Array.from(editorRef.current.childNodes)
+                .filter((node) => node.nodeType === Node.TEXT_NODE)
+                .map((node) => node.textContent)
+                .join('')
+            return textNodes.trim()
+        }
+        return text.trim()
+    }
+
+    const handleInput = () => {
+        if (editorRef.current) {
+            const text = editorRef.current.innerText
+            handleSetEditableText(getTextWithoutMentions(text))
+
+            const selection = window.getSelection()
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0)
+                const preCaretRange = range.cloneRange()
+                preCaretRange.selectNodeContents(editorRef.current)
+                preCaretRange.setEnd(range.endContainer, range.endOffset)
+                const caretOffset = preCaretRange.toString().length
+
+                // 检查 @ 符号
+                const lastAtIndex = text.lastIndexOf('@', caretOffset)
+                if (lastAtIndex !== -1 && caretOffset - lastAtIndex <= 20) {
+                    const searchText = text.slice(lastAtIndex + 1, caretOffset)
+                    setSearchTerm(searchText)
+                    if (!showActionMenu) {
+                        setShowActionMenu(true)
+                        setShowGroupMenu(false)
+                    }
+                } else {
+                    setShowActionMenu(false)
+                }
+
+                // 检查 / 符号
+                const lastSlashIndex = text.lastIndexOf('/', caretOffset)
+                if (lastSlashIndex !== -1 && caretOffset - lastSlashIndex <= 20) {
+                    const searchText = text.slice(lastSlashIndex + 1, caretOffset)
+                    setGroupSearchTerm(searchText)
+                    if (!showGroupMenu) {
+                        setShowGroupMenu(true)
+                        setShowActionMenu(false)
+                    }
+                } else {
+                    setShowGroupMenu(false)
+                }
+            }
+        }
+    }
+
+    const cleanupText = () => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const textNodes = Array.from(editorRef.current!.childNodes).filter(
+            (node) => node.nodeType === Node.TEXT_NODE
+        ) as Text[]
+
+        textNodes.forEach((textNode) => {
+            // 替换文本节点中的 @或者/ 符号及其后面的文本，直到遇到空格或标点
+            const newText =
+                textNode.textContent?.replace(/@\S+/g, '').replace(/\/\S+/g, '').replace(/@/g, '').replace(/\//g, '') ||
+                ''
+
+            // 清理可能留下的多余空格
+            textNode.textContent = newText.replace(/\s+/g, ' ')
+        })
+    }
+
+    const handleActionSelect = async (action: Action) => {
+        setAction(action)
+        setSearchTerm('')
+        if (editorRef.current) {
+            const selection = window.getSelection()
+            if (selection && selection.rangeCount > 0) {
+                // 检查是否已存在 action tag
+                const existingActionTag = Array.from(editorRef.current.children).find(
+                    (child) => child instanceof HTMLElement && child.hasAttribute('data-action-id')
+                ) as HTMLElement | undefined
+
+                if (existingActionTag) {
+                    // 如果存在 action tag，直接更新内容和属性
+                    existingActionTag.setAttribute('data-action-id', action.id?.toString() || '')
+                    existingActionTag.textContent = `@${action.name}`
+                } else {
+                    // 如果不存在，创建新的 action tag
+                    const actionTag = document.createElement('span')
+                    actionTag.contentEditable = 'false'
+                    actionTag.className = css({
+                        backgroundColor: 'rgb(230, 236, 241)',
+                        borderRadius: '3px',
+                        padding: '2px 4px',
+                        margin: '0 2px',
+                        color: '#476582',
+                        fontSize: '0.9em',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        display: 'inline-block',
+                    })
+                    actionTag.setAttribute('data-action-id', action.id?.toString() || '')
+                    actionTag.textContent = `@${action.name}`
+
+                    // 插入 action tag 和剩余文本
+                    editorRef.current.appendChild(actionTag)
+                    const space = document.createTextNode(' ')
+                    editorRef.current.appendChild(space)
+
+                    // 将光标移动到标签后面
+                    const newRange = document.createRange()
+                    newRange.setStartAfter(space)
+                    newRange.setEndAfter(space)
+                    selection.removeAllRanges()
+                    selection.addRange(newRange)
+                }
+            }
+
+            // 在所有 action tag 处理完成后执行清理
+            cleanupText()
+        }
+        setShowActionMenu(false)
+        handleInput()
+    }
+
+    const handleGroupSelect = (group: { name: string }) => {
+        setSelectedGroup(group.name)
+        setGroupSearchTerm('')
+        if (editorRef.current) {
+            const selection = window.getSelection()
+            if (selection && selection.rangeCount > 0) {
+                // 检查是否存在 action tag
+                const existingActionTag = Array.from(editorRef.current.children).find(
+                    (child) => child instanceof HTMLElement && child.hasAttribute('data-action-id')
+                ) as HTMLElement | undefined
+
+                // 检查是否已存在 group tag
+                const existingGroupTag = Array.from(editorRef.current.children).find(
+                    (child) => child instanceof HTMLElement && child.hasAttribute('data-group-name')
+                ) as HTMLElement | undefined
+
+                // 创建新的 group tag
+                const groupTag = document.createElement('span')
+                groupTag.contentEditable = 'false'
+                groupTag.className = css({
+                    backgroundColor: 'rgb(241, 230, 230)',
+                    borderRadius: '3px',
+                    padding: '2px 4px',
+                    margin: '0 2px',
+                    color: '#825447',
+                    fontSize: '0.9em',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    display: 'inline-block',
+                })
+                groupTag.setAttribute('data-group-name', group.name)
+                groupTag.textContent = `/${group.name}`
+
+                if (existingGroupTag) {
+                    // 如果已存在 group tag，直接替换内容
+                    existingGroupTag.setAttribute('data-group-name', group.name)
+                    existingGroupTag.textContent = `/${group.name}`
+                } else {
+                    // 如果存在 action tag，在其前面插入 group tag
+                    if (existingActionTag) {
+                        // 按顺序插入元素：group tag、空格、action tag、剩余文本
+                        editorRef.current.appendChild(groupTag)
+                        editorRef.current.appendChild(document.createTextNode(' '))
+                        editorRef.current.appendChild(existingActionTag)
+                    } else {
+                        // 如果不存在任何 tag，按原来的逻辑处理
+
+                        editorRef.current.appendChild(groupTag)
+                        const space = document.createTextNode(' ')
+                        editorRef.current.appendChild(space)
+                    }
+                }
+
+                // 将光标移动到适当位置
+                const newRange = document.createRange()
+                const lastNode = editorRef.current.lastChild
+                newRange.setStartAfter(lastNode || groupTag)
+                newRange.setEndAfter(lastNode || groupTag)
+                selection.removeAllRanges()
+                selection.addRange(newRange)
+            }
+
+            // 在所有 action tag 处理完成后执行清理
+            cleanupText()
+        }
+        setShowGroupMenu(false)
+        handleInput()
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter') {
+            if (e.shiftKey) {
+                e.preventDefault()
+                const selection = window.getSelection()
+                const range = selection?.getRangeAt(0)
+                if (range) {
+                    const br = document.createElement('br')
+                    range.deleteContents()
+                    range.insertNode(br)
+                    range.setStartAfter(br)
+                    range.setEndAfter(br)
+                    selection?.removeAllRanges()
+                    selection?.addRange(range)
+                    handleInput()
+                }
+            } else {
+                e.preventDefault()
+                onSubmit?.()
+            }
+        } else if (e.key === 'ArrowDown' && menuRef.current) {
+            e.preventDefault()
+            menuRef.current.focus()
+        } else if (e.key === 'Backspace') {
+            const selection = window.getSelection()
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0)
+                const startContainer = range.startContainer
+
+                // 检查光标是否在 actionTag 后面
+                if (startContainer === editorRef.current && range.startOffset > 0) {
+                    const previousNode = editorRef.current.childNodes[range.startOffset - 1]
+                    if (previousNode instanceof HTMLElement && previousNode.hasAttribute('data-action-id')) {
+                        e.preventDefault()
+                        previousNode.remove()
+                        setAction(undefined)
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. 提取样式配置
+    const textareaStyles = {
+        width: 'auto',
+        border: '1px solid #ccc',
+        minHeight,
+        maxHeight,
+        padding: DEFAULT_PADDING,
+        marginBottom: '20px',
+        whiteSpace: 'pre-wrap' as const,
+        alignItems: 'center',
+        overflow: 'auto',
+        backgroundColor,
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? 'not-allowed' : 'text',
+    }
+
+    // 添加输入法事件处理
+    const handleCompositionStart = () => {
+        console.log('Composition start')
+        setIsComposing(true)
+    }
+
+    const handleCompositionEnd = () => {
+        console.log('Composition end')
+        setIsComposing(false)
+    }
+
+    return (
+        <div
+            className={css({
+                position: 'relative',
+                flexGrow: 1,
+                alignItems: 'stretch',
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+            })}
+        >
+            <div
+                ref={editorRef}
+                contentEditable={!disabled}
+                onInput={handleInput}
+                onKeyDown={handleKeyDown}
+                onFocus={onFocus}
+                onBlur={onBlur}
+                onCompositionStart={handleCompositionStart} // 添加输入法开始事件
+                onCompositionEnd={handleCompositionEnd} // 添加输入法结束事件
+                className={css(textareaStyles)}
+                data-placeholder={placeholder}
+            >
+                <span
+                    ref={groupTagRef}
+                    contentEditable={false}
+                    className={css({
+                        backgroundColor: 'rgb(241, 230, 230)',
+                        borderRadius: '3px',
+                        padding: '2px 4px',
+                        margin: '0 2px',
+                        color: '#825447',
+                        fontSize: '0.9em',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        display: 'none', // 默认隐藏
+                    })}
+                    data-group-name={selectedGroup || ''}
+                />
+
+                {/* 预设 action 标签 */}
+                <span
+                    ref={actionTagRef}
+                    contentEditable={false}
+                    className={css({
+                        backgroundColor: 'rgb(230, 236, 241)',
+                        borderRadius: '3px',
+                        padding: '2px 4px',
+                        margin: '0 2px',
+                        color: '#476582',
+                        fontSize: '0.9em',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        display: 'none', // 默认隐藏
+                        textContent: `@${activateAction?.name}`,
+                    })}
+                    data-action-id={activateAction?.id?.toString() || ''}
+                />
+            </div>
+            {showActionMenu && selectedActions.length > 0 && filteredActions.length > 0 && (
+                <div className={css(menuStyles)}>
+                    <StatefulMenu
+                        rootRef={menuRef}
+                        items={filteredActions.map((action) => ({
+                            label: action.name,
+                            action: action,
+                        }))}
+                        onItemSelect={({ item }) => handleActionSelect(item.action)}
+                        overrides={{
+                            List: {
+                                style: {
+                                    maxHeight: 'none',
+                                    overflow: 'visible',
+                                },
+                            },
+                        }}
+                    />
+                </div>
+            )}
+
+            {showGroupMenu && filteredGroups.length > 0 && (
+                <div className={css(menuStyles)}>
+                    <StatefulMenu
+                        items={filteredGroups.map((group) => ({
+                            label: group.name,
+                            group: group,
+                        }))}
+                        onItemSelect={({ item }) => handleGroupSelect(item.group)}
+                        overrides={{
+                            List: {
+                                style: {
+                                    maxHeight: 'none',
+                                    overflow: 'visible',
+                                },
+                            },
+                        }}
+                    />
+                </div>
+            )}
+
+            <div
+                style={{
+                    position: 'absolute',
+                    right: 0,
+                    bottom: '-10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                }}
+            >
+                {showClearButton && (
+                    <Button size='mini' kind='secondary' onClick={onClear ?? handleClear} disabled={disabled}>
+                        {clearButtonText || t('Clear')}
+                    </Button>
+                )}
+
+                {showSubmitButton && (
+                    <Button
+                        size='mini'
+                        kind='secondary'
+                        onClick={onSubmit}
+                        disabled={disabled}
+                        startEnhancer={<IoIosRocket size={13} />}
+                        overrides={buttonOverrides}
+                    >
+                        {submitButtonText || t('Submit')}
+                    </Button>
+                )}
+            </div>
+        </div>
+    )
+}
+
+const menuStyles = {
+    position: 'absolute',
+    left: '0',
+    right: '0',
+    top: '100%',
+    marginTop: '4px',
+    zIndex: 1000,
+    overflowY: 'auto',
+    maxHeight: '200px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+} as const
+
+const buttonOverrides = {
+    BaseButton: {
+        style: {
+            width: 'auto',
+            fontWeight: 'normal',
+            fontSize: '12px',
+            padding: '4px 8px',
+            cursor: 'pointer',
+        },
+    },
+    StartEnhancer: {
+        style: {
+            marginRight: '6px',
+        },
+    },
+}
+
+export default TextareaWithActions

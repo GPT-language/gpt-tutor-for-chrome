@@ -12,6 +12,7 @@ export interface ActionSlice {
     exportActions: (filename: string) => Promise<void>
     importActions: (file: File) => Promise<void>
     getAllGroups: () => Promise<string[]>
+    setSelectedActions: (actions: Action[]) => void
 }
 
 export const createActionSlice: StateCreator<ChatStore, [['zustand/devtools', never]], [], ActionSlice> = (
@@ -84,5 +85,8 @@ export const createActionSlice: StateCreator<ChatStore, [['zustand/devtools', ne
         const actions = get().actions
         const groups = actions.flatMap((action) => action.groups)
         return Array.from(new Set(groups))
+    },
+    setSelectedActions: (actions) => {
+        set({ selectedActions: actions })
     },
 })

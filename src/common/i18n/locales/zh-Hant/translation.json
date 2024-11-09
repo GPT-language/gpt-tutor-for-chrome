@@ -82,7 +82,7 @@
   "Role prompt example: You are a translator.": "角色提示詞範例：您是一名翻譯。",
   "Command Prompt": "命令提示詞",
   "Command prompt indicates what command should be issued to the role represented by the action when the action is executed.": "命令提示詞表示在執行功能時，應向該功能所代表的角色發出什麼命令。",
-  "Command prompt example: Please translate the following text from ${sourceLang} to ${targetLang}.": "命令提示詞範例：請將以下文本從 ${sourceLang} 翻譯成 ${targetLang}。",
+  "Command prompt example: Please translate the following text from ${learningLang} to ${targetLang}.": "命令提示詞範例：請將以下文本從 ${learningLang} 翻譯成 ${targetLang}。",
   "Create": "建立",
   "Delete": "刪除",
   "Update": "更新",

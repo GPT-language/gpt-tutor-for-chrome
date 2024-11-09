@@ -55,6 +55,7 @@ export class OpenRouter extends AbstractEngine {
             messages: [
                 { role: 'system', content: req.rolePrompt },
                 { role: 'user', content: req.commandPrompt },
+                { role: 'assistant', content: req.assistantPrompts?.join('\n') },
             ],
             stream: true,
         }

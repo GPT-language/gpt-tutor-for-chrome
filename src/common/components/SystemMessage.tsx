@@ -1,4 +1,4 @@
-import React from 'react'
+/* import React from 'react'
 import { ParagraphSmall } from 'baseui-sd/typography'
 import { LanguageSelector } from './Settings'
 import { FormControl } from 'baseui-sd/form-control'
@@ -8,8 +8,8 @@ interface SystemMessageProps {
     message: string
     component?: string
     settings: {
-        defaultTargetLanguage: string
-        defaultSourceLanguage: string
+        defaultULanguage: string
+        defaultLearningLanguage: string
     }
     onLanguageChange: (key: string) => (value: string) => void
 }
@@ -48,4 +48,4 @@ export const SystemMessage: React.FC<SystemMessageProps> = ({ message, component
             {renderComponent()}
         </div>
     )
-}
+} */

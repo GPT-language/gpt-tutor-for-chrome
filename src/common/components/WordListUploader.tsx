@@ -33,7 +33,6 @@ const WordListUploader = () => {
         selectedFiles,
         selectedWord,
         currentFileId,
-        selectedWords,
         selectedGroup,
         selectWord,
         addFile,
@@ -48,7 +47,6 @@ const WordListUploader = () => {
         setActionStr,
         showSidebar,
         refreshTextArea,
-        userId,
     } = useChatStore()
     const itemsPerPage = 10
     const { t } = useTranslation()
@@ -78,16 +76,10 @@ const WordListUploader = () => {
         }
     }
 
-    useEffect(() => {
-        console.log('currentFileId is', currentFileId)
-        console.log('current words is', words)
-        console.log('current display words is', displayWords)
-    }, [currentFileId, words, displayWords])
-
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
         if (file && selectedGroup) {
-            await addFile(file, selectedGroup, userId)
+            await addFile(file, selectedGroup)
         }
     }
 

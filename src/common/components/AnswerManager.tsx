@@ -5,7 +5,6 @@ import { ChevronDown, ChevronUp } from 'baseui-sd/icon'
 import Latex from 'react-latex-next'
 import { Markdown } from './Markdown'
 import { useChatStore } from '@/store/file/store'
-import { Textarea } from 'baseui-sd/textarea'
 import { Tooltip } from './Tooltip'
 import { RxCopy, RxReload, RxSpeakerLoud } from 'react-icons/rx'
 import { CopyButton } from './CopyButton'
@@ -13,17 +12,20 @@ import { AiOutlinePlusSquare, AiOutlineQuestionCircle } from 'react-icons/ai'
 import SpeakerMotion from './SpeakerMotion'
 import { useTranslation } from 'react-i18next'
 import { useStyles } from './Translator'
-import { simpleTranslate } from '../translate'
+import { askAI } from '../translate'
 import { IEngine } from '../engines/interfaces'
 import toast from 'react-hot-toast'
 import { CiEdit } from 'react-icons/ci'
 import { VscReply } from 'react-icons/vsc'
-
+import { Textarea } from 'baseui-sd/textarea'
+import TextareaWithActions from './TextAreaWithActions'
+import { shallow } from 'zustand/shallow'
 interface ITranslationManagerProps {
     isLoading: boolean
     isSpeakingTranslatedText: boolean
     styles: ReturnType<typeof useStyles>
     showFullQuoteText: boolean
+    setShowFullQuoteText: (show: boolean) => void
     forceTranslate: () => void
     handleTranslatedSpeakAction: (messageId: string, conversationId: string, text: string) => void
     messageId: string
@@ -39,13 +41,13 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     isSpeakingTranslatedText,
     styles,
     showFullQuoteText,
+    setShowFullQuoteText,
     forceTranslate,
     handleTranslatedSpeakAction,
     messageId,
     conversationId,
     addToAnki,
     finalText,
-    quoteText,
     engine,
 }) => {
     const [editingAction, setEditingAction] = useState<string | null>(null)
@@ -59,21 +61,26 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         selectedWord,
         selectedGroup,
         toggleMessageCard,
-        updateWordAnswer,
+        updateWordAnswers,
         updateFollowUpAnswer,
         updateSentenceAnswer,
+        updateSelectedWordText,
     } = useChatStore()
     const [hoveredParagraph, setHoveredParagraph] = useState<number | null>(null)
     const { t } = useTranslation()
     const [askingParagraph, setAskingParagraph] = useState<number | null>(null)
-    const [askQuestion, setAskQuestion] = useState('')
     const [currentAiAnswer, setCurrentAiAnswer] = useState<string>('')
+    const { independentText, setIndependentText } = useChatStore(
+        (state) => ({
+            independentText: state.independentText,
+            setIndependentText: state.setIndependentText,
+        }),
+        shallow
+    )
 
     const handleAsk = useCallback(
         (index: number, actionName?: string) => {
             let existingAnswer
-            console.log('actionName when ask', actionName)
-            console.log('index', index)
             if (actionName) {
                 const followUpAnswers = selectedWord?.answers?.[actionName]?.followUpAnswers || []
                 existingAnswer = followUpAnswers.find((followUpAnswer) => followUpAnswer.idx === index)
@@ -86,23 +93,32 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 setCurrentAiAnswer('')
             }
             setAskingParagraph(index)
-            setAskQuestion('')
+            setIndependentText('')
         },
-        [selectedWord]
+        [selectedWord?.answers, selectedWord?.sentenceAnswers, setIndependentText]
     )
+
+    // 完成设置，最后通过一个flag来触发
 
     const handleAskSubmit = useCallback(
         async (text: string, index: number, actionName?: string) => {
             if (!engine) {
-                console.error('引擎未定义')
+                toast(t('Engine not defined') || 'Engine not defined')
                 return
             }
+            if (!text && !independentText) {
+                toast(t('Please input your question') || 'Please input your question')
+                return
+            }
+            console.log('handleAskSubmit', text, index, actionName)
             const abortController = new AbortController()
+            const { selectedWord, currentFileId, activateAction } = useChatStore.getState()
 
             try {
-                await simpleTranslate(
+                await askAI(
                     {
-                        text: askQuestion,
+                        activateAction,
+                        text: independentText,
                         context: text,
                         onMessage: async (message) => {
                             if (!message.content) {
@@ -162,13 +178,13 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 // 显示错误提示
             }
         },
-        [askQuestion, currentFileId, engine, selectedWord, updateFollowUpAnswer, updateSentenceAnswer]
+        [engine, independentText, t, updateFollowUpAnswer, updateSentenceAnswer]
     )
 
     const handleCopy = useCallback(
         (text: string) => {
             navigator.clipboard.writeText(text)
-            // 可以添加一个复制成功的提示
+            // 可以添加一个复制成功的��
             toast(t('Copy to clipboard'), {
                 duration: 3000,
                 icon: '👏',
@@ -176,23 +192,66 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         },
         [t]
     )
-    const handleEdit = (paragraphIndex: number, text: string, actionName?: string) => {
-        if (actionName) {
-            setEditingAction(actionName)
-        }
+    const handleEdit = useCallback((paragraphIndex: number, text: string, actionName?: string) => {
+        setEditingAction(actionName || null)
+
         setEditingParagraph(paragraphIndex)
         setEditedText(text)
-    }
+    }, [])
 
-    const handleSave = useCallback(
-        async (actionName: string) => {
+    const handleSaveEditedText = useCallback(
+        async (actionName?: string) => {
+            console.log('开始保存编辑文本:', {
+                actionName,
+                editingParagraph,
+                editedText,
+                answers,
+                selectedWord,
+                currentFileId,
+            })
+
+            // 如果actionName为undefined，则为直接编辑selectedWord的text
+            if (!actionName) {
+                console.log('直接编辑selectedWord的text', editedText)
+                if (editedText) {
+                    updateSelectedWordText(editedText)
+                    setEditingParagraph(null)
+                    toast.success(t('Edit saved successfully'))
+                } else {
+                    toast.error(t('EditedText is empty'))
+                }
+                return
+            }
+
+            if (!editingParagraph && editingParagraph !== 0) {
+                console.warn('编辑段落索引无效:', editingParagraph)
+                return
+            }
+
             const currentTranslation = answers[actionName]
-            const updatedParagraphs = currentTranslation.text
-                .split('\n')
-                .map((paragraph, index) => (index === editingParagraph ? editedText : paragraph))
-            const updatedText = updatedParagraphs.join('\n')
+            if (!currentTranslation) {
+                console.error('未找到对应的translation:', actionName)
+                return
+            }
 
-            const updateWordAnswers = {
+            // 添加日志来检查分割前的文本
+            console.log('更新前的完整文本:', currentTranslation.text)
+
+            // 使用正确的分隔符分割文本
+            const paragraphs = currentTranslation.text.split('\n').filter(p => p.trim() !== '')
+            console.log('分割后的段落数组:', paragraphs)
+            console.log('要更新的段落索引:', editingParagraph)
+            console.log('更新前的段落内容:', paragraphs[editingParagraph])
+
+            // 更新指定段落
+            paragraphs[editingParagraph] = editedText
+            console.log('更新后的段落内容:', paragraphs[editingParagraph])
+
+            // 使用正确的分隔符合并文本
+            const updatedText = paragraphs.join('\n')
+            console.log('更新后的完整文本:', updatedText)
+
+            const updatedAnswers = {
                 ...answers,
                 [actionName]: {
                     ...currentTranslation,
@@ -202,22 +261,33 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
 
             if (selectedWord && currentFileId) {
                 try {
-                    updateWordAnswer(actionName, updatedText)
-                    // 只在成功更新后设置状态
-                    setAnswers(updateWordAnswers)
+                    await updateWordAnswers(updatedAnswers)
+                    console.log('成功更新answers:', updatedAnswers[actionName].text)
+                    setAnswers(updatedAnswers)
+                    toast.success(t('Edit saved successfully'))
                 } catch (error) {
-                    console.error('更新单词翻译失败:', error)
-                    // 这里可以添加错误处理逻辑，比如显示一个错误提示
+                    console.error('更新翻译失败:', error)
+                    toast.error(t('Failed to save edit'))
                 }
             } else {
-                // 如果没有选中的单词或文件ID，只更新本地状态
-                setAnswers(updateWordAnswers)
+                setAnswers(updatedAnswers)
             }
 
             setEditingAction(null)
             setEditingParagraph(null)
+            setEditedText('')
         },
-        [answers, selectedWord, currentFileId, editingParagraph, editedText, updateWordAnswer, setAnswers]
+        [
+            editingParagraph,
+            answers,
+            editedText,
+            selectedWord,
+            currentFileId,
+            updateSelectedWordText,
+            updateWordAnswers,
+            setAnswers,
+            t,
+        ]
     )
 
     const handleCancel = () => {
@@ -239,6 +309,9 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     }
 
     const splitIntoParagraphsAndSentences = (text: string): string[] => {
+        if (!text) {
+            return []
+        }
         // 首先按段落分割
         const paragraphs = text.split('\n').filter(Boolean)
 
@@ -260,14 +333,22 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         })
     }
 
+    const handleTextSelection = useCallback(() => {
+        console.log('handleTextSelection', askingParagraph)
+        if (askingParagraph === null) return
+        console.log('window.getSelection()', window.getSelection()?.toString().trim())
+        const selectedText = window.getSelection()?.toString().trim()
+        if (selectedText) {
+            setIndependentText(selectedText)
+        }
+    }, [askingParagraph, setIndependentText])
+
     const renderContent = useMemo(
         () => (text: string, format: string, actionName?: string) => {
             const paragraphs = splitIntoParagraphsAndSentences(text)
-
-            switch (format) {
-                case 'markdown':
-                case 'text':
-                    return paragraphs.map((paragraph, index) =>
+            const content = (
+                <>
+                    {paragraphs.map((paragraph, index) =>
                         paragraph.trim() === '' && editingAction !== actionName ? null : (
                             <Block
                                 key={`p-${index}`}
@@ -279,27 +360,14 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                     width: '100%',
                                 }}
                             >
-                                {editingAction === actionName && editingParagraph === index ? (
-                                    <Block $style={{ width: '95%', alignItems: 'center', margin: '10px' }}>
+                                {(editingAction === actionName ||
+                                    (editingAction === null && actionName === undefined)) &&
+                                editingParagraph === index ? (
+                                    <Block $style={{ width: '95%', margin: '10px' }}>
                                         <Textarea
-                                            value={askingParagraph === index ? askQuestion : editedText}
+                                            value={editedText}
                                             onChange={(e) => setEditedText(e.currentTarget.value)}
-                                            autoFocus
-                                            rows={editedText.split('\n').length}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleSave(actionName)
-                                                }
-                                            }}
-                                            overrides={{
-                                                Input: {
-                                                    style: {
-                                                        minHeight: '100px',
-                                                        resize: 'vertical',
-                                                        width: '100%',
-                                                    },
-                                                },
-                                            }}
+                                            placeholder={t('Edit text') || 'Edit text'}
                                         />
                                         <Block
                                             display='flex'
@@ -308,34 +376,36 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                             width='100%'
                                             $style={{ gap: '10px' }}
                                         >
-                                            <Button onClick={() => handleSave(actionName)} kind='primary' size='mini'>
+                                            <Button
+                                                onClick={() => handleSaveEditedText(actionName)}
+                                                kind='primary'
+                                                size='mini'
+                                            >
                                                 {t('Save')}
                                             </Button>
-                                            <Button
-                                                onClick={handleCancel}
-                                                kind='secondary'
-                                                size='mini'
-                                                style={{ marginRight: '10px' }}
-                                            >
+                                            <Button onClick={handleCancel} kind='secondary' size='mini'>
                                                 {t('Cancel')}
                                             </Button>
                                         </Block>
                                     </Block>
                                 ) : askingParagraph === index ? (
                                     <>
-                                        <Block $style={{ fontStyle: 'italic', marginBottom: '10px' }}>
+                                        <Block
+                                            $style={{ fontStyle: 'italic', marginBottom: '10px', userSelect: 'text' }}
+                                            onMouseUp={handleTextSelection}
+                                        >
                                             <Markdown>{paragraph}</Markdown>
                                         </Block>
-                                        <Textarea
-                                            value={askQuestion}
-                                            onChange={(e) => setAskQuestion(e.currentTarget.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleAskSubmit(paragraph, index, actionName)
-                                                }
+                                        <TextareaWithActions
+                                            editableText={independentText}
+                                            onChange={(value: string) => {
+                                                setIndependentText(value)
                                             }}
+                                            onSubmit={() => handleAskSubmit(paragraph, index, actionName)}
                                             placeholder={t('Input your question') || 'Input your question'}
-                                            autoFocus
+                                            minHeight='80px'
+                                            showSubmitButton={false}
+                                            showClearButton={false}
                                         />
                                         <Block
                                             display='flex'
@@ -456,7 +526,24 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 )}
                             </Block>
                         )
-                    )
+                    )}
+                </>
+            )
+            switch (format) {
+                case 'markdown':
+                case 'text':
+                    if (showFullQuoteText) {
+                        return (
+                            <Block>
+                                <Button onClick={() => setShowFullQuoteText(false)} size='mini'>
+                                    {t('Show Less')}
+                                </Button>
+                                {content}
+                            </Block>
+                        )
+                    } else {
+                        return content
+                    }
                 case 'latex':
                     return <Latex>{text}</Latex>
                 default:
@@ -465,27 +552,32 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         },
         [
             editingAction,
+            handleTextSelection,
             editingParagraph,
-            askingParagraph,
-            askQuestion,
             editedText,
+            t,
+            askingParagraph,
+            independentText,
             currentAiAnswer,
             hoveredParagraph,
-            t,
             styles.actionButton,
             isSpeakingTranslatedText,
-            handleSave,
+            handleSaveEditedText,
+            setIndependentText,
             handleAskSubmit,
+            handleEdit,
             handleAsk,
             handleCopy,
             handleTranslatedSpeakAction,
             messageId,
             conversationId,
+            showFullQuoteText,
+            setShowFullQuoteText,
         ]
     )
 
-    if (showFullQuoteText) {
-        return <Block>{renderContent(quoteText, 'markdown', undefined)}</Block>
+    if (showFullQuoteText && selectedWord?.text) {
+        return <Block>{renderContent(selectedWord.text, 'markdown', undefined)}</Block>
     }
 
     return (

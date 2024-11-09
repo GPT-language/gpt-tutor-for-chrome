@@ -1,5 +1,4 @@
 import { ISettings } from '@/common/types'
-import { getUniversalFetch } from '@/common/universal-fetch'
 import { useChatStore } from '@/store/file/store'
 
 export function isCreditEnough(credit: number, price: number): boolean {

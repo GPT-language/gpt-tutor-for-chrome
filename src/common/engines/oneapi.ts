@@ -28,7 +28,7 @@ export class OneAPI extends AbstractEngine {
     async listModels(apiKey: string | undefined): Promise<IModel[]> {
         const settings = await getSettings()
         // TODO: use correct url
-        const url = 'http://localhost:3000/api/models'
+        const url = 'https://gpt-tutor-website-with-stripe.vercel.app/api/models'
         const headers = {
             Authorization: `Bearer ${apiKey || settings.OneAPIAPIKey}`,
         }

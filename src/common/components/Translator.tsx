@@ -8,7 +8,7 @@ import { createUseStyles } from 'react-jss'
 import { AiOutlineTranslation } from 'react-icons/ai'
 import { IoSettingsOutline } from 'react-icons/io5'
 import { getLangConfig, LangCode } from './lang/lang'
-import { translate } from '../translate'
+import { askAI } from '../translate'
 import { RxEraser, RxReload, RxSpeakerLoud } from 'react-icons/rx'
 import { RiSpeakerFill } from 'react-icons/ri'
 import { calculateMaxXY, queryPopupCardElement } from '../../browser-extension/content_script/utils'
@@ -52,13 +52,14 @@ import WordBookViewer from './WordBookViewer'
 import { checkForUpdates, getFilenameForLanguage, getLocalData, updateLastCheckedSha } from '../services/github'
 import { parseDiff, Diff, Hunk } from 'react-diff-view'
 import 'react-diff-view/style/index.css'
-import AutocompleteTextarea from './TextArea'
+import TextareaWithActions from './TextAreaWithActions'
 import { isSettingsComplete } from '@/utils/auth'
 import { shallow } from 'zustand/shallow'
-import TranslationManager from './AnswerManager'
+import AnswerManager from './AnswerManager'
 import QuotePreview from './QuotePreview'
 import { Notification, KIND } from 'baseui-sd/notification'
 import { StyledLink } from 'baseui-sd/link'
+import AnswerTabs from '../AnswerTabs'
 
 const cache = new LRUCache({
     max: 500,
@@ -400,7 +401,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         selectedWord,
         deleteSelectedWord,
         setActions,
-        words,
         setAction,
         isShowMessageCard,
         toggleMessageCard,
@@ -435,13 +435,18 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const { settings } = useSettings()
     const [finalText, setFinalText] = useState('')
     const quoteTextRef = useRef('')
-    const [selectedActions, setSelectedActions] = useState<Action[]>([])
     const [showFullQuoteText, setShowFullQuoteText] = useState(false)
 
     // 更新 quoteText 时同时更新 ref
     useEffect(() => {
         quoteTextRef.current = quoteText
     }, [quoteText])
+
+    /*     useEffect(() => {
+        if (selectedWord) {
+            setQuoteText(selectedWord.text)
+        }
+    }, [selectedWord, setQuoteText]) */
 
     useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -634,7 +639,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [settings?.i18n, actions, setActions, refreshActions])
 
     // 检查功能更新
-
     const handleCheckForUpdates = async () => {
         if (!settings?.i18n) return
         const languageCode = settings.i18n
@@ -703,7 +707,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     actions.splice(actions.indexOf(action), 1)
                 }
             })
-            // 使用 bulkPut 更新所有数据
+            // 使用 bulkPut 更新���有数据
             actions.push(...remoteData)
 
             if (latestCommitSha) {
@@ -727,6 +731,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowUpdateModal(false)
     }
 
+    // 清除当前输入和选择的action
+
     useEffect(() => {
         if (!settings?.i18n) return
 
@@ -744,42 +750,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             setActions(actions)
         }
     }, [actions, setActions])
-
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        if (!actions) {
-            console.log('no actions')
-            setDisplayedActions([])
-            setHiddenActions([])
-            return
-        }
-
-        const filteredActions = actions.filter((action) => {
-            if (action.groups && action.groups.length > 0) {
-                return action.groups.includes(selectedGroup)
-            }
-            return []
-        })
-
-        setSelectedActions(filteredActions)
-
-        let displayedActions = filteredActions.slice(0, displayedActionsMaxCount)
-        let hiddenActions = filteredActions.slice(displayedActionsMaxCount)
-        if (!displayedActions.find((action) => action.id === activateAction?.id)) {
-            const activatedAction = filteredActions.find((a) => a.id === activateAction?.id)
-            if (activatedAction) {
-                const lastDisplayedAction = displayedActions[displayedActions.length - 1]
-                if (lastDisplayedAction) {
-                    displayedActions = displayedActions.slice(0, displayedActions.length - 1)
-                    hiddenActions = [lastDisplayedAction, ...hiddenActions]
-                }
-                displayedActions.push(activatedAction)
-                hiddenActions = hiddenActions.filter((a) => a.id !== activatedAction.id)
-            }
-        }
-        setDisplayedActions(displayedActions)
-        setHiddenActions(hiddenActions)
-    }, [actions, selectedGroup, activateAction, displayedActionsMaxCount, refreshActionsFlag, setActions])
 
     const isTranslate = currentTranslateMode === 'translate'
 
@@ -809,20 +779,17 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
     const [isLoading, setIsLoading] = useState(false)
-    const [newYouGlish, setNewYouGlish] = useState(false)
     const [showYouGlish, setShowYouGlish] = useState(false)
     const [showAnkiNote, setShowAnkiNote] = useState(false)
     const [isSpeakingEditableText, setIsSpeakingEditableText] = useState(false)
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [engine, setEngine] = useState<IEngine | undefined>(undefined)
-    const [activeKey, setActiveKey] = useState<Key | null>(null)
     const [parentAction, setParentAction] = useState<Action | undefined>(undefined)
     const [showUpdateModal, setShowUpdateModal] = useState(false)
     const [latestCommitSha, setLatestCommitSha] = useState<string | null>(null)
     const [updateContent, setUpdateContent] = useState<Record<string, any>>({})
     const [isOpenToAsk, setIsOpenToAsk] = useState(true)
-    const isSettingComplete = isSettingsComplete(settings, props.defaultShowSettings)
 
     // 设置engine
     useEffect(() => {
@@ -832,6 +799,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             setEngine(getEngine('OpenAI'))
         }
     }, [settings?.provider])
+
+    // 初始化answers
+    useEffect(() => {
+        if (selectedWord && selectedWord.answers) {
+            setAnswers(selectedWord?.answers)
+        }
+    }, [])
 
     const handleSubmit = useCallback(
         async (e?: React.FormEvent) => {
@@ -854,15 +828,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
     }, [activateAction])
 
-    // 重新打开时设置选择的动作和文本都为空
-    useEffect(() => {
-        if (isOpenToAsk) {
-            setAction(undefined)
-            setEditableText('')
-            setFinalText('')
-        }
-    }, [])
-
     useEffect(() => {
         setTranslatedLines(translatedText.split('\n'))
     }, [translatedText])
@@ -876,8 +841,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setIsLoading(false)
         useChatStore.setState({ isLoading: false })
     }, [])
-    const [sourceLang, setSourceLang] = useState<LangCode[]>(['en'])
-    const [targetLang, setTargetLang] = useState<LangCode>('en')
+    const [learningLang, setLearningLang] = useState<LangCode[]>(['en'])
+    const [userLang, setUserLang] = useState<LangCode>('en')
     const [youglishLang, setYouglishLang] = useState<LangCode>('en')
     const [ActivatedActionName, setActivatedActionName] = useState('')
     const settingsIsUndefined = settings === undefined
@@ -898,22 +863,22 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
 
         ;(async () => {
-            setTargetLang(() => {
-                if (settings?.defaultTargetLanguage) {
-                    return settings.defaultTargetLanguage as LangCode
+            setUserLang(() => {
+                if (settings?.defaultUserLanguage) {
+                    return settings.defaultUserLanguage as LangCode
                 } else {
                     return 'en'
                 }
             })
-            setSourceLang(() => {
-                if (settings?.defaultTargetLanguage) {
-                    return settings.defaultSourceLanguage as LangCode[]
+            setLearningLang(() => {
+                if (settings?.defaultLearningLanguage) {
+                    return settings.defaultLearningLanguage as LangCode[]
                 } else {
                     return 'zh-Hans'
                 }
             })
             setYouglishLang(() => {
-                if (settings?.defaultTargetLanguage) {
+                if (settings?.defaultUserLanguage) {
                     return settings.defaultYouglishLanguage as LangCode
                 } else {
                     return 'en'
@@ -923,8 +888,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [
         isTranslate,
         settingsIsUndefined,
-        settings?.defaultTargetLanguage,
-        settings?.defaultSourceLanguage,
+        settings?.defaultUserLanguage,
+        settings?.defaultLearningLanguage,
         settings?.defaultYouglishLanguage,
         props.uuid,
     ])
@@ -932,10 +897,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     useEffect(() => {
         const editor = editorRef.current
         if (!editor) return
-        editor.dir = getLangConfig(sourceLang[0]).direction
-    }, [sourceLang, actionStr])
+        editor.dir = getLangConfig(learningLang[0]).direction
+    }, [learningLang, actionStr])
 
-    const translatedLanguageDirection = useMemo(() => getLangConfig(sourceLang[0]).direction, [sourceLang[0]])
+    const translatedLanguageDirection = useMemo(() => getLangConfig(learningLang[0]).direction, [learningLang])
 
     const addToAnki = async (deckname: string, front: string, back: string) => {
         const connected = await isConnected()
@@ -1114,7 +1079,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     useEffect(() => {
         finalTextRef.current = finalText
-        console.log('finalTextRef.current', finalTextRef.current)
     }, [finalText])
 
     const translateText = useCallback(
@@ -1124,11 +1088,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             let question: string
             const historyFileName = t('History')
             if (!text && !quoteText) {
-                console.error('No text to translate')
                 return
             }
-            // 如果存在quoteText，则不添加到历史文件中，因为quoteText在quote时就已经添加
-            if (text && text !== selectedWord?.text && !quoteText) {
+            const needAddToHistoryFile = text && (!selectedWord || !selectedWord.text)
+            if (needAddToHistoryFile) {
+                console.log('add word to history file')
                 const word: Content = { idx: 0, text: text, reviewCount: 0, answers: {} }
                 const result = await addWordToFile(word, historyFileName)
                 if (result) {
@@ -1149,10 +1113,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 wordIdx = selectedWord?.idx || 0
             }
 
-            if (actionName) {
-                setActivatedActionName(actionName)
-                setActiveKey(actionName)
-            } else {
+            if (!actionName) {
                 const maxLength = 15
                 let displayText = ''
                 if (text) {
@@ -1161,11 +1122,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 } else if (quoteText) {
                     displayText = quoteText.length > maxLength ? quoteText.slice(0, maxLength) + '...' : quoteText
                     question = displayText
-                }
-
-                if (displayText) {
-                    setActiveKey(displayText as Key)
-                    setActivatedActionName(displayText)
                 }
             }
 
@@ -1196,32 +1152,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 }
             }
             beforeTranslate()
-            const cachedKey = `translate:${settings?.provider ?? ''}:${settings?.apiModel ?? ''}:${text}:${answerFlag}`
-            const cachedValue = cache.get(cachedKey)
-            if (cachedValue) {
-                afterTranslate('stop')
-                setTranslatedText(cachedValue as string)
-                return
-            }
             let isStopped = false
-            console.log('text to translate is', text)
             try {
-                await translate(
+                await askAI(
                     {
-                        activateAction: activateActionRef.current ? activateActionRef.current : undefined,
+                        activateAction: activateAction,
                         parentAction: parentAction,
-                        detectFrom: sourceLang[0],
-                        detectTo: targetLang,
-                        context: quoteTextRef.current,
+                        learningLang: learningLang[0],
+                        userLang: userLang,
+                        context: selectedWord?.text || quoteText,
                         inputLanguageLevel: settings?.inputLanguageLevel,
                         outputLanguageLevel: settings?.outputLanguageLevel,
                         userBackground: settings?.userBackground,
-                        useBackgroundInfo: activateActionRef.current
-                            ? activateActionRef.current.useBackgroundInfo
-                            : false,
-                        languageLevelInfo: activateActionRef.current
-                            ? activateActionRef.current.useLanguageLevelInfo
-                            : false,
+                        useBackgroundInfo: activateAction?.useBackgroundInfo,
+                        languageLevelInfo: activateAction?.useLanguageLevelInfo,
                         signal,
                         text,
                         onStatusCode: (statusCode) => {
@@ -1242,18 +1186,16 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     ? message.content
                                     : translatedText + message.content
 
-                                const actionName = activateActionRef.current?.name || question
-                                if (actionName) {
-                                    // 更新 answers
-                                    const newAnswers = {
-                                        ...answers,
-                                        [actionName]: {
-                                            text: newTranslatedText,
-                                            format: activateAction?.outputRenderingFormat || 'markdown',
-                                        },
-                                    }
-                                    setAnswers(newAnswers)
+                                const actionName = isOpenToAsk ? question : activateAction?.name
+                                // 更新 answers
+                                const newAnswers = {
+                                    ...answers,
+                                    [actionName || question]: {
+                                        text: newTranslatedText,
+                                        format: activateAction?.outputRenderingFormat || 'markdown',
+                                    },
                                 }
+                                setAnswers(newAnswers)
 
                                 return newTranslatedText
                             })
@@ -1262,11 +1204,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             afterTranslate(reason)
                             setTranslatedText((translatedText) => {
                                 const result = translatedText
-                                cache.set(cachedKey, result)
-                                const actionName = activateActionRef.current?.name || question
+                                const actionName = isOpenToAsk ? question : activateAction?.name
 
                                 updateWordAnswer(
-                                    actionName,
+                                    actionName || question,
                                     result,
                                     activateAction?.outputRenderingFormat || 'markdown',
                                     messageId,
@@ -1309,16 +1250,32 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 }
             }
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
         [
-            settings?.provider,
-            settings?.apiModel,
+            t,
+            quoteText,
+            selectedWord,
+            addWordToFile,
+            currentFileId,
+            setActionStr,
+            startLoading,
+            stopLoading,
+            activateAction,
+            parentAction,
+            learningLang,
+            userLang,
             settings?.inputLanguageLevel,
             settings?.outputLanguageLevel,
             settings?.userBackground,
-            answerFlag,
-            startLoading,
-            stopLoading,
+            settings?.provider,
+            engine,
+            isOpenToAsk,
+            showTextParser,
+            answers,
+            setAnswers,
+            updateWordAnswer,
+            messageId,
+            conversationId,
         ]
     )
 
@@ -1339,18 +1296,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [translatedText, t, activateAction?.name, answers, selectedWord])
 
     useEffect(() => {
+        if (answerFlag === 0) return // 跳过初始渲染
+
         const controller = new AbortController()
         const { signal } = controller
         if (finalTextRef.current) {
-            console.log('finalTextRef.current is', finalTextRef.current)
-            translateText(signal, finalTextRef.current)
+            translateText(signal, finalTextRef.current) // 这里调用的总是最新的 translateText
         } else {
             translateText(signal)
         }
         return () => {
             controller.abort()
         }
-    }, [translateText])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [answerFlag])
 
     useEffect(() => {
         if (!props.defaultShowSettings) {
@@ -1401,43 +1360,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setIsSpeakingEditableText(true)
         const { stopSpeak } = await speak({
             text: quoteText || editableText || finalText,
-            lang: sourceLang[0],
+            lang: learningLang[0],
             onFinish: () => setIsSpeakingEditableText(false),
         })
         editableStopSpeakRef.current = stopSpeak
     }
 
-    const handlesetEditableText = (text: string) => {
-        // 去除首尾空格
-        const trimmedText = text.trim()
-
-        // 如果去除空格后的文本与当前 editableText 相同，则不做任何操作
-        if (trimmedText === editableText.trim()) {
-            return
-        }
-
-        // 如果text以@开头，为选择动作而不是输入文本，不修改editableText
-        if (trimmedText.startsWith('@')) {
-            console.log('Choose action')
-            return
-        }
-
-        // 如果没有@，则清除选择的action
-        if (!trimmedText.startsWith('@')) {
-            setAction(undefined)
-        }
-        // 如果存在selectedWord，且去除空格后的新文本与selectedWord.text不同，则删除selectedWord
-        // 如果存在quoteText，则不删除selectedWord，因为此时输入的内容为指令而非文本，需要保留selectedWord.text作为上下文文本
-        if (selectedWord && trimmedText !== selectedWord.text.trim() && !quoteText) {
-            deleteSelectedWord()
-        }
-
-        // 设置新的editableText，保留原始的空格
-        setEditableText(text)
-    }
-
     const handleYouglishSpeakAction = async () => {
-        setNewYouGlish(true)
         if (!showYouGlish) {
             setShowYouGlish(true)
         } else {
@@ -1454,7 +1383,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setIsSpeakingTranslatedText(true)
         const { stopSpeak } = await speak({
             text: text || translatedText,
-            lang: targetLang,
+            lang: userLang,
             messageId,
             conversationId,
             onFinish: () => setIsSpeakingTranslatedText(false),
@@ -1531,8 +1460,17 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 }}
             >
                 <div style={props.containerStyle}>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div
+                        style={{
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 100,
+                            backgroundColor: theme.colors.backgroundPrimary,
+                        }}
+                    >
                         <CategorySelector />
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div className={styles.popupCardContentContainer}>
                             {settings?.apiURL === defaultAPIURL && (
                                 <div>
@@ -1544,14 +1482,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 className={styles.popupCardEditorContainer}
                                 style={{ display: 'block' }}
                             >
-                                {quoteText && !showFullQuoteText && (
+                                {selectedWord?.text && !showFullQuoteText && (
                                     <QuotePreview
-                                        text={quoteText}
-                                        onShowMore={() => {
-                                            setShowFullQuoteText(true)
-                                        }}
+                                        showFullText={showFullQuoteText}
+                                        toggleFullText={() => setShowFullQuoteText(!showFullQuoteText)}
                                         onClose={() => {
-                                            setQuoteText('')
+                                            deleteSelectedWord()
                                         }}
                                         previewLength={200}
                                     />
@@ -1559,11 +1495,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 <div style={{ display: 'flex', flexDirection: 'row', height: '100%' }}>
                                     <WordListUploader />
                                     {showFullQuoteText ? null : (
-                                        <AutocompleteTextarea
-                                            selectedActions={selectedActions}
-                                            isSettingComplete={isSettingComplete}
-                                            onActionSelect={setAction}
-                                            onChange={handlesetEditableText}
+                                        <TextareaWithActions
+                                            editableText={editableText}
+                                            onChange={setEditableText}
                                             onSubmit={handleSubmit}
                                         />
                                     )}
@@ -1666,30 +1600,21 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     className={styles.popupCardTranslatedContentContainer}
                                                 >
                                                     <div style={{ width: '100%' }}>
-                                                        {showTextParser ? (
-                                                            <TextParser
-                                                                jsonContent={jsonText}
-                                                                setOriginalText={handTextParserClick}
-                                                            ></TextParser>
-                                                        ) : null}
-                                                        <>
-                                                            <TranslationManager
-                                                                isLoading={isLoading}
-                                                                isSpeakingTranslatedText={isSpeakingTranslatedText}
-                                                                styles={styles}
-                                                                showFullQuoteText={showFullQuoteText}
-                                                                forceTranslate={forceTranslate}
-                                                                handleTranslatedSpeakAction={
-                                                                    handleTranslatedSpeakAction
-                                                                }
-                                                                messageId={messageId}
-                                                                conversationId={conversationId}
-                                                                finalText={finalText}
-                                                                quoteText={quoteText}
-                                                                engine={engine}
-                                                                addToAnki={addToAnki}
-                                                            />
-                                                        </>
+                                                        <AnswerManager
+                                                            isLoading={isLoading}
+                                                            isSpeakingTranslatedText={isSpeakingTranslatedText}
+                                                            styles={styles}
+                                                            showFullQuoteText={showFullQuoteText}
+                                                            setShowFullQuoteText={setShowFullQuoteText}
+                                                            forceTranslate={forceTranslate}
+                                                            handleTranslatedSpeakAction={handleTranslatedSpeakAction}
+                                                            messageId={messageId}
+                                                            conversationId={conversationId}
+                                                            finalText={finalText}
+                                                            quoteText={quoteText}
+                                                            engine={engine}
+                                                            addToAnki={addToAnki}
+                                                        />
                                                     </div>
                                                 </div>
                                                 <Dropzone noClick={true}>

@@ -49,7 +49,7 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 ]
                 draft.currentFileId = newFileId
                 draft.words = words
-                draft.selectedWords = { [newFileId]: words[0] }
+                draft.currentWordPositions = { [newFileId]: words[0].idx }
                 draft.files.push({ id: newFileId, name: file.name, category: category, words: words })
             })
         )
@@ -82,6 +82,8 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
                     if (fileId === draft.currentFileId) {
                         draft.words = draft.files[fileIndex].words
                     }
+                } else {
+                    console.warn('File not found')
                 }
             })
         )
@@ -115,11 +117,11 @@ export const chatFile: StateCreator<ChatStore, [['zustand/devtools', never]], []
     },
 
     selectFile: (fileId) => {
-        const { selectedWords } = get()
-        const saveWord = selectedWords[fileId]
+        const { currentWordPositions } = get()
+        const saveWordIdx = currentWordPositions[fileId]
         let page
-        if (saveWord) {
-            page = Math.floor((saveWord.idx - 1) / 10) + 1
+        if (saveWordIdx) {
+            page = Math.floor((saveWordIdx - 1) / 10) + 1
         } else {
             page = 1
         }

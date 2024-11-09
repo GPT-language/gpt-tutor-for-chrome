@@ -19,8 +19,8 @@ export const defaultGeminiAPIURL = 'https://generativelanguage.googleapis.com'
 export const defaultChatContext = true
 export const defaultAutoTranslate = false
 export const isFirstTimeUse = true
-export const defaultTargetLanguage = 'zh-Hans'
-export const defaultSourceLanguage = ['en']
+export const defaultUserLanguage = 'zh-Hans'
+export const defaultLearningLanguage = ['en']
 export const defaultYouglishLanguage = 'en'
 export const defaultSelectInputElementsText = true
 export const defaulti18n = 'en'
@@ -166,8 +166,8 @@ const settingKeys: Record<keyof ISettings, number> = {
     geminiAPIModel: 1,
     autoTranslate: 1,
     defaultTranslateMode: 1,
-    defaultTargetLanguage: 1,
-    defaultSourceLanguage: 1,
+    defaultUserLanguage: 1,
+    defaultLearningLanguage: 1,
     inputLanguageLevel: 1,
     outputLanguageLevel: 1,
     userBackground: 1,
@@ -257,11 +257,11 @@ export async function getSettings(): Promise<ISettings> {
     if (!settings.isFirstTimeUse === undefined || settings.isFirstTimeUse === null) {
         settings.isFirstTimeUse = isFirstTimeUse
     }
-    if (!settings.defaultSourceLanguage) {
-        settings.defaultSourceLanguage = defaultSourceLanguage
+    if (!settings.defaultLearningLanguage) {
+        settings.defaultLearningLanguage = defaultLearningLanguage
     }
-    if (!settings.defaultTargetLanguage) {
-        settings.defaultTargetLanguage = defaultTargetLanguage
+    if (!settings.defaultUserLanguage) {
+        settings.defaultUserLanguage = defaultUserLanguage
     }
     if (!settings.defaultYouglishLanguage) {
         settings.defaultYouglishLanguage = defaultYouglishLanguage

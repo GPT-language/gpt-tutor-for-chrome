@@ -5,11 +5,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { getLangConfig, LangCode } from './components/lang/lang'
 import { getUniversalFetch } from './universal-fetch'
 import { Action } from './internal-services/db'
-import { oneLine } from 'common-tags'
 import { ResponseContent } from './types'
 import Browser from 'webextension-polyfill'
 import { sha3_512 } from 'js-sha3'
-import { getSettings } from './utils'
 import { IEngine } from './engines/interfaces'
 
 export type TranslateMode = 'built-in' | 'translate' | 'explain-code' | 'Sentence analysis' | 'Free to ask'
@@ -28,8 +26,8 @@ interface BaseTranslateQuery {
     parentAction?: Action
     text?: string
     context?: string
-    detectFrom?: LangCode
-    detectTo?: LangCode
+    learningLang?: LangCode
+    userLang?: LangCode
     mode?: Exclude<TranslateMode, 'big-bang'>
     inputLanguageLevel?: string
     outputLanguageLevel?: string
@@ -305,7 +303,7 @@ async function registerWebsocket(token: string): Promise<{ wss_url: string; expi
     return callBackendAPIWithToken(token, 'POST', '/register-websocket').then((r) => r.json())
 }
 
-export async function translate(query: TranslateQuery, engine: IEngine | undefined, isOpenToAsk?: boolean) {
+export async function askAI(query: TranslateQuery, engine: IEngine | undefined, isOpenToAsk?: boolean) {
     if (!engine) {
         console.error('Translation engine is undefined')
         query.onError('Translation engine is undefined')
@@ -318,6 +316,12 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
     let userBackgroundPrompt = ''
     if (query.context) {
         assistantPrompts.push('context: ' + query.context)
+    }
+    if (query.context && !query.text) {
+        query.text = query.context
+    }
+    if (query.userLang) {
+        assistantPrompts.push('Please always respond in ' + query.userLang)
     }
     if (query.useBackgroundInfo && query.userBackground) {
         userBackgroundPrompt += query.userBackground
@@ -357,30 +361,36 @@ export async function translate(query: TranslateQuery, engine: IEngine | undefin
         assistantPrompts.push(userBackgroundPrompt)
     }
 
-    const sourceLangCode = query.detectFrom ?? 'en'
-    const targetLangCode = query.detectTo ?? 'zh-Hans'
-    const sourceLangName = lang.getLangName(sourceLangCode)
-    const targetLangName = lang.getLangName(targetLangCode)
-    const toChinese = chineseLangCodes.indexOf(targetLangCode) >= 0
-    const targetLangConfig = getLangConfig(targetLangCode)
-    const sourceLangConfig = getLangConfig(sourceLangCode)
-    rolePrompt = targetLangConfig.rolePrompt
+    const learningLangCode = query.learningLang ?? 'en'
+    const userLangCode = query.userLang ?? 'zh-Hans'
+    const learningLangName = lang.getLangName(learningLangCode)
+    const userLangName = lang.getLangName(userLangCode)
+    const toChinese = chineseLangCodes.indexOf(userLangCode) >= 0
+    const userLangConfig = getLangConfig(userLangCode)
+    const learningLangConfig = getLangConfig(learningLangCode)
+    rolePrompt = userLangConfig.rolePrompt
 
     // 设置替换${text}和其它值
     rolePrompt = (query.activateAction?.rolePrompt ?? '')
-        .replace('${sourceLang}', sourceLangName)
-        .replace('${targetLang}', targetLangName)
+        .replace('${sourceLang}', learningLangName)
+        .replace('${targetLang}', userLangName)
         .replace('${text}', query.text ?? '')
     commandPrompt = (query.activateAction?.commandPrompt ?? '')
-        .replace('${sourceLang}', sourceLangName)
-        .replace('${targetLang}', targetLangName)
-        .replace('${text}', query.text ?? '')
+        .replace('${sourceLang}', learningLangName)
+        .replace('${targetLang}', userLangName)
+        .replace('${text}', query.text ?? query.context ?? '')
     if (query.activateAction?.outputRenderingFormat) {
         commandPrompt += `. Format: ${query.activateAction.outputRenderingFormat}`
     }
     if (!commandPrompt.trim() && query.text) {
-        commandPrompt = query.text
+        if (query.context) {
+            commandPrompt = 'Context: ' + query.context + '\n' + query.text
+        } else {
+            commandPrompt = query.text
+        }
     }
+
+    console.log('assistantPrompts', assistantPrompts)
 
     await engine?.sendMessage({
         signal: query.signal,

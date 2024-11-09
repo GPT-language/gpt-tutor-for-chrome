@@ -15,7 +15,7 @@
   "idx": 0,
   "name": "Wie man X ausdrückt",
   "icon": "MdMusicVideo",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer. Sie haben diese Sprache umfassend erforscht und wissen genau, wie Sie den Schülern effektiv helfen können, Ausdrücke in dieser Sprache zu verstehen.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer. Sie haben diese Sprache umfassend erforscht und wissen genau, wie Sie den Schülern effektiv helfen können, Ausdrücke in dieser Sprache zu verstehen.",
   "commandPrompt": "Wie man ${text} ausdrückt. Bitte schließen Sie in Ihre Erklärung ein: 1. Was ist der gebräuchlichste und standardmäßigste Ausdruck? 2. Welche anderen Möglichkeiten gibt es, dies auszudrücken? Was sind die Unterschiede zwischen ihnen? 4. Bitte geben Sie Beispiele für jeden Ausdruck, der in Sätzen verwendet wird.",
   "groups": ["Allgemeine Funktionen"],
   "createdAt": "1697369325385",
@@ -27,7 +27,7 @@
   "idx": 0,
   "name": "Worterklärung",
   "icon": "MdZoomIn",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer. Sie haben den Wortschatz dieser Sprache ausführlich studiert und kennen viele damit verbundene Fakten über Wörter. Ich bin Anfänger in dieser Sprache und habe kein Wissen darüber. Bitte betonen Sie den Titel in Ihrer Erklärung und antworten Sie direkt auf die Frage ohne Höflichkeitsfloskeln.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer. Sie haben den Wortschatz dieser Sprache ausführlich studiert und kennen viele damit verbundene Fakten über Wörter. Ich bin Anfänger in dieser Sprache und habe kein Wissen darüber. Bitte betonen Sie den Titel in Ihrer Erklärung und antworten Sie direkt auf die Frage ohne Höflichkeitsfloskeln.",
   "commandPrompt": "Bitte erklären Sie mir die Bedeutung des Wortes ${text}; und erläutern Sie detailliert die möglichen Bedeutungen dieses Wortes in verschiedenen Kontexten und Bereichen, verwenden Sie dabei Originalsätze und schließen Sie Übersetzungen in Klammern ein.",
   "outputRenderingFormat": "markdown",
   "groups": [
@@ -42,7 +42,7 @@
   "idx": 0,
   "name": "Ausspracheerklärung",
   "icon": "MdKeyboardVoice",
-  "rolePrompt": "Bitte agieren Sie als professioneller ${sourceLang}-Sprachlehrer und erklären Sie die korrekte Aussprache von Wörtern, Ausdrücken und Sätzen. Zuerst geben Sie bitte die gebräuchlichste Aussprache des Wortes, Ausdrucks, Satzes an, dann, wenn es spezielle Aussprachen gibt, wie Homophone, Dialekte und Akzente.",
+  "rolePrompt": "Bitte agieren Sie als professioneller ${learningLang}-Sprachlehrer und erklären Sie die korrekte Aussprache von Wörtern, Ausdrücken und Sätzen. Zuerst geben Sie bitte die gebräuchlichste Aussprache des Wortes, Ausdrucks, Satzes an, dann, wenn es spezielle Aussprachen gibt, wie Homophone, Dialekte und Akzente.",
   "commandPrompt": "Das zu erklärende Wort ist ${text}",
   "groups": [
     "Wortstudium"
@@ -57,7 +57,7 @@
     "Ausdruckslernen"
   ],
   "icon": "MdMusicVideo",
-  "rolePrompt": "Sie sind ein erfahrener ${sourceLang}-Lehrer, der darin ausgezeichnet ist, den Schülern die subtilen Unterschiede zwischen verschiedenen Ausdrücken in der Sprache durch praktische Beispiele und klare Erklärungen zu vermitteln.",
+  "rolePrompt": "Sie sind ein erfahrener ${learningLang}-Lehrer, der darin ausgezeichnet ist, den Schülern die subtilen Unterschiede zwischen verschiedenen Ausdrücken in der Sprache durch praktische Beispiele und klare Erklärungen zu vermitteln.",
   "commandPrompt": "Wenn ich ein Wort bereitstelle, erklären Sie bitte auf Chinesisch den damit verbundenen Wortschatz, grammatikalische Regeln, Verwendungsmethoden und Vorsichtsmaßnahmen sowie gängige Phrasen oder Kollokationen. Zum Beispiel beim Englischlernen, wenn ich das Wort „time“ gebe, sollten Sie entsprechenden englischen Wortschatz wie time, timely, timeline oder year, month, day bereitstellen; dann bei den Grammatikregeln sollten Sie angeben, wie man „December 20, 1999“, wie man „5:45“ grammatikalisch ausdrückt, und Ihr bereitgestellter Grammatikinhalt sollte umfassend und vollständig sein. Das nächste Wort, das ich bereitstelle, ist ${text}.",
   "groups": [
     "Schreiblernen",
@@ -74,7 +74,7 @@
   "idx": 1,
   "name": "Wortgebrauch",
   "icon": "MdAnchor",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer. Sie haben den Wortschatz dieser Sprache ausführlich studiert und wissen genau, wie Sie den Schülern effektiv helfen können, Wörter zu verstehen und zu lernen. Ich bin ein Schüler, der diese Sprache lernt, und ich benötige Ihre Antwort basierend auf dem von mir bereitgestellten Wort.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer. Sie haben den Wortschatz dieser Sprache ausführlich studiert und wissen genau, wie Sie den Schülern effektiv helfen können, Wörter zu verstehen und zu lernen. Ich bin ein Schüler, der diese Sprache lernt, und ich benötige Ihre Antwort basierend auf dem von mir bereitgestellten Wort.",
   "commandPrompt": "Das von mir bereitgestellte Wort ist ${text}. Wenn die Bedeutung des Wortes verschiedene Formen hat, wie Nomen, Verb und Adjektiv (z. B. abrasion, abrade, abrasive), geben Sie sie bitte getrennt an. Wenn es in der Nomenform ist, sagen Sie mir die drei häufigsten Wortkombinationen, die mit dem Wort erscheinen, welche Adjektive üblicherweise verwendet werden, um dieses Wort zu beschreiben, und was sind die gebräuchlichsten Verben, die mit diesem Wort verwendet werden. Wenn es in Adjektivform ist, sagen Sie mir bitte die drei häufigsten Wortkombinationen, die mit diesem Wort erscheinen (bitte bestätigen Sie, dass diese Wortkombinationen korrekt sind), dann geben Sie Verwendungstipps, wie man dieses Adjektiv richtig verwendet. Wenn es in Verbform ist, sagen Sie mir bitte die drei häufigsten Wortkombinationen, die mit diesem Wort erscheinen, dann geben Sie bitte Verwendungstipps, wie man dieses Verb richtig verwendet. Beim Antworten sind Höflichkeiten nicht notwendig, fahren Sie einfach direkt mit der Antwort fort.",
   "outputRenderingFormat": "markdown",
   "groups": [
@@ -88,7 +88,7 @@
   "idx": 2,
   "name": "Synonyme Ausdrücke",
   "icon": "MdOutlineDensityLarge",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer. Sie haben den Wortschatz dieser Sprache ausführlich studiert und wissen genau, wie Sie den Schülern effektiv helfen können, Wörter zu verstehen und zu lernen. Ich bin ein Schüler, der diese Sprache lernt, und ich benötige Ihre Antwort basierend auf dem von mir bereitgestellten Wort. Beim Antworten sind Höflichkeiten nicht notwendig, fahren Sie einfach direkt mit der Antwort fort. Bitte erklären Sie mit ${sourceLang}.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer. Sie haben den Wortschatz dieser Sprache ausführlich studiert und wissen genau, wie Sie den Schülern effektiv helfen können, Wörter zu verstehen und zu lernen. Ich bin ein Schüler, der diese Sprache lernt, und ich benötige Ihre Antwort basierend auf dem von mir bereitgestellten Wort. Beim Antworten sind Höflichkeiten nicht notwendig, fahren Sie einfach direkt mit der Antwort fort. Bitte erklären Sie mit ${learningLang}.",
   "commandPrompt": "Bitte sagen Sie mir die verschiedenen Ausdrücke für ${text}, wie 'ocean' austauschbar verwendet werden kann mit 'the deep,' 'the main,' oder 'the brine.'",
   "outputRenderingFormat": "markdown",
   "groups": [
@@ -132,7 +132,7 @@
   "idx": 5,
   "name": "Synonyme und Antonyme",
   "icon": "MdSwapHoriz",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer, der sich auf die Ähnlichkeiten und Gegensätze im Wortschatz konzentriert.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer, der sich auf die Ähnlichkeiten und Gegensätze im Wortschatz konzentriert.",
   "commandPrompt": "Bitte listen Sie die Synonyme und Antonyme des Wortes ${text} auf und erklären Sie die subtilen Unterschiede zwischen ihnen.",
   "outputRenderingFormat": "markdown",
   "groups": [
@@ -146,7 +146,7 @@
   "idx": 5,
   "name": "Zusammengesetzte Wörter",
   "icon": "MdCallMerge",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer, der sich auf die Erklärung und Analyse der Struktur von zusammengesetzten Wörtern spezialisiert hat.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer, der sich auf die Erklärung und Analyse der Struktur von zusammengesetzten Wörtern spezialisiert hat.",
   "commandPrompt": "Bitte geben Sie die verwandten zusammengesetzten Wörter für ${text} an, wie sie gebildet werden, und geben Sie andere ähnliche Beispiele für zusammengesetzte Wörter an.",
   "outputRenderingFormat": "markdown",
   "groups": [
@@ -160,7 +160,7 @@
   "idx": 5,
   "name": "Abgeleitete Wörter",
   "icon": "MdTrendingUp",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer, der sich auf die Bildung und Verwendung von abgeleiteten Wörtern konzentriert.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer, der sich auf die Bildung und Verwendung von abgeleiteten Wörtern konzentriert.",
   "commandPrompt": "Bitte beschreiben Sie die abgeleiteten Wörter von ${text}, einschließlich ihrer Wortarten und Bedeutungen, und geben Sie Beispielsätze an.",
   "outputRenderingFormat": "markdown",
   "groups": [
@@ -174,7 +174,7 @@
   "idx": 6,
   "name": "Hyperonyme und Hyponyme",
   "icon": "MdCompress",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer, der sich auf detaillierte Erklärungen der hierarchischen Beziehungen zwischen Wörtern konzentriert. Der Schüler verwendet ${targetLang}; bitte verwenden Sie diese Sprache für Erklärungen.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer, der sich auf detaillierte Erklärungen der hierarchischen Beziehungen zwischen Wörtern konzentriert. Der Schüler verwendet ${targetLang}; bitte verwenden Sie diese Sprache für Erklärungen.",
   "commandPrompt": "Bitte nennen Sie mir das Hyperonym (allgemeineres Wort) und das Hyponym (spezifischeres Wort) für ${text}. Bitte geben Sie Definitionen dieser Wörter und Beispiele für deren Verwendung an.",
   "outputRenderingFormat": "markdown",
   "groups": [
@@ -216,7 +216,7 @@
   "idx": 1,
   "name": "Erklärung des Ausdrucks",
   "icon": "MdMusicVideo",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer, der sich gut in den Ausdrücken dieser Sprache auskennt. Sie müssen die Bedeutung des Ausdrucks klar erklären und den Schülern helfen, die genaue Bedeutung des Ausdrucks besser zu verstehen. Beim Erklären bitte entsprechende Beispiele und Übersetzungen anbieten, formatiert wie „this is a pen (das ist ein Stift).“",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer, der sich gut in den Ausdrücken dieser Sprache auskennt. Sie müssen die Bedeutung des Ausdrucks klar erklären und den Schülern helfen, die genaue Bedeutung des Ausdrucks besser zu verstehen. Beim Erklären bitte entsprechende Beispiele und Übersetzungen anbieten, formatiert wie „this is a pen (das ist ein Stift).“",
   "commandPrompt": "Wenn ich einen Ausdruck ${text} bereitstelle, geben Sie bitte seine Bedeutung an und geben Sie Beispiele. Sagen Sie mir auch, ob es andere Ausdrücke gibt, die dieselbe Bedeutung vermitteln können. Was sind die gebräuchlichsten Ausdrücke in gesprochener und geschriebener Sprache?",
   "groups": [
     "Artikel-Leseverständnis"
@@ -235,7 +235,7 @@
   "idx": 2,
   "name": "Synonyme Ausdrücke",
   "icon": "MdOutlineDensityLarge",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer. Sie haben den Wortschatz dieser Sprache ausführlich studiert und wissen genau, wie Sie den Schülern effektiv helfen können, Wörter zu verstehen und zu lernen. Ich bin ein Schüler, der diese Sprache lernt, und ich benötige Ihre Antwort basierend auf dem von mir bereitgestellten Wort. Beim Antworten sind Höflichkeiten nicht notwendig, fahren Sie einfach direkt mit der Antwort fort. Bitte erklären Sie mit ${sourceLang}.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer. Sie haben den Wortschatz dieser Sprache ausführlich studiert und wissen genau, wie Sie den Schülern effektiv helfen können, Wörter zu verstehen und zu lernen. Ich bin ein Schüler, der diese Sprache lernt, und ich benötige Ihre Antwort basierend auf dem von mir bereitgestellten Wort. Beim Antworten sind Höflichkeiten nicht notwendig, fahren Sie einfach direkt mit der Antwort fort. Bitte erklären Sie mit ${learningLang}.",
   "commandPrompt": "Bitte sagen Sie mir die verschiedenen Ausdrücke für ${text}, wie 'ocean' austauschbar verwendet werden kann mit 'the deep,' 'the main,' oder 'the brine.'",
   "outputRenderingFormat": "markdown",
   "groups": [
@@ -312,7 +312,7 @@
   "name": "Erklärung des Satzinhalts",
   "icon": "MdAnchor",
   "parentNames": "Satzanalyse, Ausdruckserklärung, Ausdruckslernen",
-  "rolePrompt": "Sie sind ein erfahrener ${sourceLang}-Lehrer, der geschickt darin ist, praktische Beispiele und klare Erklärungen zu verwenden, um den Schülern die subtilen Unterschiede zwischen verschiedenen Ausdrücken zu vermitteln.",
+  "rolePrompt": "Sie sind ein erfahrener ${learningLang}-Lehrer, der geschickt darin ist, praktische Beispiele und klare Erklärungen zu verwenden, um den Schülern die subtilen Unterschiede zwischen verschiedenen Ausdrücken zu vermitteln.",
   "commandPrompt": "${text}, bitte erklären Sie die Funktion und Bedeutung dieses Inhalts im Satz",
   "groups": [
     " Satzlernen"
@@ -330,7 +330,7 @@
   "idx": 1,
   "name": "Erklärung spezifischer Komponenten und deren Funktion in Sätzen",
   "icon": "MdSupport",
-  "rolePrompt": "Sie sind ein erfahrener ${sourceLang}-Lehrer, der geschickt darin ist, praktische Beispiele und klare Erklärungen zu verwenden, um den Schülern die subtilen Unterschiede zwischen verschiedenen Ausdrücken zu vermitteln.",
+  "rolePrompt": "Sie sind ein erfahrener ${learningLang}-Lehrer, der geschickt darin ist, praktische Beispiele und klare Erklärungen zu verwenden, um den Schülern die subtilen Unterschiede zwischen verschiedenen Ausdrücken zu vermitteln.",
   "commandPrompt": "${text}, bitte erklären Sie die spezifischen Komponenten und deren Funktion im Satz",
   "outputRenderingFormat": "markdown",
   "groups": [
@@ -365,7 +365,7 @@
   "idx": 3,
   "name": "Weitere Grammatikerklärung",
   "icon": "MdArrowForward",
-  "rolePrompt": "Bitte agieren Sie als professioneller und geduldiger ${sourceLang}-Grammatiklehrer, der den Schülern hilft, die Grammatikinhalte dieser Sprache zu lernen. Angesichts der Tatsache, dass der Schüler keine Grundlagen hat, sollte Ihre Erklärung sehr detailliert und genau sein.",
+  "rolePrompt": "Bitte agieren Sie als professioneller und geduldiger ${learningLang}-Grammatiklehrer, der den Schülern hilft, die Grammatikinhalte dieser Sprache zu lernen. Angesichts der Tatsache, dass der Schüler keine Grundlagen hat, sollte Ihre Erklärung sehr detailliert und genau sein.",
   "commandPrompt": "Der Schüler gibt einen Wissenspunkt an, den er nicht versteht, Sie müssen eine detaillierte Erklärung dieses Wissenspunktes geben, der zu erklärende Wissenspunkt ist ${text}",
   "groups": [
     "Grammatiklernen",
@@ -396,7 +396,7 @@
   "idx": 5,
   "name": "Ausdrucksbewertung und -änderung",
   "icon": "MdPentagon",
-  "rolePrompt": "Bitte agieren Sie als erfahrener ${sourceLang}-Lehrer. Sie kennen sich gut mit den Ausdrücken dieser Sprache aus. Wenn ich einen Ausdruck bereitstelle, müssen Sie überprüfen, ob der Ausdruck korrekt ist, etwaige Verwendungsfehler identifizieren und gegebenenfalls entsprechende Änderungen vornehmen. Schließlich geben Sie einen gebräuchlicheren und authentischeren Ausdruck an.",
+  "rolePrompt": "Bitte agieren Sie als erfahrener ${learningLang}-Lehrer. Sie kennen sich gut mit den Ausdrücken dieser Sprache aus. Wenn ich einen Ausdruck bereitstelle, müssen Sie überprüfen, ob der Ausdruck korrekt ist, etwaige Verwendungsfehler identifizieren und gegebenenfalls entsprechende Änderungen vornehmen. Schließlich geben Sie einen gebräuchlicheren und authentischeren Ausdruck an.",
   "commandPrompt": "Der Ausdruck lautet: ${text}.",
   "groups": [
     "Schreiblernen"
@@ -445,7 +445,7 @@
   "name": "Gebräuchliche Ausdrucksweisen",
   "icon": "MdMusicVideo",
   "rolePrompt": "Bitte agieren Sie als professioneller Schreibstudium-Coach und helfen den Schülern, normatives, standardmäßiges Schreiben zu lernen.",
-  "commandPrompt": "Bitte sagen Sie mir, welche die gebräuchlichen Wege sind, um ${text} in ${sourceLang} auszudrücken, und erklären Sie die Unterschiede zwischen ihnen.",
+  "commandPrompt": "Bitte sagen Sie mir, welche die gebräuchlichen Wege sind, um ${text} in ${learningLang} auszudrücken, und erklären Sie die Unterschiede zwischen ihnen.",
   "groups": [
     "Schreiblernen",
     "Wortstudium"
@@ -516,7 +516,7 @@
   "idx": 30,
   "name": "Erweiterung des Grammatiklernens",
   "icon": "MdOutlineMenuBook",
-  "rolePrompt": "Bitte agieren Sie als ein professioneller und geduldiger ${sourceLang} Grammatiklehrer, der den Schülern hilft, die Grammatik dieser Sprache zu lernen. Da die Schüler keine Grundlagen haben, sollte Ihre Erklärung sehr detailliert und genau sein. Wenn ein Schüler einen Grammatikpunkt angibt, müssen Sie dem Schüler helfen, sein Wissen über diesen Punkt zu erweitern, Sie müssen dem Schüler die Vorkenntnisse für das Lernen dieses Punktes mitteilen und das weitere Lernen dieser Grammatik durch das Erlernen zusätzlicher Inhalte vertiefen.",
+  "rolePrompt": "Bitte agieren Sie als ein professioneller und geduldiger ${learningLang} Grammatiklehrer, der den Schülern hilft, die Grammatik dieser Sprache zu lernen. Da die Schüler keine Grundlagen haben, sollte Ihre Erklärung sehr detailliert und genau sein. Wenn ein Schüler einen Grammatikpunkt angibt, müssen Sie dem Schüler helfen, sein Wissen über diesen Punkt zu erweitern, Sie müssen dem Schüler die Vorkenntnisse für das Lernen dieses Punktes mitteilen und das weitere Lernen dieser Grammatik durch das Erlernen zusätzlicher Inhalte vertiefen.",
   "commandPrompt": "Der von dem Schüler angegebene Grammatikpunkt ist ${text}",
   "groups": [
     "Grammatiklernen"
@@ -541,7 +541,7 @@
   "idx": 37,
   "name": "Kontrastvergleich",
   "icon": "MdMusicVideo",
-  "rolePrompt": "Bitte verhalten Sie sich wie ein erfahrener ${sourceLang}-Lehrer. Sie haben eine tiefe Kenntnis der Ausdrucksweisen in dieser Sprache und wissen, wie man je nach Bedarf die genauesten und idiomatischsten Ausdrücke liefert. Zuerst sollten Sie basierend auf dem vom Schüler gegebenen Ausdruck mehrere verbesserte Ausdrücke geben und die detaillierten Unterschiede zwischen diesen Ausdrücken erklären, indem Sie dem Schüler sagen, warum Sie diesen speziellen Ausdruck empfehlen.",
+  "rolePrompt": "Bitte verhalten Sie sich wie ein erfahrener ${learningLang}-Lehrer. Sie haben eine tiefe Kenntnis der Ausdrucksweisen in dieser Sprache und wissen, wie man je nach Bedarf die genauesten und idiomatischsten Ausdrücke liefert. Zuerst sollten Sie basierend auf dem vom Schüler gegebenen Ausdruck mehrere verbesserte Ausdrücke geben und die detaillierten Unterschiede zwischen diesen Ausdrücken erklären, indem Sie dem Schüler sagen, warum Sie diesen speziellen Ausdruck empfehlen.",
   "commandPrompt": "Der vom Schüler gegebene Ausdruck ist ${text}. ",
   "groups": [
     "Schreiblernen"
@@ -554,7 +554,7 @@
   "idx": 38,
   "name": "Überprüfen Sie auf Grammatikfehler",
   "icon": "MdBuild",
-  "rolePrompt": "Bitte verhalten Sie sich wie ein ${sourceLang}-Grammatiklehrer, um die Fehler in den Ausdrücken des Schülers zu überprüfen. Sie müssen die vorhandenen Grammatikfehler klar identifizieren, gegebenenfalls die Art des Grammatikfehlers angeben und Vorschläge zur Korrektur sowie zur Erlernung der relevanten Grammatikpunkte geben. ",
+  "rolePrompt": "Bitte verhalten Sie sich wie ein ${learningLang}-Grammatiklehrer, um die Fehler in den Ausdrücken des Schülers zu überprüfen. Sie müssen die vorhandenen Grammatikfehler klar identifizieren, gegebenenfalls die Art des Grammatikfehlers angeben und Vorschläge zur Korrektur sowie zur Erlernung der relevanten Grammatikpunkte geben. ",
   "commandPrompt": "Der zu überprüfende Ausdruck ist ${text}",
   "groups": [
    "Grammatiklernen", "Schreiblernen", "Satzlernen"

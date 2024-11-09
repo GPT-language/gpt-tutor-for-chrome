@@ -148,7 +148,9 @@ export function ActionForm(props: IActionFormProps) {
                 )}
             </div>
             <div>
-                {t('Command prompt example: Please translate the following text from ${sourceLang} to ${targetLang}.')}
+                {t(
+                    'Command prompt example: Please translate the following text from ${sourceLang} to ${targetLang}.'
+                )}
             </div>
             <div>{t('Placeholders')}:</div>
             <div>{commandPlaceholdersCaption}</div>

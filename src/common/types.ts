@@ -69,8 +69,8 @@ export interface ISettings {
     deepSeekAPIKey: string
     deepSeekAPIModel: string
     defaultTranslateMode: Exclude<TranslateMode, 'big-bang'> | 'nop'
-    defaultTargetLanguage: string
-    defaultSourceLanguage: string[]
+    defaultUserLanguage: string
+    defaultLearningLanguage: string[]
     defaultYouglishLanguage: string
     inputLanguageLevel: string
     outputLanguageLevel: string

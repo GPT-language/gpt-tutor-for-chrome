@@ -3,17 +3,22 @@ import { Block } from 'baseui-sd/block'
 import { Button } from 'baseui-sd/button'
 import { useTranslation } from 'react-i18next'
 import { IoMdClose } from 'react-icons/io'
+import { useChatStore } from '@/store/file/store'
 
 interface QuotePreviewProps {
-    text: string
-    onShowMore: () => void
+    showFullText: boolean
+    toggleFullText: () => void
     onClose: () => void
     previewLength?: number
 }
 
-const QuotePreview: React.FC<QuotePreviewProps> = ({ text, onShowMore, onClose, previewLength = 100 }) => {
+const QuotePreview: React.FC<QuotePreviewProps> = ({ showFullText, toggleFullText, onClose, previewLength = 100 }) => {
     const { t } = useTranslation()
-    const previewText = text.length > previewLength ? text.slice(0, previewLength) + '...' : text
+    const { selectedWord } = useChatStore()
+    const previewText =
+        selectedWord?.text && selectedWord?.text.length > previewLength
+            ? selectedWord.text.slice(0, previewLength) + '...'
+            : selectedWord?.text
 
     return (
         <Block position='relative' style={{ marginBottom: '10px' }}>
@@ -44,9 +49,9 @@ const QuotePreview: React.FC<QuotePreviewProps> = ({ text, onShowMore, onClose, 
                     <IoMdClose size={16} />
                 </Button>
             </Block>
-            {text.length > previewLength && (
-                <Button onClick={onShowMore} size='mini'>
-                    {t('Show Full Text')}
+            {selectedWord?.text && (
+                <Button onClick={toggleFullText} size='mini'>
+                    {showFullText ? t('Show Less') : t('Show Full Text')}
                 </Button>
             )}
         </Block>

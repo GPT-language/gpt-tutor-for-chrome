@@ -12,7 +12,7 @@ import { chatWord, ChatWordAction } from './slices/word/action'
 import { createHyperStorage } from './middleware/createHyperStorage'
 import { createActionSlice, ActionSlice } from './slices/action/action'
 import { createDevtools } from './middleware/createDevtools'
-import { SavedFile, Content } from '@/common/internal-services/db'
+import { SavedFile, Content, Action } from '@/common/internal-services/db'
 import toast from 'react-hot-toast'
 
 declare global {
@@ -50,7 +50,7 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
 
     skipHydration: false,
 
-    version: 11,
+    version: 1,
 
     storage: createHyperStorage({
         localStorage: {
@@ -61,7 +61,7 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
                 'currentFileId',
                 'currentPage',
                 'actions',
-                'selectedWords',
+                'currentWordPositions',
                 'selectedGroup',
                 'chatUser',
                 'settings',
@@ -70,17 +70,17 @@ const persistOptions: PersistOptions<ChatStore, GlobalPersist> = {
     }),
     migrate: (persistedState: any, version: number) => {
         try {
-            if (version === 10) {
-                // 从版本 10 迁移到版本 11
+            if (version === 11) {
                 return {
                     ...persistedState,
                     files: persistedState.files.map((file: SavedFile) => ({
                         ...file,
                         words: file.words.map((word: Content) => {
-                            const { fileId, ...restWord } = word
+                            const { ...restWord } = word
                             return restWord
                         }),
                     })),
+                    currentWordPositions: persistedState.selectedWords || {},
                 }
             }
         } catch (error) {
@@ -123,17 +123,78 @@ useChatStore.subscribe(
 useChatStore.subscribe(
     (state) => state.currentFileId,
     (currentFileId) => {
-        const { files, selectedWords, selectFile } = useChatStore.getState()
+        const { files, currentWordPositions: selectedWords, selectFile } = useChatStore.getState()
         const currentFile = files.find((file) => file.id === currentFileId)
         if (currentFile) {
             useChatStore.setState({ words: currentFile.words })
             if (currentFile.id) {
-                useChatStore.setState({ selectedWord: selectedWords[currentFile.id] })
+                const currentWordIdx = selectedWords[currentFile.id]
+                const currentWord = currentFile.words.find((word) => word.idx === currentWordIdx)
+                useChatStore.setState({ selectedWord: currentWord })
                 selectFile(currentFile.id)
             }
         } else {
             useChatStore.setState({ words: [] })
         }
+    }
+)
+
+// 同时监听 actions 和 selectedGroup 的变化
+useChatStore.subscribe(
+    (state) => ({
+        actions: state.actions as Action[], // 明确指定类型
+        selectedGroup: state.selectedGroup,
+    }),
+    (current) => {
+        const { setSelectedActions } = useChatStore.getState()
+
+        if (!current.actions || !Array.isArray(current.actions)) {
+            setSelectedActions([])
+            return
+        }
+
+        const filteredActions = current.actions.filter((action) => {
+            if (action.groups && action.groups.length > 0) {
+                return action.groups.includes(current.selectedGroup)
+            }
+            return false
+        })
+
+        setSelectedActions(filteredActions)
+    },
+    {
+        equalityFn: shallow,
+    }
+)
+
+useChatStore.subscribe(
+    (state) => ({
+        actions: state.actions as Action[],
+        selectedGroup: state.selectedGroup,
+    }),
+    (current) => {
+        const { setSelectedActions, setActionGroups } = useChatStore.getState()
+
+        if (!current.actions || !Array.isArray(current.actions)) {
+            setSelectedActions([])
+            setActionGroups([])
+            return
+        }
+
+        // 设置 actionGroups
+        setActionGroups(current.actions)
+
+        const filteredActions = current.actions.filter((action) => {
+            if (action.groups && action.groups.length > 0) {
+                return action.groups.includes(current.selectedGroup)
+            }
+            return false
+        })
+
+        setSelectedActions(filteredActions)
+    },
+    {
+        equalityFn: shallow,
     }
 )
 
