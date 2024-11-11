@@ -42,7 +42,7 @@
     "baseui-sd": "^12.2.4",
     "best-effort-json-parser": "^1.0.1",
     "chart.js": "^4.4.4",
-    "clsx": "^1.2.1",
+    "clsx": "^2.1.1",
     "common-tags": "^1.8.2",
     "date-fns": "^2.29.3",
     "destr": "^2.0.0",
