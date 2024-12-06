@@ -1,6 +1,11 @@
 import { ISettings } from '@/common/types'
 
 export interface ComponentState {
+    tutorialState: {
+        isActive: boolean
+        currentStep: number
+        hasCompletedTutorial: boolean
+    }
     showSettings: boolean
     showWordBookManager: boolean
     showCategorySelector: boolean
@@ -23,11 +28,13 @@ const defaultSettings: ISettings = {
     isFirstTimeUse: true,
     chatgptArkoseReqUrl: '',
     chatgptArkoseReqForm: '',
+    inputLanguageLevel: '',
+    outputLanguageLevel: '',
     apiKeys: '',
     apiURL: 'https://api.openai.com',
     apiURLPath: '/v1/chat/completions',
     apiModel: 'gpt-3.5-turbo',
-    provider: 'OneAPI',
+    provider: 'OpenAI',
     chatgptModel: 'text-davinci-002-render-sha',
     azureAPIKeys: '',
     azureAPIURL: '',
@@ -110,9 +117,17 @@ const defaultSettings: ISettings = {
     uiFontSize: 12,
     iconSize: 15,
     automaticCheckForUpdates: true,
+    hideInputTip: false,
+    hideEmptyActionsTip: false,
+    tutorialCompleted: false,
 }
 
 export const initialComponentState: ComponentState = {
+    tutorialState: {
+        isActive: false,
+        currentStep: 0,
+        hasCompletedTutorial: false,
+    },
     showSettings: false,
     showWordBookManager: false,
     showCategorySelector: false,

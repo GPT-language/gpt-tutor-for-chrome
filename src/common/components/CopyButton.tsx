@@ -20,7 +20,7 @@ export function CopyButton({ text, styles }: { text: string; styles: { actionBut
                         }}
                         options={{ format: 'text/plain' }}
                     >
-                        <div className={styles.actionButton}>
+                        <div className={styles.actionButton} style={{ cursor: 'pointer' }}>
                             <RxCopy size={13} />
                         </div>
                     </CopyToClipboard>

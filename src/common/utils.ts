@@ -458,30 +458,32 @@ export async function exportToJson<T extends Action>(filename: string, rows: T[]
     }
 }
 
-export async function jsonToActions(file: File): Promise<Action[]> {
+export const jsonToActions = async (file: File): Promise<any> => {
+    console.log('Starting jsonToActions function')
     try {
-        console.log('Starting jsonToActions function')
-
         // 读取文件内容
         console.log('Reading file content')
         const fileContent = await file.text()
-        console.log('File content:', fileContent.substring(0, 100)) // 显示前100字符，以避免太长
+        console.log('File content:', fileContent)
 
-        // 解析JSON数据
+        // 解析 JSON
         console.log('Parsing JSON data')
-        const parsedData = JSON.parse(fileContent)
-        console.log('Parsed data:', parsedData.slice(0, 5)) // 显示前5条数据
+        const jsonData = JSON.parse(fileContent)
 
-        // 简单验证以检查parsedData是否为动作数组
-        if (!Array.isArray(parsedData)) {
-            throw new Error('Invalid file format: Expected an array of actions')
+        // 如果数据包含 actions 属性，返回 actions 数组
+        if (jsonData.actions && Array.isArray(jsonData.actions)) {
+            return jsonData.actions
+        }
+        
+        // 如果数据本身就是数组，直接返回
+        if (Array.isArray(jsonData)) {
+            return jsonData
         }
 
-        console.log('Returning parsed data')
-        return parsedData
+        throw new Error('Invalid actions format')
     } catch (error) {
-        console.error('Error importing actions:', error)
-        return []
+        console.log('Error importing actions:', error)
+        throw error
     }
 }
 

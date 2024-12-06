@@ -6,7 +6,6 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 import svgr from 'vite-plugin-svgr'
 
 export default defineConfig(({ mode }) => {
-
     const isDev = mode === 'development'
 
     return {

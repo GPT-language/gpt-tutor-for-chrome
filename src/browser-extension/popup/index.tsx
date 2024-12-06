@@ -5,7 +5,9 @@ import '../../common/i18n.js'
 import './index.css'
 import { PREFIX } from '../../common/constants'
 import { useTheme } from '../../common/hooks/useTheme'
-
+import { useChatStore } from '@/store/file/store'
+import { useEffect, useState } from 'react'
+import AppTutorial from '@/common/components/AppTutorial'
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
 const engine = new Styletron({
@@ -14,6 +16,7 @@ const engine = new Styletron({
 
 function App() {
     const { theme } = useTheme()
+
 
     return (
         <div
@@ -24,6 +27,7 @@ function App() {
             }}
             data-testid='popup-container'
         >
+            <AppTutorial />
             <Translator text='' defaultShowSettings={true} engine={engine} autoFocus />
         </div>
     )

@@ -2,7 +2,7 @@
 import { StateCreator } from 'zustand'
 import { ChatState } from './initialState'
 import { produce } from 'immer'
-import { Action } from '@/common/internal-services/db'
+import { Action, Answer } from '@/common/internal-services/db'
 import { askAI } from '@/common/translate'
 import { IEngine } from '@/common/engines/interfaces'
 import { ISettings } from '@/common/types'

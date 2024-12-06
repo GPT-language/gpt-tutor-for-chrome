@@ -7,7 +7,7 @@ import { BaseProvider } from 'baseui-sd'
 import { createUseStyles } from 'react-jss'
 import { AiOutlineTranslation } from 'react-icons/ai'
 import { IoSettingsOutline } from 'react-icons/io5'
-import { getLangConfig, LangCode } from './lang/lang'
+import { detectLang, getLangConfig, LangCode } from './lang/lang'
 import { askAI } from '../translate'
 import { RxEraser, RxReload, RxSpeakerLoud } from 'react-icons/rx'
 import { RiSpeakerFill } from 'react-icons/ri'
@@ -29,10 +29,9 @@ import { useTheme } from '../hooks/useTheme'
 import { speak } from '../tts'
 import { Tooltip } from './Tooltip'
 import { useSettings } from '../hooks/useSettings'
-import { Modal, ModalBody, ModalHeader, ModalFooter, ModalButton } from 'baseui-sd/modal'
+import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
 import { Action, Content } from '../internal-services/db'
-import { CopyButton } from './CopyButton'
 import { ActionManager } from './ActionManager'
 import 'katex/dist/katex.min.css'
 import useResizeObserver from 'use-resize-observer'
@@ -43,31 +42,22 @@ import { LANG_CONFIGS } from '../components/lang/data'
 import { useChatStore } from '@/store/file/store'
 import { getEngine } from '../engines'
 import { IEngine } from '../engines/interfaces'
-import TextParser from './TextParser'
 import WordListUploader from './WordListUploader'
 import CategorySelector from './CategorySelector'
 import MessageCard from './MessageCard'
 import { ReviewManager } from './ReviewSettings'
 import WordBookViewer from './WordBookViewer'
-import { checkForUpdates, getFilenameForLanguage, getLocalData, updateLastCheckedSha } from '../services/github'
+/* import { checkForUpdates, getFilenameForLanguage, getLocalData, updateLastCheckedSha } from '../services/github' */
 import { parseDiff, Diff, Hunk } from 'react-diff-view'
 import 'react-diff-view/style/index.css'
 import TextareaWithActions from './TextAreaWithActions'
-import { isSettingsComplete } from '@/utils/auth'
 import { shallow } from 'zustand/shallow'
 import AnswerManager from './AnswerManager'
 import QuotePreview from './QuotePreview'
 import { Notification, KIND } from 'baseui-sd/notification'
 import { StyledLink } from 'baseui-sd/link'
-import AnswerTabs from '../AnswerTabs'
-
-const cache = new LRUCache({
-    max: 500,
-    maxSize: 5000,
-    sizeCalculation: (_value, _key) => {
-        return 1
-    },
-})
+/* import { useClerkUser } from '@/hooks/useClerkUser'
+import { AuthModal } from './AuthModal' */
 
 export const useStyles = createUseStyles({
     'popupCard': {
@@ -424,6 +414,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         actions,
         quoteText,
         setQuoteText,
+        settings,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -432,7 +423,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const editorRef = useRef<HTMLTextAreaElement>(null)
     const highlightRef = useRef<HighlightInTextarea | null>(null)
     const { t, i18n } = useTranslation()
-    const { settings } = useSettings()
     const [finalText, setFinalText] = useState('')
     const quoteTextRef = useRef('')
     const [showFullQuoteText, setShowFullQuoteText] = useState(false)
@@ -556,7 +546,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         refreshActions()
     }, [])
 
-    useEffect(() => {
+    /*     useEffect(() => {
         if (!settings?.i18n) return
 
         const loadLanguageData = async () => {
@@ -636,10 +626,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
 
         loadLanguageData()
-    }, [settings?.i18n, actions, setActions, refreshActions])
+    }, [settings?.i18n, actions, setActions, refreshActions]) */
 
     // 检查功能更新
-    const handleCheckForUpdates = async () => {
+    /*     const handleCheckForUpdates = async () => {
         if (!settings?.i18n) return
         const languageCode = settings.i18n
         const lastCheckedSha = localStorage.getItem(`${languageCode}_last_checked_sha`)
@@ -741,15 +731,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         const checkForUpdatesInterval = setInterval(handleCheckForUpdates, 24 * 60 * 60 * 1000) // 每24小时检查一次
 
         return () => clearInterval(checkForUpdatesInterval)
-    }, [settings?.i18n])
-
-    useEffect(() => {
-        console.log('actions is exist？', actions)
-        if (actions) {
-            console.log('actions', actions)
-            setActions(actions)
-        }
-    }, [actions, setActions])
+    }, [handleCheckForUpdates, settings?.i18n]) */
 
     const isTranslate = currentTranslateMode === 'translate'
 
@@ -800,13 +782,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
     }, [settings?.provider])
 
-    // 初始化answers
-    useEffect(() => {
-        if (selectedWord && selectedWord.answers) {
-            setAnswers(selectedWord?.answers)
-        }
-    }, [])
-
     const handleSubmit = useCallback(
         async (e?: React.FormEvent) => {
             if (e) {
@@ -844,10 +819,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [learningLang, setLearningLang] = useState<LangCode[]>(['en'])
     const [userLang, setUserLang] = useState<LangCode>('en')
     const [youglishLang, setYouglishLang] = useState<LangCode>('en')
-    const [ActivatedActionName, setActivatedActionName] = useState('')
     const settingsIsUndefined = settings === undefined
     const [showTextParser, setShowTextParser] = useState(false)
     const [jsonText, setjsonText] = useState('')
+    /*     const { isSignedIn } = useClerkUser()
+
+    const showAuthModal = useChatStore((state) => state.showAuthModal) */
     const { editableText, setEditableText } = useChatStore(
         (state) => ({
             editableText: state.editableText,
@@ -1068,6 +1045,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         )
 
         return () => unsubscribe()
+    }, [])
+
+    useEffect(() => {
+        if (selectedWord && selectedWord.answers) {
+            setAnswers(selectedWord.answers)
+        }
     }, [])
 
     useEffect(() => {
@@ -1311,21 +1294,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [answerFlag])
 
-    useEffect(() => {
-        if (!props.defaultShowSettings) {
-            return
-        }
-        if (settings && (settings.provider === 'ChatGLM' || settings.provider === 'Kimi')) {
-            return
-        }
-        if (
-            settings &&
-            ((settings.provider === 'ChatGPT' && !settings.apiModel) ||
-                (settings.provider !== 'ChatGPT' && !settings.apiKeys))
-        ) {
-            setShowSettings(true)
-        }
-    }, [props.defaultShowSettings, setShowSettings, settings])
 
     const [isOCRProcessing, setIsOCRProcessing] = useState(false)
     const [showOCRProcessing, setShowOCRProcessing] = useState(false)
@@ -1358,9 +1326,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             return
         }
         setIsSpeakingEditableText(true)
+        const lang = await detectLang(quoteText || editableText || finalText)
         const { stopSpeak } = await speak({
             text: quoteText || editableText || finalText,
-            lang: learningLang[0],
+            lang: lang,
             onFinish: () => setIsSpeakingEditableText(false),
         })
         editableStopSpeakRef.current = stopSpeak
@@ -1380,10 +1349,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             setIsSpeakingTranslatedText(false)
             return
         }
+        const lang = await detectLang(text || translatedText)
         setIsSpeakingTranslatedText(true)
         const { stopSpeak } = await speak({
             text: text || translatedText,
-            lang: userLang,
+            lang: lang,
             messageId,
             conversationId,
             onFinish: () => setIsSpeakingTranslatedText(false),
@@ -1490,6 +1460,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                             deleteSelectedWord()
                                         }}
                                         previewLength={200}
+                                        onSpeak={handleEditSpeakAction}
+                                        onYouglish={handleYouglishSpeakAction}
+                                        isSpeaking={isSpeakingEditableText}
+                                        text={editableText}
                                     />
                                 )}
                                 <div style={{ display: 'flex', flexDirection: 'row', height: '100%' }}>
@@ -1502,58 +1476,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                         />
                                     )}
                                 </div>
-                                {showFullQuoteText ? null : (
-                                    <div className={styles.actionButtonsContainer}>
-                                        <div style={{ marginLeft: 'auto' }}></div>
-                                        {!!editableText.length && (
-                                            <>
-                                                <Tooltip content={t('Speak')} placement='bottom'>
-                                                    <div
-                                                        className={styles.actionButton}
-                                                        onClick={handleEditSpeakAction}
-                                                    >
-                                                        {isSpeakingEditableText ? (
-                                                            <SpeakerMotion />
-                                                        ) : (
-                                                            <RxSpeakerLoud size={15} />
-                                                        )}
-                                                    </div>
-                                                </Tooltip>
-                                                <Tooltip content={t('On/Off Youglish')} placement='bottom'>
-                                                    <div
-                                                        className={styles.actionButton}
-                                                        onClick={handleYouglishSpeakAction}
-                                                    >
-                                                        (
-                                                        <RiSpeakerFill size={15} />)
-                                                    </div>
-                                                </Tooltip>
-                                                <Tooltip content={t('Copy to clipboard')} placement='bottom'>
-                                                    <div className={styles.actionButton}>
-                                                        <CopyButton text={editableText} styles={styles}></CopyButton>
-                                                    </div>
-                                                </Tooltip>
-                                                <Tooltip
-                                                    content={t('Clear input and selected function')}
-                                                    placement='bottom'
-                                                >
-                                                    <div
-                                                        className={styles.actionButton}
-                                                        onClick={() => {
-                                                            setEditableText('')
-                                                            setAction(undefined)
-                                                            editorRef.current?.focus()
-                                                        }}
-                                                    >
-                                                        <div className={styles.actionButton}>
-                                                            <RxEraser size={15} />
-                                                        </div>
-                                                    </div>
-                                                </Tooltip>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
                                 {selectedWord?.text !== '' && (
                                     <div
                                         className={styles.popupCardTranslatedContainer}
@@ -1743,7 +1665,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             </div>
             <div className={styles.footer}>
                 <Tooltip content={showSettings ? t('Go to Translator') : t('Go to Settings')} placement='right'>
-                    <div onClick={() => setShowSettings(!showSettings)}>
+                    <div data-testid='translator-settings-toggle' onClick={() => setShowSettings(!showSettings)}>
                         {showSettings ? <AiOutlineTranslation size={15} /> : <IoSettingsOutline size={15} />}
                     </div>
                 </Tooltip>
@@ -1774,7 +1696,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     <ActionManager draggable={props.showSettings} />
                 </ModalBody>
             </Modal>
-            <Modal onClose={() => setShowUpdateModal(false)} isOpen={showUpdateModal}>
+            {/*             <Modal onClose={() => setShowUpdateModal(false)} isOpen={showUpdateModal}>
                 <ModalHeader>更新可用</ModalHeader>
                 <ModalBody>
                     <h3>{t('There is a new update available. Please check the changes below.')}</h3>
@@ -1796,7 +1718,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     </ModalButton>
                     <ModalButton onClick={handleUpdate}>{t('Update')}</ModalButton>
                 </ModalFooter>
-            </Modal>
+            </Modal> */}
             <Modal
                 isOpen={isShowMessageCard}
                 onClose={() => {
@@ -1864,6 +1786,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 </ModalBody>
             </Modal>
             <Toaster />
+
+            {/*             {showAuthModal && <AuthModal />} */}
 
             {showYouGlish && (
                 <div>

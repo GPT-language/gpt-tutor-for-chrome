@@ -5,7 +5,8 @@ import { isTraditional } from '../../traditional-or-simplified'
 import ISO6391 from 'iso-639-1'
 import { LANG_CONFIGS, Config as OptionalLangConfig } from './data'
 import { oneLine } from 'common-tags'
-
+import { getUniversalFetch } from '@/common/universal-fetch'
+import qs from 'qs'
 export type LangCode =
     | 'en'
     | 'en-US'
@@ -107,25 +108,63 @@ export function getLangName(langCode: string): string {
     return langName || langMap.get(langCode) || langCode
 }
 
+export async function googleDetectLang(text: string): Promise<LangCode> {
+    const langMap: Record<string, LangCode> = {
+        'zh-CN': 'zh-Hans',
+        'zh-TW': 'zh-Hant',
+        'ja': 'ja',
+        'en': 'en',
+        'ko': 'ko',
+        'fr': 'fr',
+        'es': 'es',
+        'ru': 'ru',
+        'de': 'de',
+        'it': 'it',
+        'tr': 'tr',
+        'pt': 'pt',
+        'vi': 'vi',
+        'id': 'id',
+        'th': 'th',
+        'ar': 'ar',
+        'hi': 'hi',
+        'mn': 'mn',
+        'fa': 'fa',
+    }
+
+    const fetcher = getUniversalFetch()
+    const resp = await fetcher(
+        `https://translate.google.com/translate_a/single?dt=at&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&${qs.stringify(
+            {
+                client: 'gtx',
+                sl: 'auto',
+                tl: 'zh-CN',
+                hl: 'zh-CN',
+                ie: 'UTF-8',
+                oe: 'UTF-8',
+                otf: '1',
+                ssel: '0',
+                tsel: '0',
+                kc: '7',
+                q: text,
+            }
+        )}`,
+        {
+            method: 'GET',
+            headers: { 'content-type': 'application/json' },
+        }
+    )
+    if (resp.ok) {
+        const result = await resp.json()
+        if (result[2] && result[2] in langMap) {
+            return langMap[result[2] as string]
+        }
+    }
+    return 'en'
+}
+
 export async function detectLang(text: string): Promise<LangCode> {
     const detectedText = text.trim()
-    return new Promise((resolve) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const langName = (window as any).detectLanguage(detectedText)
-        console.debug('detected text:', detectedText)
-        console.debug('detected lang:', langName)
-        if (langName === 'Chineset') {
-            resolve('zh-Hant')
-            return
-        }
-        const langCode = ISO6391.getCode(langName) || langMapReverse.get(langName) // can never be 'zh-CN' or 'zh-TW'
-        console.debug('detected langCode:', langCode)
-        if (langCode === 'zh') {
-            resolve(isTraditional(detectedText) ? 'zh-Hant' : 'zh-Hans')
-            return
-        }
-        resolve(intoLangCode(langCode))
-    })
+    return await googleDetectLang(detectedText)
 }
 
 export function getLangConfig(langCode: LangCode): LanguageConfig {

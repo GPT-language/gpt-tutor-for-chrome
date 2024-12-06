@@ -19,6 +19,9 @@ export interface ComponentAction {
     initializeSettings: () => void
     updateSettings: (newSettings: Partial<ISettings>) => void
     setShowAuthModal: (isShow: boolean) => void
+    setTutorialState: (newState: Partial<ComponentState['tutorialState']>) => void
+    startTutorial: () => void
+    endTutorial: () => void
 }
 
 export const component: StateCreator<ComponentState, [['zustand/devtools', never]], [], ComponentAction> = (set) => ({
@@ -40,4 +43,9 @@ export const component: StateCreator<ComponentState, [['zustand/devtools', never
     },
     updateSettings: (newSettings: Partial<ISettings>) => set((state) => ({ settings: { ...state.settings, ...newSettings } })),
     setShowAuthModal: (isShow) => set({ showAuthModal: isShow }),
+    setTutorialState: (newState) => set((state) => ({ 
+        tutorialState: { ...state.tutorialState, ...newState } 
+    })),
+    startTutorial: () => set((state) => ({ tutorialState: { ...state.tutorialState, isActive: true } })),
+    endTutorial: () => set((state) => ({ tutorialState: { ...state.tutorialState, isActive: false } })),
 })

@@ -5,11 +5,10 @@ import { createForm } from './Form'
 import { Input } from 'baseui-sd/input'
 import { Textarea } from 'baseui-sd/textarea'
 import { Button } from 'baseui-sd/button'
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useState } from 'react'
 import { createUseStyles } from 'react-jss'
 import { IThemedStyleProps } from '../types'
 import { useTheme } from '../hooks/useTheme'
-import { IconPicker } from './IconPicker'
 import { RenderingFormatSelector } from './RenderingFormatSelector'
 import ModelSelect from './ModelSelect'
 import GroupSelect from './GroupSelect'
@@ -46,12 +45,11 @@ export interface IActionFormProps {
 const { Form, FormItem } = createForm<ICreateActionOption>()
 
 export function ActionForm(props: IActionFormProps) {
-    const { createAction, updateAction, actions } = useChatStore()
+    const { createAction, updateAction } = useChatStore()
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType })
     const { t } = useTranslation()
     const [loading, setLoading] = useState(false)
-    const [actionGroups, setActionGroups] = useState<string[]>([])
     const onSubmit = useCallback(
         async (values: ICreateActionOption) => {
             setLoading(true)
@@ -66,19 +64,6 @@ export function ActionForm(props: IActionFormProps) {
         },
         [props, createAction, updateAction]
     )
-
-    useEffect(() => {
-        const fetchGroups = async () => {
-            try {
-                const groups = actions.map((action) => action.groups).flat()
-                setActionGroups(groups)
-            } catch (error) {
-                console.error('Failed to fetch groups:', error)
-            }
-        }
-
-        fetchGroups()
-    }, [actions])
 
     const handleFeedbackClick = () => {
         window.open(
@@ -148,9 +133,7 @@ export function ActionForm(props: IActionFormProps) {
                 )}
             </div>
             <div>
-                {t(
-                    'Command prompt example: Please translate the following text from ${sourceLang} to ${targetLang}.'
-                )}
+                {t('Command prompt example: Please translate the following text from ${sourceLang} to ${targetLang}.')}
             </div>
             <div>{t('Placeholders')}:</div>
             <div>{commandPlaceholdersCaption}</div>
@@ -162,9 +145,6 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='name' label={t('Name')}>
                 <Input size='compact' />
             </FormItem>
-            <FormItem required name='icon' label={t('Icon')}>
-                <IconPicker />
-            </FormItem>
             <FormItem required name='groups' label={t("Action's Groups")} caption={actionGroupsCaption}>
                 <GroupSelect intialTags={props.action?.groups || []}></GroupSelect>
             </FormItem>
@@ -174,12 +154,26 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='commandPrompt' label={t('Command Prompt')} caption={commandPromptCaption}>
                 <Textarea size='compact' />
             </FormItem>
-            <FormItem name='useBackgroundInfo' label={t('Use Background Info')}>
-                <CheckBox />
+            <FormItem name='useBackgroundInfo'>
+                <CheckBox
+                    label={t('Use Background Info') || 'Use Background Info'}
+                    labelSmall={
+                        t('Use your background information in the current feature') ||
+                        'Use your background information in the current feature'
+                    }
+                />
             </FormItem>
-            <FormItem name='useLanguageLevelInfo' label={t('Use Language Level')}>
-                <CheckBox />
+
+            <FormItem name='useLanguageLevelInfo'>
+                <CheckBox
+                    label={t('Use Language Level') || 'Use Language Level'}
+                    labelSmall={
+                        t('Use your language level in the current feature') ||
+                        'Use your language level in the current feature'
+                    }
+                />
             </FormItem>
+
             <FormItem name='model' label={t('API Model')}>
                 <ModelSelect></ModelSelect>
             </FormItem>

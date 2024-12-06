@@ -7,18 +7,20 @@ import { useTranslation } from 'react-i18next'
 import { Button } from 'baseui-sd/button'
 import { List, arrayMove } from 'baseui-sd/dnd-list'
 import { RiDeleteBinLine } from 'react-icons/ri'
-import { createElement, useReducer, useRef, useState } from 'react'
-import * as mdIcons from 'react-icons/md'
-import { Action } from '../internal-services/db'
+import { useCallback, useRef, useState } from 'react'
+import { Action, ActionGroup } from '../internal-services/db'
 import { Modal, ModalBody, ModalButton, ModalFooter, ModalHeader } from 'baseui-sd/modal'
 import { ActionForm } from './ActionForm'
-import { IconType } from 'react-icons'
 import { isDesktopApp, exportToJson, jsonToActions } from '../utils'
 import { MdArrowDownward, MdArrowUpward } from 'react-icons/md'
 import { KIND, Tag } from 'baseui-sd/tag'
 import { useStyletron } from 'styletron-react'
-import ActionStore from './ActionStore'
 import { useChatStore } from '@/store/file/store'
+import toast from 'react-hot-toast'
+import { Octokit } from '@octokit/rest'
+import { Base64 } from 'js-base64'
+import { ActionGroupForm } from './ActionGroupForm'
+import { emit } from '@tauri-apps/api/event'
 
 export const useStyles = createUseStyles({
     root: () => ({
@@ -156,30 +158,54 @@ export interface IActionManagerProps {
     draggable?: boolean
 }
 
+// 添加 GitHub 配置
+export const GitHubConfig = {
+    owner: 'BlackStar1453',
+    repo: 'gpt-tutor-actionGroup',
+    branch: 'main',
+}
+
+export const PublicGithubConfig = {
+    owner: 'GPT-language',
+    repo: 'gpt-tutor-resources',
+    branch: 'main',
+}
+
 export function ActionManager({ draggable = true }: IActionManagerProps) {
-    const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
     const { t } = useTranslation()
     const { theme, themeType } = useTheme()
     const [css] = useStyletron()
     const styles = useStyles({ theme, themeType })
-    const { actions } = useChatStore()
+    const { actions, getActionsByGroup, actionGroups } = useChatStore()
+    const [selectedGroup, setSelectedGroup] = useState<string>('')
+    const [selectedActions, setSelectedActions] = useState<Action[]>([])
     const [showActionForm, setShowActionForm] = useState(false)
     const [updatingAction, setUpdatingAction] = useState<Action>()
     const [deletingAction, setDeletingAction] = useState<Action>()
     const [openGroups, setOpenGroups] = useState<string[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
-    const [activeType, setActiveType] = useState<'user' | 'built-in' | 'store'>('user')
+    const [activeType, setActiveType] = useState<'user' | 'store'>('user')
+    const [showPublishForm, setShowPublishForm] = useState(false)
+
+    const refreshActions = useCallback(() => {
+        if (!isDesktopApp()) {
+            useChatStore.getState().setActions([...useChatStore.getState().actions])
+            return
+        }
+        emit('refresh-actions', {})
+    }, [])
+
     if (!actions) {
         return null
     }
 
     // 根据选择的标签过滤 actions
-    const filteredActions =
+    /*     const filteredActions =
         activeType === 'user'
             ? actions.filter((action) => action.mode !== 'built-in')
-            : actions.filter((action) => action.mode === 'built-in')
+            : actions.filter((action) => action.mode === 'built-in') */
 
-    const actionGroups = filteredActions.reduce((groups: { [key: string]: Action[] }, action) => {
+    /*     const actionGroups = filteredActions.reduce((groups: { [key: string]: Action[] }, action) => {
         // 每个 action 可能属于多个 group
         action.groups.forEach((group) => {
             if (!groups[group]) {
@@ -188,13 +214,19 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
             groups[group].push(action)
         })
         return groups
-    }, {})
+    }, {}) */
 
-    const TagButton = ({ type, label }: { type: 'user' | 'built-in' | 'store'; label: string }) => (
+    const TagButton = ({ type, label }: { type: 'user' | 'store'; label: string }) => (
         <Tag
             closeable={false}
             kind={activeType === type ? KIND.primary : KIND.neutral}
-            onClick={() => setActiveType(type)}
+            onClick={() => {
+                if (type === 'store') {
+                    window.open('https://gpt-tutor-website-with-stripe.vercel.app/actionStore', '_blank')
+                    return
+                }
+                setActiveType(type)
+            }}
             overrides={{
                 Root: {
                     style: {
@@ -222,40 +254,28 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
-            console.log('Handling file change')
-
-            // 检查是否有文件被选中
             if (!event.target.files || event.target.files.length === 0) {
-                console.error('No file selected')
-                return // 没有文件被选中时退出函数
+                return
             }
 
             const file = event.target.files[0]
-
-            if (!file) {
-                console.error('No file found')
-                return // 文件对象为空时退出函数
+            if (!file || file.type !== 'application/json') {
+                toast.error(t('Invalid file type'))
+                return
             }
 
-            // 检查文件类型（可选）
-            if (file.type !== 'application/json') {
-                console.error('Invalid file type:', file.type)
-                return // 文件类型不匹配时退出函数
+            const importedActions = await jsonToActions(file)
+            if (!importedActions || importedActions.length === 0) {
+                toast.error(t('No valid actions found in file'))
+                return
             }
 
-            const importActions = await jsonToActions(file)
-
-            // 检查导入的数据是否有效
-            if (!importActions || importActions.length === 0) {
-                console.error('No valid actions to import')
-                return // 导入的数据为空或无效时退出函数
-            }
-
-            actions.push(...importActions)
-
+            actions.push(...importedActions)
             refreshActions()
+            toast.success(t('Actions imported successfully'))
         } catch (error) {
-            console.error('Error handling file change:', error)
+            console.error('Error importing actions:', error)
+            toast.error(t('Failed to import actions'))
         }
     }
 
@@ -267,6 +287,114 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
             await exportToJson<Action>(group + `-${new Date().valueOf()}`, filteredActions)
         } catch (e) {
             console.error(e)
+        }
+    }
+
+    const publishToGitHub = async (actionGroup: ActionGroup) => {
+        try {
+            const token = import.meta.env.VITE_REACT_APP_GITHUB_TOKEN
+            if (!token) {
+                toast.error(t('GitHub token not found'))
+                return
+            }
+
+            const octokit = new Octokit({ auth: token })
+            const content = JSON.stringify(actionGroup, null, 2)
+            const path = `${actionGroup.title}/${actionGroup.title}.json`
+
+            try {
+                // 1. 获取默认分支的最新 commit SHA
+                const { data: ref } = await octokit.git.getRef({
+                    owner: GitHubConfig.owner,
+                    repo: GitHubConfig.repo,
+                    ref: `heads/${GitHubConfig.branch}`,
+                })
+                const latestCommitSha = ref.object.sha
+
+                // 2. 创建新分支
+                const branchName = `update-actions-${actionGroup.title}`
+                try {
+                    await octokit.git.createRef({
+                        owner: GitHubConfig.owner,
+                        repo: GitHubConfig.repo,
+                        ref: `refs/heads/${branchName}`,
+                        sha: latestCommitSha,
+                    })
+                } catch (e: any) {
+                    // 如果分支已存在，忽略错误
+                    if (e.status !== 422) {
+                        throw e
+                    }
+                }
+
+                // 3. 检查文件是否存在
+                try {
+                    const { data: existingFile } = await octokit.repos.getContent({
+                        owner: GitHubConfig.owner,
+                        repo: GitHubConfig.repo,
+                        path,
+                        ref: branchName,
+                    })
+
+                    // 更新现有文件
+                    await octokit.repos.createOrUpdateFileContents({
+                        owner: GitHubConfig.owner,
+                        repo: GitHubConfig.repo,
+                        path,
+                        message: `Add/Update action group: ${actionGroup.title}`,
+                        content: Base64.encode(content),
+                        sha: (existingFile as any).sha,
+                        branch: branchName,
+                    })
+                } catch (e: any) {
+                    if (e.status === 404) {
+                        // 创建新文件
+                        await octokit.repos.createOrUpdateFileContents({
+                            owner: GitHubConfig.owner,
+                            repo: GitHubConfig.repo,
+                            path,
+                            message: `Add/Update action group: ${actionGroup.title}`,
+                            content: Base64.encode(content),
+                            branch: branchName,
+                        })
+                    } else {
+                        throw e
+                    }
+                }
+
+                // 4. 创建 Pull Request
+                try {
+                    await octokit.pulls.create({
+                        owner: GitHubConfig.owner,
+                        repo: GitHubConfig.repo,
+                        title: `Update actions for group: ${actionGroup.title}`,
+                        head: branchName,
+                        base: GitHubConfig.branch,
+                        body: `Automatically generated PR for updating actions in group: ${actionGroup.title}`,
+                    })
+
+                    toast.success(t('Successfully published to GitHub'))
+                } catch (prError: any) {
+                    console.error('Error creating PR:', prError)
+                    if (prError.status === 422) {
+                        toast.error(t('PR already exists or invalid branch'))
+                    } else {
+                        toast.error(t('Failed to create PR'))
+                    }
+                }
+            } catch (error: any) {
+                console.error('Error in GitHub operations:', error)
+                if (error.status === 404) {
+                    toast.error(t('Repository not found or insufficient permissions'))
+                } else if (error.status === 401) {
+                    toast.error(t('Invalid GitHub token'))
+                } else {
+                    toast.error(t('Failed to publish to GitHub'))
+                }
+            }
+        } catch (error) {
+            console.error('Error in publishToGitHub:', error)
+            toast.error(t('Failed to publish to GitHub'))
         }
     }
 
@@ -289,7 +417,6 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                     })}
                 >
                     <TagButton type='user' label={t('Actions')} />
-                    <TagButton type='built-in' label={t('Built-in Actions')} />
                     <TagButton type='store' label={t('Store')} />
                 </div>
                 {activeType !== 'store' && (
@@ -317,7 +444,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                 >
                                     {t('Create')}
                                 </Button>
-                                <Button
+{/*                                 <Button
                                     size='mini'
                                     kind='secondary'
                                     onClick={(e) => {
@@ -329,7 +456,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                     }}
                                 >
                                     {t('Import')}
-                                </Button>
+                                </Button> */}
                             </div>
                         </div>
                         <input type='file' ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
@@ -355,7 +482,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                         >
                                             {group}
                                         </h3>
-                                        <Button
+{/*                                         <Button
                                             size='mini'
                                             kind='secondary'
                                             onClick={() => {
@@ -363,7 +490,18 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                             }}
                                         >
                                             {t('Export')}
-                                        </Button>
+                                        </Button> */}
+{/*                                         <Button
+                                            size='mini'
+                                            kind='secondary'
+                                            onClick={() => {
+                                                setSelectedGroup(group)
+                                                setSelectedActions(getActionsByGroup(group))
+                                                setShowPublishForm(true)
+                                            }}
+                                        >
+                                            {t('Publish')}
+                                        </Button> */}
                                     </div>
                                     {openGroups.includes(group) && (
                                         <List
@@ -387,13 +525,6 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                                 <div key={action.id} className={styles.actionItem}>
                                                     <div className={styles.actionContent}>
                                                         <div className={styles.name}>
-                                                            {action.icon &&
-                                                                createElement(
-                                                                    (mdIcons as Record<string, IconType>)[action.icon],
-                                                                    {
-                                                                        size: 16,
-                                                                    }
-                                                                )}
                                                             {action.mode ? t(action.name) : action.name}
                                                             {action.mode && (
                                                                 <div
@@ -513,6 +644,14 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                 autoFocus
                                 animate
                                 role='dialog'
+                                overrides={{
+                                    Dialog: {
+                                        style: {
+                                            padding: '10px',
+                                            marginTop: '80px', // 增加与顶部的距离,确保不会被顶部组件遮挡
+                                        },
+                                    },
+                                }}
                             >
                                 <ModalHeader>
                                     {updatingAction ? t('Update sth', [t('Action')]) : t('Create sth', [t('Action')])}
@@ -572,7 +711,13 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                     </>
                 )}
             </div>
-            {activeType === 'store' && <ActionStore />}
+            <ActionGroupForm
+                isOpen={showPublishForm}
+                onClose={() => setShowPublishForm(false)}
+                onSubmit={publishToGitHub}
+                title={selectedGroup}
+                actions={selectedActions}
+            />
         </>
     )
 }

@@ -44,56 +44,103 @@ export interface IThemedStyleProps {
 }
 
 export interface ISettings {
+    chatContext: boolean
+    defaultYouglishLanguage: string
+    isFirstTimeUse: boolean
     chatgptArkoseReqUrl: string
     chatgptArkoseReqForm: string
-    [x: string]: any
+    inputLanguageLevel: string
+    outputLanguageLevel: string
     apiKeys: string
     apiURL: string
     apiURLPath: string
     apiModel: string
     provider: Provider
-    autoTranslate: boolean
-    chatContext: boolean
+    chatgptModel: string
     azureAPIKeys: string
     azureAPIURL: string
     azureAPIURLPath: string
     azureAPIModel: string
+    azMaxWords: number
+    enableMica: boolean
+    enableBackgroundBlur: boolean
     miniMaxGroupID: string
     miniMaxAPIKey: string
     miniMaxAPIModel: string
+    moonshotAPIKey: string
+    moonshotAPIModel: string
     geminiAPIURL: string
     geminiAPIKey: string
     geminiAPIModel: string
-    moonshotAPIKey: string
-    moonshotAPIModel: string
-    deepSeekAPIKey: string
-    deepSeekAPIModel: string
-    defaultTranslateMode: Exclude<TranslateMode, 'big-bang'> | 'nop'
+    autoTranslate: boolean
+    defaultTranslateMode: string
     defaultUserLanguage: string
     defaultLearningLanguage: string[]
-    defaultYouglishLanguage: string
-    inputLanguageLevel: string
-    outputLanguageLevel: string
+    languageLevel: string
     userBackground: string
     alwaysShowIcons: boolean
-    hotkey?: string
-    ocrHotkey?: string
-    themeType?: ThemeType
-    i18n?: string
-    tts?: {
-        voices?: {
-            lang: string
-            voice: string
-        }[]
-        provider?: TTSProvider
-        volume?: number
-        rate?: number
+    hotkey: string
+    displayWindowHotkey: string
+    ocrHotkey: string
+    writingTargetLanguage: string
+    writingHotkey: string
+    writingNewlineHotkey: string
+    themeType: string
+    i18n: string
+    tts: any
+    restorePreviousPosition: boolean
+    runAtStartup: boolean
+    selectInputElementsText: boolean
+    readSelectedWordsFromInputElementsText: boolean
+    disableCollectingStatistics: boolean
+    allowUsingClipboardWhenSelectedTextNotAvailable: boolean
+    pinned: boolean
+    autoCollect: boolean
+    hideTheIconInTheDock: boolean
+    languageDetectionEngine: string
+    autoHideWindowWhenOutOfFocus: boolean
+    proxy: {
+        enabled: boolean
+        protocol: string
+        server: string
+        port: string
+        basicAuth: {
+            username: string
+            password: string
+        }
+        noProxy: string
     }
-    restorePreviousPosition?: boolean
-    selectInputElementsText?: boolean
-    runAtStartup?: boolean
-    disableCollectingStatistics?: boolean
-    allowUsingClipboardWhenSelectedTextNotAvailable?: boolean
+    customModelName: string
+    ollamaAPIURL: string
+    ollamaAPIModel: string
+    ollamaCustomModelName: string
+    groqAPIURL: string
+    groqAPIURLPath: string
+    groqAPIModel: string
+    groqAPIKey: string
+    groqCustomModelName: string
+    claudeAPIURL: string
+    claudeAPIURLPath: string
+    claudeAPIModel: string
+    claudeAPIKey: string
+    claudeCustomModelName: string
+    kimiRefreshToken: string
+    kimiAccessToken: string
+    chatglmAccessToken: string
+    chatglmRefreshToken: string
+    deepSeekAPIKey: string
+    deepSeekAPIModel: string
+    openRouterAPIKey: string
+    openRouterAPIModel: string
+    OneAPIAPIKey: string
+    OneAPIAPIModel: string
+    fontSize: number
+    uiFontSize: number
+    iconSize: number
+    automaticCheckForUpdates: boolean
+    hideInputTip: boolean
+    hideEmptyActionsTip: boolean
+    tutorialCompleted: boolean
 }
 
 export type RequestInitSubset = {

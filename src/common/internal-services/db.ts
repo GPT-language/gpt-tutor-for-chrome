@@ -22,6 +22,16 @@ export interface Action {
     useLanguageLevelInfo?: boolean
 }
 
+export interface ActionGroup {
+    id: string
+    title: string
+    description: string
+    category: string
+    price: number
+    version: string
+    actions: Action[]
+  }
+
 export interface FollowUpAnswer {
     idx: number
     question: string

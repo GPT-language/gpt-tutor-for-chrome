@@ -3,10 +3,12 @@ import { useStyletron } from 'baseui-sd'
 import { StatefulMenu } from 'baseui-sd/menu'
 import { Action } from '../internal-services/db'
 import { Button } from 'baseui-sd/button'
-import { IoIosRocket } from 'react-icons/io'
+import { IoIosRocket, IoIosArrowUp, IoIosInformationCircle } from 'react-icons/io'
 import { useTranslation } from 'react-i18next'
 import { useChatStore } from '@/store/file/store'
-import AnswerTabs from '../AnswerTabs'
+import { LabelSmall } from 'baseui-sd/typography'
+import { IoClose } from 'react-icons/io5'
+import { FaArrowUp } from 'react-icons/fa'
 
 interface AutocompleteTextareaProps {
     // 1. 增加更多可配置的属性
@@ -31,7 +33,7 @@ interface AutocompleteTextareaProps {
 }
 
 // 3. 提取默认值
-const DEFAULT_MIN_HEIGHT = '100px'
+const DEFAULT_MIN_HEIGHT = '40px'
 const DEFAULT_BG_COLOR = '#f5f5f5'
 const DEFAULT_PADDING = '8px'
 
@@ -64,15 +66,35 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         actionGroups,
         selectedGroup,
         setSelectedGroup,
+        settings,
+        updateSettings,
+        addWordToFile,
     } = useChatStore()
     const [searchTerm, setSearchTerm] = useState('')
     const [filteredActions, setFilteredActions] = useState<Action[]>([])
     const editorRef = useRef<HTMLDivElement>(null)
-    const menuRef = useRef<HTMLElement>(null)
+    const actionMenuRef = useRef<HTMLElement>(null)
+    const groupMenuRef = useRef<HTMLElement>(null)
     const { t } = useTranslation()
     const actionTagRef = useRef<HTMLSpanElement>(null)
     const groupTagRef = useRef<HTMLSpanElement>(null)
     const [isComposing, setIsComposing] = useState(false) // 添加输入法编辑状态
+    const learningLang = settings.defaultLearningLanguage
+    const userLang = settings.defaultUserLanguage
+
+    const handleHideInputTip = () => {
+        updateSettings({
+            ...settings,
+            hideInputTip: true,
+        })
+    }
+
+    const handleHideEmptyActionsTip = () => {
+        updateSettings({
+            ...settings,
+            hideEmptyActionsTip: true,
+        })
+    }
 
     // 获取所有可用的 groups
     const availableGroups = useMemo(() => {
@@ -88,7 +110,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         return availableGroups.filter((group) => group.name.toLowerCase().includes(groupSearchTerm.toLowerCase()))
     }, [availableGroups, groupSearchTerm])
 
-    const handleSetEditableText = (text: string) => {
+    const handleSetEditableText = async (text: string) => {
         // 去除首尾空格
         const trimmedText = text.trim()
 
@@ -118,8 +140,10 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
             actionTagRef.current.style.display = 'inline-block'
             actionTagRef.current.setAttribute('data-action-id', activateAction.id?.toString() || '')
             actionTagRef.current.textContent = `@${activateAction.name}`
+        } else {
+            setAction(undefined)
         }
-    }, [activateAction])
+    }, [activateAction, setAction])
     const handleClear = () => {
         if (editorRef.current) {
             editorRef.current.innerHTML = ''
@@ -264,7 +288,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 textNode.textContent?.replace(/@\S+/g, '').replace(/\/\S+/g, '').replace(/@/g, '').replace(/\//g, '') ||
                 ''
 
-            // 清理可能留下的多余空格
+            // 清理可留下的多余空格
             textNode.textContent = newText.replace(/\s+/g, ' ')
         })
     }
@@ -286,33 +310,23 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                     existingActionTag.textContent = `@${action.name}`
                 } else {
                     // 如果不存在，创建新的 action tag
-                    const actionTag = document.createElement('span')
-                    actionTag.contentEditable = 'false'
-                    actionTag.className = css({
-                        backgroundColor: 'rgb(230, 236, 241)',
-                        borderRadius: '3px',
-                        padding: '2px 4px',
-                        margin: '0 2px',
-                        color: '#476582',
-                        fontSize: '0.9em',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        display: 'inline-block',
-                    })
-                    actionTag.setAttribute('data-action-id', action.id?.toString() || '')
-                    actionTag.textContent = `@${action.name}`
+                    if (actionTagRef.current) {
+                        // 使用预设的 actionTag
+                        actionTagRef.current.style.display = 'inline-block'
+                        actionTagRef.current.setAttribute('data-action-id', action.id?.toString() || '')
+                        actionTagRef.current.textContent = `@${action.name}`
 
-                    // 插入 action tag 和剩余文本
-                    editorRef.current.appendChild(actionTag)
-                    const space = document.createTextNode(' ')
-                    editorRef.current.appendChild(space)
+                        // 插入空格
+                        const space = document.createTextNode(' ')
+                        editorRef.current.appendChild(space)
 
-                    // 将光标移动到标签后面
-                    const newRange = document.createRange()
-                    newRange.setStartAfter(space)
-                    newRange.setEndAfter(space)
-                    selection.removeAllRanges()
-                    selection.addRange(newRange)
+                        // 将光标移动到标签后面
+                        const newRange = document.createRange()
+                        newRange.setStartAfter(space)
+                        newRange.setEndAfter(space)
+                        selection.removeAllRanges()
+                        selection.addRange(newRange)
+                    }
                 }
             }
 
@@ -321,6 +335,8 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         }
         setShowActionMenu(false)
         handleInput()
+        // 自动聚焦
+        editorRef.current?.focus()
     }
 
     const handleGroupSelect = (group: { name: string }) => {
@@ -392,6 +408,21 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         handleInput()
     }
 
+    const handleSubmit = () => {
+        console.log('handleSetEditableText', actionTagRef.current?.style.display, actionTagRef.current)
+        // 如果text以@开头，而且输入了新的文本，则添加新的selectedWord
+        if (actionTagRef.current && actionTagRef.current.style.display === 'inline-block' && editableText.length > 1) {
+            // 设置当前的selectedWord为undefined
+            console.log('Set selectedWord to undefined', useChatStore.getState().selectedWord?.text)
+            useChatStore.setState({ selectedWord: undefined })
+        }
+
+        // 设置一定的延迟，等待selectedWord被设置为undefined
+        setTimeout(() => {
+            onSubmit?.()
+        }, 200)
+    }
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Enter') {
             if (e.shiftKey) {
@@ -410,24 +441,60 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 }
             } else {
                 e.preventDefault()
-                onSubmit?.()
+                handleSubmit()
             }
-        } else if (e.key === 'ArrowDown' && menuRef.current) {
-            e.preventDefault()
-            menuRef.current.focus()
+        } else if (e.key === 'ArrowDown') {
+            if (actionMenuRef.current) {
+                e.preventDefault()
+                actionMenuRef.current.focus()
+            }
+            if (groupMenuRef.current) {
+                e.preventDefault()
+                groupMenuRef.current.focus()
+            }
         } else if (e.key === 'Backspace') {
             const selection = window.getSelection()
             if (selection && selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0)
                 const startContainer = range.startContainer
 
-                // 检查光标是否在 actionTag 后面
-                if (startContainer === editorRef.current && range.startOffset > 0) {
-                    const previousNode = editorRef.current.childNodes[range.startOffset - 1]
-                    if (previousNode instanceof HTMLElement && previousNode.hasAttribute('data-action-id')) {
+                // 处理文本节点的情
+                if (startContainer.nodeType === Node.TEXT_NODE) {
+                    const textBeforeCursor = startContainer.textContent?.substring(0, range.startOffset) || ''
+                    const isFirstPosition = textBeforeCursor === ' ' || textBeforeCursor === ''
+
+                    const previousSibling = startContainer.previousSibling
+                    if (
+                        isFirstPosition &&
+                        previousSibling instanceof HTMLElement &&
+                        previousSibling.hasAttribute('data-action-id')
+                    ) {
                         e.preventDefault()
-                        previousNode.remove()
+                        // 不删除元素，而是隐藏并重置状态
+                        previousSibling.style.display = 'none'
+                        previousSibling.setAttribute('data-action-id', '')
+                        previousSibling.textContent = ''
                         setAction(undefined)
+                        handleInput()
+                        return
+                    }
+                }
+
+                // 处理空文本节点的情况
+                if (
+                    startContainer.nodeType === Node.TEXT_NODE &&
+                    (!startContainer.textContent || startContainer.textContent.trim() === '')
+                ) {
+                    const previousSibling = startContainer.previousSibling
+                    if (previousSibling instanceof HTMLElement && previousSibling.hasAttribute('data-action-id')) {
+                        e.preventDefault()
+                        // 同样是隐藏而不是删除
+                        previousSibling.style.display = 'none'
+                        previousSibling.setAttribute('data-action-id', '')
+                        previousSibling.textContent = ''
+                        setAction(undefined)
+                        handleInput()
+                        return
                     }
                 }
             }
@@ -438,16 +505,17 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     const textareaStyles = {
         width: 'auto',
         border: '1px solid #ccc',
-        minHeight,
-        maxHeight,
+        minHeight: minHeight,
+        maxHeight: maxHeight,
         padding: DEFAULT_PADDING,
-        marginBottom: '20px',
+        marginBottom: '10px',
         whiteSpace: 'pre-wrap' as const,
         alignItems: 'center',
         overflow: 'auto',
         backgroundColor,
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? 'not-allowed' : 'text',
+        borderRadius: '8px',
     }
 
     // 添加输入法事件处理
@@ -461,6 +529,10 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         setIsComposing(false)
     }
 
+    useEffect(() => {
+        console.log('activateAction', activateAction)
+    }, [activateAction])
+
     return (
         <div
             className={css({
@@ -473,6 +545,47 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 flexDirection: 'column',
             })}
         >
+            {!settings.hideInputTip && (
+                <LabelSmall
+                    marginBottom='4px'
+                    color='gray'
+                    display='flex'
+                    alignItems='center'
+                    $style={{
+                        gap: '4px',
+                        position: 'relative',
+                        paddingRight: '24px',
+                        marginBottom: '18px',
+                    }}
+                >
+                    <IoIosRocket size={14} />
+                    {t('Input @ to select an action, input / to select an action group, and input Enter to submit')}
+                    <div
+                        onClick={handleHideInputTip}
+                        className={css({
+                            'position': 'absolute',
+                            'right': '0',
+                            'top': '50%',
+                            'transform': 'translateY(-50%)',
+                            'cursor': 'pointer',
+                            'padding': '4px',
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center',
+                            'color': 'gray',
+                            'transition': 'all 0.2s ease',
+                            'borderRadius': '50%',
+                            ':hover': {
+                                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                                color: 'darkgray',
+                            },
+                        })}
+                    >
+                        <IoClose size={14} />
+                    </div>
+                </LabelSmall>
+            )}
+
             <div
                 ref={editorRef}
                 contentEditable={!disabled}
@@ -480,10 +593,11 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 onKeyDown={handleKeyDown}
                 onFocus={onFocus}
                 onBlur={onBlur}
-                onCompositionStart={handleCompositionStart} // 添加输入法开始事件
-                onCompositionEnd={handleCompositionEnd} // 添加输入法结束事件
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
                 className={css(textareaStyles)}
                 data-placeholder={placeholder}
+                data-testid='textarea-with-actions'
             >
                 <span
                     ref={groupTagRef}
@@ -521,10 +635,167 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                     data-action-id={activateAction?.id?.toString() || ''}
                 />
             </div>
+
+            {showSubmitButton && (
+                <Button
+                    size='mini'
+                    kind='secondary'
+                    onClick={handleSubmit}
+                    disabled={disabled}
+                    startEnhancer={<FaArrowUp size={10} />}
+                    overrides={{
+                        BaseButton: {
+                            style: {
+                                'position': 'absolute',
+                                'right': '8px',
+                                'bottom': '18px',
+                                'width': '32px',
+                                'height': '32px',
+                                'borderRadius': '50%',
+                                'padding': '0',
+                                'display': 'flex',
+                                'alignItems': 'center',
+                                'justifyContent': 'center',
+                                'backgroundColor': '#4285f4',
+                                'minWidth': '32px',
+                                'boxShadow': '0 2px 4px rgba(0,0,0,0.1)',
+                                ':hover': {
+                                    backgroundColor: '#3367d6',
+                                },
+                            },
+                        },
+                        StartEnhancer: {
+                            style: {
+                                marginRight: '0',
+                                color: 'white',
+                            },
+                        },
+                    }}
+                />
+            )}
+
+            {selectedActions.length === 0 && !settings.hideEmptyActionsTip && (
+                <LabelSmall
+                    marginTop='8px'
+                    color='#825447'
+                    display='flex'
+                    alignItems='flex-start'
+                    $style={{
+                        gap: '8px',
+                        backgroundColor: 'rgb(241, 230, 230)',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        lineHeight: '1.5',
+                        position: 'relative',
+                    }}
+                >
+                    <IoIosInformationCircle
+                        size={18}
+                        style={{
+                            flexShrink: 0,
+                            marginTop: '2px',
+                            color: '#825447',
+                        }}
+                    />
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            flex: 1,
+                        }}
+                    >
+                        <span>{t('There are no available actions')}</span>
+                        <div
+                            style={{
+                                display: 'flex',
+                                gap: '8px',
+                                flexWrap: 'wrap',
+                            }}
+                        >
+                            <a
+                                href={`${
+                                    import.meta.env.DEV
+                                        ? 'http://localhost:3000'
+                                        : 'https://gpt-tutor-website-with-stripe.vercel.app'
+                                }/actionStore?targetLang=${learningLang}&lang=${userLang}`}
+                                target='_blank'
+                                rel='noreferrer'
+                                className={css({
+                                    'color': '#825447',
+                                    'textDecoration': 'none',
+                                    'fontSize': '12px',
+                                    'padding': '6px 12px',
+                                    'borderRadius': '4px',
+                                    'backgroundColor': 'rgba(130, 84, 71, 0.1)',
+                                    'display': 'flex',
+                                    'alignItems': 'center',
+                                    'gap': '4px',
+                                    'transition': 'all 0.2s ease',
+                                    ':hover': {
+                                        backgroundColor: 'rgba(130, 84, 71, 0.2)',
+                                        transform: 'translateY(-1px)',
+                                    },
+                                })}
+                            >
+                                {t('Go to the action store')}
+                            </a>
+                            <a
+                                href='#'
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    useChatStore.getState().setShowActionManager(true)
+                                }}
+                                className={css({
+                                    'color': '#825447',
+                                    'textDecoration': 'none',
+                                    'fontSize': '12px',
+                                    'padding': '6px 12px',
+                                    'borderRadius': '4px',
+                                    'backgroundColor': 'rgba(130, 84, 71, 0.1)',
+                                    'display': 'flex',
+                                    'alignItems': 'center',
+                                    'gap': '4px',
+                                    'transition': 'all 0.2s ease',
+                                    ':hover': {
+                                        backgroundColor: 'rgba(130, 84, 71, 0.2)',
+                                        transform: 'translateY(-1px)',
+                                    },
+                                })}
+                            >
+                                {t('Create a new action')}
+                            </a>
+                        </div>
+                    </div>
+                    <div
+                        onClick={handleHideEmptyActionsTip}
+                        className={css({
+                            'position': 'absolute',
+                            'right': '8px',
+                            'top': '8px',
+                            'cursor': 'pointer',
+                            'padding': '4px',
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center',
+                            'color': '#825447',
+                            'transition': 'all 0.2s ease',
+                            'borderRadius': '50%',
+                            ':hover': {
+                                backgroundColor: 'rgba(130, 84, 71, 0.1)',
+                            },
+                        })}
+                    >
+                        <IoClose size={14} />
+                    </div>
+                </LabelSmall>
+            )}
+
             {showActionMenu && selectedActions.length > 0 && filteredActions.length > 0 && (
                 <div className={css(menuStyles)}>
                     <StatefulMenu
-                        rootRef={menuRef}
+                        rootRef={actionMenuRef}
                         items={filteredActions.map((action) => ({
                             label: action.name,
                             action: action,
@@ -545,6 +816,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
             {showGroupMenu && filteredGroups.length > 0 && (
                 <div className={css(menuStyles)}>
                     <StatefulMenu
+                        rootRef={groupMenuRef}
                         items={filteredGroups.map((group) => ({
                             label: group.name,
                             group: group,
@@ -571,26 +843,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                     alignItems: 'center',
                     gap: '8px',
                 }}
-            >
-                {showClearButton && (
-                    <Button size='mini' kind='secondary' onClick={onClear ?? handleClear} disabled={disabled}>
-                        {clearButtonText || t('Clear')}
-                    </Button>
-                )}
-
-                {showSubmitButton && (
-                    <Button
-                        size='mini'
-                        kind='secondary'
-                        onClick={onSubmit}
-                        disabled={disabled}
-                        startEnhancer={<IoIosRocket size={13} />}
-                        overrides={buttonOverrides}
-                    >
-                        {submitButtonText || t('Submit')}
-                    </Button>
-                )}
-            </div>
+            ></div>
         </div>
     )
 }

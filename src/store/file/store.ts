@@ -174,13 +174,13 @@ useChatStore.subscribe(
     }),
     (current) => {
         const { setSelectedActions, setActionGroups } = useChatStore.getState()
-
+        console.log('current')
         if (!current.actions || !Array.isArray(current.actions)) {
             setSelectedActions([])
             setActionGroups([])
             return
         }
-
+        console.log('current.actions', current.actions)
         // 设置 actionGroups
         setActionGroups(current.actions)
 
@@ -208,3 +208,14 @@ const initializeState = () => {
 }
 
 initializeState()
+
+useChatStore.subscribe(
+    (state) => state.settings.tutorialCompleted,
+    (tutorialCompleted, previousValue) => {
+        if (tutorialCompleted && !previousValue) {
+            // 当 tutorialCompleted 从 false 变为 true 时
+            const { resetInitialState } = useChatStore.getState()
+            resetInitialState()
+        }
+    }
+)

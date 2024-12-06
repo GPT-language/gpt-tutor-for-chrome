@@ -7,6 +7,8 @@ import { BackgroundFetchRequestMessage, BackgroundFetchResponseMessage } from '.
 import { setUserConfig } from '../../common/utils'
 import { keyKimiAccessToken } from '@/common/engines/kimi'
 import { keyChatGLMAccessToken } from '@/common/engines/chatglm'
+import { useChatStore } from '@/store/file/store'
+import { toast } from 'react-hot-toast'
 
 browser.contextMenus?.create(
     {
@@ -115,6 +117,29 @@ try {
 } catch (error) {
     console.error('Error setting up webRequest listener:', error)
 }
+
+// 在background script中
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'SYNC_ACTION_GROUP') {
+        console.log('收到同步请求:', message.payload)
+
+        // 确保 payload 是对象且包含 actions 数组
+        if (!message.payload?.group?.actions || !Array.isArray(message.payload.group.actions)) {
+            console.error('同步数据格式错误：缺少 actions 数组')
+            return
+        }
+
+        try {
+            // 从 group 对象中提取 actions 数组
+            const actions = message.payload.group.actions
+            useChatStore.getState().importActionsFromActions(actions)
+            console.log('actions 导入成功')
+            toast.success('actions imported successfully, please reopen the extension')
+        } catch (error) {
+            console.error('导入 actions 时发生错误:', error)
+        }
+    }
+})
 
 async function fetchWithStream(
     port: browser.Runtime.Port,

@@ -6,11 +6,10 @@ import { useStyletron } from 'baseui-sd'
 import { AiOutlineDown } from 'react-icons/ai'
 import { useChatStore } from '@/store/file/store'
 import { useTranslation } from 'react-i18next'
-import { Action } from '../internal-services/db'
-import debounce from 'lodash-es/debounce'
 import { Button, KIND, SIZE } from 'baseui-sd/button'
 import { BiFirstPage, BiLastPage } from 'react-icons/bi'
 import { Tooltip } from './Tooltip'
+import debounce from 'lodash-es/debounce'
 
 const MAX_TAB_WIDTH = 120
 const MORE_TAB_WIDTH = 80
@@ -19,8 +18,6 @@ const MENU_BUTTON_WIDTH = 40
 const CategorySelector = () => {
     const [css] = useStyletron()
     const {
-        actions,
-        actionGroups,
         selectedGroup,
         loadFiles,
         setSelectedGroup,
@@ -32,16 +29,23 @@ const CategorySelector = () => {
     } = useChatStore()
     const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
-
-    const [visibleTabs, setVisibleTabs] = useState<string[]>([])
+    const [tabs, setTabs] = useState<string[]>([])
+    const [visibleTabs, setVisibleTabs] = useState<string[]>(tabs)
     const [hiddenTabs, setHiddenTabs] = useState<string[]>([])
+    const actionGroups = useChatStore((state) => state.actionGroups)
+
+    const tutorialCompleted = useChatStore((state) => state.settings.tutorialCompleted)
+
+    useEffect(() => {
+        setTabs(tutorialCompleted ? [] : ['Example'])
+    }, [tutorialCompleted])
 
     const toggleSidebar = () => {
         setShowSidebar(!showSidebar)
     }
 
     const renderToggleButton = () => (
-        <>
+        <div data-testid="sidebar-toggle">
             <Tooltip content={showSidebar ? t('Hide List') : t('Show List')}>
                 <Button
                     onClick={toggleSidebar}
@@ -52,45 +56,50 @@ const CategorySelector = () => {
                     {showSidebar ? <BiFirstPage /> : <BiLastPage />}
                 </Button>
             </Tooltip>
-        </>
+        </div>
     )
 
     const updateVisibleTabs = useCallback(() => {
-        if (!containerRef.current || !actionGroups) return
+        if (!containerRef.current) {
+            return
+        }
 
+        console.log('Updating visible tabs')
         const containerWidth = containerRef.current.offsetWidth
         const availableWidth = containerWidth - MORE_TAB_WIDTH - MENU_BUTTON_WIDTH
-        const allTabs = Object.keys(actionGroups)
-        const visible: string[] = []
-        const hidden: string[] = []
+        const allTabs = [...tabs, ...Object.keys(actionGroups || {})]
 
         let totalWidth = 0
+        const newVisibleTabs: string[] = []
+        const newHiddenTabs: string[] = []
+
         allTabs.forEach((tab) => {
             if (tab === selectedGroup || totalWidth + MAX_TAB_WIDTH <= availableWidth) {
-                visible.push(tab)
+                newVisibleTabs.push(tab)
                 totalWidth += MAX_TAB_WIDTH
             } else {
-                hidden.push(tab)
+                newHiddenTabs.push(tab)
             }
         })
 
-        setVisibleTabs(visible)
-        setHiddenTabs(hidden)
-    }, [actionGroups, selectedGroup])
-
-    const debouncedUpdateVisibleTabs = useMemo(() => debounce(updateVisibleTabs, 100), [updateVisibleTabs])
+        setVisibleTabs(newVisibleTabs)
+        setHiddenTabs(newHiddenTabs)
+    }, [actionGroups, selectedGroup, tabs])
 
     useEffect(() => {
-        const resizeObserver = new ResizeObserver(debouncedUpdateVisibleTabs)
-        if (containerRef.current) resizeObserver.observe(containerRef.current)
+        const debouncedUpdate = debounce(updateVisibleTabs, 100)
+        const resizeObserver = new ResizeObserver(debouncedUpdate)
+
+        updateVisibleTabs() // 初始化调用
+
+        if (containerRef.current) {
+            resizeObserver.observe(containerRef.current)
+        }
+
         return () => {
             resizeObserver.disconnect()
-            debouncedUpdateVisibleTabs.cancel()
+            debouncedUpdate.cancel()
         }
-    }, [debouncedUpdateVisibleTabs])
-
-    useEffect(() => {
-        updateVisibleTabs()
     }, [updateVisibleTabs])
 
     const handleTabChange = useCallback(
@@ -99,7 +108,7 @@ const CategorySelector = () => {
             if (category === 'more') return
             setSelectedGroup(category)
             loadFiles(category)
-            setTimeout(updateVisibleTabs, 0)
+            requestAnimationFrame(updateVisibleTabs)
         },
         [loadFiles, setSelectedGroup, updateVisibleTabs]
     )
@@ -109,6 +118,13 @@ const CategorySelector = () => {
         else if (id === '__review__') setShowReviewManager(true)
         else if (id === '__wordbook__') setShowWordBookManager(true)
     }
+
+    useEffect(() => {
+        console.log('[CategorySelector] Mounted with refs:', {
+            containerRef: containerRef.current,
+            hasDataTestId: containerRef.current?.querySelector('[data-testid="category-tabs"]') !== null
+        })
+    }, [])
 
     return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
@@ -135,7 +151,8 @@ const CategorySelector = () => {
                         Root: {
                             style: { flexGrow: 1, padding: 0, margin: 0 },
                             props: {
-                                activateOnFocus: true,
+                                'activateOnFocus': true,
+                                'data-testid': 'category-tabs',
                             },
                         },
                         TabList: {
@@ -161,6 +178,11 @@ const CategorySelector = () => {
                         <Tab
                             key='more'
                             overrides={{
+                                Tab: {
+                                    props: {
+                                        'data-testid': 'more-button', // 用于教程定位
+                                    },
+                                },
                                 TabPanel: {
                                     style: { display: 'none' }, // 隐藏 TabPanel
                                 },
@@ -173,7 +195,7 @@ const CategorySelector = () => {
                                                 ...hiddenTabs.map((tab) => ({ label: t(tab) })),
                                                 { divider: true },
                                                 { id: '__manager__', label: t('Action Manager') },
-/*                                                 { id: '__review__', label: t('Review Manager') }, */
+                                                /*                                                 { id: '__review__', label: t('Review Manager') }, */
                                                 { id: '__wordbook__', label: t('Word Book Manager') },
                                             ]}
                                             onItemSelect={({ item }) => {
@@ -198,7 +220,7 @@ const CategorySelector = () => {
                                             cursor: 'pointer', // 添加指针样式
                                         }}
                                     >
-                                        {t('More')} <AiOutlineDown style={{ marginLeft: '4px' }} />
+                                        <AiOutlineDown style={{ marginLeft: '4px' }} />
                                     </div>
                                 </StatefulPopover>
                             }

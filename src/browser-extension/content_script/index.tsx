@@ -1,5 +1,4 @@
 import * as utils from '../../common/utils'
-import icon from '../../common/assets/images/icon.png'
 import { popupThumbID, zIndex } from './consts'
 import { getContainer, queryPopupCardElement, queryPopupThumbElement } from './utils'
 import '../../common/i18n.js'
@@ -51,6 +50,36 @@ async function sendText(text: string) {
     chrome.runtime.sendMessage({ type: 'Text', text: text })
 }
 
+// 检查当前URL是否匹配目标URL
+function isTargetUrl(url: string): boolean {
+    // 如果 VITE_NODE_ENV 是 undefined，说明是开发环境
+    let isDev = false
+    if (url.startsWith('http://localhost')) {
+        isDev = true
+    } else if (url.startsWith('https://gpt-tutor-website-with-stripe.vercel.app')) {
+        isDev = false
+    }
+    const targetUrl = isDev ? 'http://localhost:3000' : 'https://gpt-tutor-website-with-stripe.vercel.app'
+    console.log('当前环境:', isDev ? 'development' : 'production')
+    console.log('检查URL:', url)
+    console.log('目标URL:', targetUrl)
+    return url.includes(targetUrl)
+}
+
+// 监听网页发出的消息
+if (isTargetUrl(window.location.href)) {
+    window.addEventListener('message', (event) => {
+        // 确保消息来源可信
+        if (event.source !== window) return
+
+        if (event.data.type === 'SYNC_ACTION_GROUP') {
+            console.log('Content Script 收到消息:', event.data)
+            // 转发消息到扩展的 background script
+            chrome.runtime.sendMessage(event.data)
+        }
+    })
+}
+
 async function showPopupThumb(text: string, x: number, y: number) {
     if (!text) {
         return
@@ -66,24 +95,20 @@ async function showPopupThumb(text: string, x: number, y: number) {
         $popupThumb.style.position = 'absolute'
         $popupThumb.style.zIndex = zIndex
         $popupThumb.style.background = isDark ? '#1f1f1f' : '#fff'
-        $popupThumb.style.padding = '2px'
+        $popupThumb.style.padding = '8px 12px'
         $popupThumb.style.borderRadius = '4px'
         $popupThumb.style.boxShadow = '0 0 4px rgba(0,0,0,.2)'
         $popupThumb.style.cursor = 'pointer'
         $popupThumb.style.userSelect = 'none'
-        $popupThumb.style.width = '20px'
-        $popupThumb.style.height = '20px'
-        $popupThumb.style.overflow = 'hidden'
+        $popupThumb.style.color = isDark ? '#fff' : '#000'
+        $popupThumb.style.fontSize = '14px'
         $popupThumb.addEventListener('click', popupThumbClickHandler)
         $popupThumb.addEventListener('mousemove', (event) => {
             event.stopPropagation()
         })
-        const $img = document.createElement('img')
-        $img.src = icon
-        $img.style.display = 'block'
-        $img.style.width = '100%'
-        $img.style.height = '100%'
-        $popupThumb.appendChild($img)
+
+        $popupThumb.textContent = 'Add to gpt-tutor'
+
         const $container = await getContainer()
         $container.shadowRoot?.querySelector('div')?.appendChild($popupThumb)
     }

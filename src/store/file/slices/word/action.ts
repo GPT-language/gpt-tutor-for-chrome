@@ -45,6 +45,19 @@ export interface ChatWordAction {
     updateSentenceAnswer: (fileId: number, wordIdx: number, index: number, sentenceAnswerText: string) => Promise<void>
     setActionGroups: (actions: Action[]) => void
     updateSelectedWordText: (text: string) => void
+    resetInitialState: () => void
+    getOrCreateTargetFile: (
+        fileName: string,
+        selectedGroup: string,
+        currentFileId: number | null,
+        selectedFiles: SavedFile[],
+        files: SavedFile[]
+    ) => SavedFile
+    addWordToTargetFile: (
+        word: Content,
+        targetFile: SavedFile,
+        currentDate: Date
+    ) => Promise<{ fileId: number; wordIdx: number }>
 }
 
 export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatWordAction> = (set, get) => ({
@@ -68,72 +81,101 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
             const currentDate = new Date()
             const { selectedGroup, setCurrentWordPositions, selectedFiles, currentFileId, files, selectFile } = get()
-            let addedFileId = 0
-            let addedWordIdx = 0
-            const currentFile = selectedFiles.find((file: SavedFile) => file.id === currentFileId)
-            let targetFile = currentFile ? currentFile : selectedFiles.find((file: SavedFile) => file.name === fileName)
 
-            // 获取实际文件中的最大 idx
-            const getNextIdx = (fileId: number) => {
-                const file = files.find(f => f.id === fileId)
-                if (!file?.words?.length) return 1
-                return Math.max(...file.words.map(w => w.idx)) + 1
-            }
-
-            // 分两步进行状态更新
+            // 第一部分：获取或创建目标文件
+            const targetFile = get().getOrCreateTargetFile(fileName, selectedGroup, currentFileId, selectedFiles, files)
             if (!targetFile) {
-                // 第一步：如果文件不存在，先创建文件
-                targetFile = {
-                    id: get().files.length > 0 ? Math.max(...get().files.map((f: SavedFile) => f.id || 0)) + 1 : 1,
-                    name: fileName,
-                    category: selectedGroup,
-                    words: [],
-                }
-
-                set(
-                    produce((draft) => {
-                        draft.files.push(targetFile)
-                        draft.selectedFiles.push(targetFile)
-                    })
-                )
+                throw new Error('Failed to get or create target file')
             }
 
-            // 获取新单词的 idx
-            const nextIdx = targetFile?.id ? getNextIdx(targetFile.id) : 1
-
-            // 创建单词的副本并添加到历史文件
-            const wordCopy: Content = {
-                ...word,
-                idx: nextIdx,
-                inHistory: true,
-                lastReviewed: currentDate,
+            // 第二部分：添加单词到目标文件
+            const result = await get().addWordToTargetFile(word, targetFile, currentDate)
+            if (!result) {
+                throw new Error('Failed to add word to target file')
             }
 
-            // 第二步：添加单词到文件
-            set(
-                produce((draft) => {
-                    const fileToUpdate = draft.files.find((file: SavedFile) => file.id === targetFile?.id)
-                    if (fileToUpdate) {
-                        if (!fileToUpdate.words) {
-                            fileToUpdate.words = []
-                        }
-                        fileToUpdate.words.push(wordCopy)
-                        addedFileId = fileToUpdate.id || 0
-                        addedWordIdx = wordCopy.idx
-                    }
-                })
-            )
-
-            set({ currentFileId: addedFileId, selectedWord: wordCopy })
-            selectFile(addedFileId)
-            console.log('Word added to History file:', { fileId: addedFileId, wordIdx: addedWordIdx })
-            setCurrentWordPositions(addedFileId, addedWordIdx)
-            return { fileId: addedFileId, wordIdx: addedWordIdx }
+            selectFile(result.fileId)
+            console.log('Word added to History file:', { fileId: result.fileId, wordIdx: result.wordIdx })
+            setCurrentWordPositions(result.fileId, result.wordIdx)
+            return result
         } catch (error) {
             console.error('Failed to add word to History file:', error)
             toast.error('Failed to add word to History file')
             return null
         }
+    },
+
+    // 获取或创建目标文件
+    getOrCreateTargetFile(
+        fileName: string,
+        selectedGroup: string,
+        currentFileId: number | null,
+        selectedFiles: SavedFile[],
+        files: SavedFile[]
+    ): SavedFile {
+        const currentFile = selectedFiles.find((file) => file.id === currentFileId)
+        let targetFile = currentFile || selectedFiles.find((file) => file.name === fileName)
+
+        if (!targetFile) {
+            targetFile = {
+                id: files.length > 0 ? Math.max(...files.map((f) => f.id || 0)) + 1 : 1,
+                name: fileName,
+                category: selectedGroup,
+                words: [],
+            }
+
+            set(
+                produce((draft) => {
+                    draft.files.push(targetFile)
+                    draft.selectedFiles.push(targetFile)
+                })
+            )
+        }
+
+        return targetFile
+    },
+
+    // 添加单词到目标文件
+    addWordToTargetFile(
+        word: Content,
+        targetFile: SavedFile,
+        currentDate: Date
+    ): Promise<{ fileId: number; wordIdx: number }> {
+        // 获取新单词的 idx
+        const getNextIdx = (fileId: number) => {
+            const file = get().files.find((f) => f.id === fileId)
+            if (!file?.words?.length) return 1
+            return Math.max(...file.words.map((w) => w.idx)) + 1
+        }
+
+        const nextIdx = targetFile.id ? getNextIdx(targetFile.id) : 1
+        const wordCopy: Content = {
+            ...word,
+            idx: nextIdx,
+            inHistory: true,
+            lastReviewed: currentDate,
+        }
+
+        let addedFileId = 0
+        let addedWordIdx = 0
+
+        set(
+            produce((draft) => {
+                const fileToUpdate = draft.files.find((file: SavedFile) => file.id === targetFile.id)
+                if (fileToUpdate) {
+                    if (!fileToUpdate.words) {
+                        fileToUpdate.words = []
+                    }
+                    fileToUpdate.words.push(wordCopy)
+                    addedFileId = fileToUpdate.id || 0
+                    addedWordIdx = wordCopy.idx
+                }
+                draft.selectedWord = wordCopy
+                draft.currentFileId = addedFileId
+            })
+        )
+
+        return Promise.resolve({ fileId: addedFileId, wordIdx: addedWordIdx })
     },
 
     loadWords: async (fileId: number, pageNumber: number, pageSize: number) => {
@@ -396,8 +438,8 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 groups[group].push(action)
             })
             return groups
-        }, {})
-
+        }, {} as ActionGroups)
+        console.log('groups', groups)
         set({ actionGroups: groups })
     },
 
@@ -427,6 +469,19 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
                 // 更新 quoteText
                 draft.quoteText = text
+            })
+        )
+    },
+
+    resetInitialState: () => {
+        set(
+            produce((draft) => {
+                // 重置相关状态
+                draft.words = []
+                draft.answers = {}
+                draft.selectedWord = null
+                draft.selectedGroup = 'Unsorted' // 或其他默认值
+                // 其他需要重置的状态...
             })
         )
     },

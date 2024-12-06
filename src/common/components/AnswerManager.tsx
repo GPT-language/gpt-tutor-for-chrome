@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import { Block } from 'baseui-sd/block'
 import { Button } from 'baseui-sd/button'
 import { ChevronDown, ChevronUp } from 'baseui-sd/icon'
@@ -20,6 +20,10 @@ import { VscReply } from 'react-icons/vsc'
 import { Textarea } from 'baseui-sd/textarea'
 import TextareaWithActions from './TextAreaWithActions'
 import { shallow } from 'zustand/shallow'
+import { StatefulPopover, PLACEMENT } from 'baseui-sd/popover'
+import { StatefulMenu } from 'baseui-sd/menu'
+import debounce from 'lodash-es/debounce'
+
 interface ITranslationManagerProps {
     isLoading: boolean
     isSpeakingTranslatedText: boolean
@@ -35,6 +39,10 @@ interface ITranslationManagerProps {
     engine: IEngine | undefined
     addToAnki: (deckName: string, front: string, back: string) => void
 }
+
+const MAX_TAB_WIDTH = 70 // 每个标签的最大宽度
+const MORE_TAB_WIDTH = 30 // More 按钮的宽度
+const ACTION_BUTTONS_WIDTH = 40 // 其他操作按钮的宽度
 
 const TranslationManager: React.FC<ITranslationManagerProps> = ({
     isLoading,
@@ -53,10 +61,9 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     const [editingAction, setEditingAction] = useState<string | null>(null)
     const [editingParagraph, setEditingParagraph] = useState<number | null>(null)
     const [editedText, setEditedText] = useState('')
-    const [expandedActions, setExpandedActions] = useState<Set<string>>(new Set())
     const {
-        currentFileId,
         answers,
+        currentFileId,
         setAnswers,
         selectedWord,
         selectedGroup,
@@ -77,6 +84,11 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         }),
         shallow
     )
+    const containerRef = useRef<HTMLDivElement>(null)
+    const [visibleTabs, setVisibleTabs] = useState<string[]>([])
+    const [hiddenTabs, setHiddenTabs] = useState<string[]>([])
+    const [expandedActions, setExpandedActions] = useState<string>('')
+    const [isManualSelection, setIsManualSelection] = useState(false)
 
     const handleAsk = useCallback(
         (index: number, actionName?: string) => {
@@ -174,7 +186,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                     engine
                 )
             } catch (error) {
-                console.error('提交问题失败:', error)
+                console.error('提交问题失:', error)
                 // 显示错误提示
             }
         },
@@ -184,7 +196,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     const handleCopy = useCallback(
         (text: string) => {
             navigator.clipboard.writeText(text)
-            // 可以添加一个复制成功的��
+            // 可以添加一个复制成功的
             toast(t('Copy to clipboard'), {
                 duration: 3000,
                 icon: '👏',
@@ -238,18 +250,18 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             console.log('更新前的完整文本:', currentTranslation.text)
 
             // 使用正确的分隔符分割文本
-            const paragraphs = currentTranslation.text.split('\n').filter(p => p.trim() !== '')
-            console.log('分割后的段落数组:', paragraphs)
-            console.log('要更新的段落索引:', editingParagraph)
-            console.log('更新前的段落内容:', paragraphs[editingParagraph])
+            const paragraphs = currentTranslation.text.split('\n').filter((p) => p.trim() !== '')
+            // console.log('分割后的段落数组:', paragraphs)
+            // console.log('要更新的段落索引:', editingParagraph)
+            // console.log('更新前的段落内容:', paragraphs[editingParagraph])
 
             // 更新指定段落
             paragraphs[editingParagraph] = editedText
-            console.log('更新后的段落内容:', paragraphs[editingParagraph])
+            // console.log('更新后的段落内容:', paragraphs[editingParagraph])
 
             // 使用正确的分隔符合并文本
             const updatedText = paragraphs.join('\n')
-            console.log('更新后的完整文本:', updatedText)
+            // console.log('更新后的完整文本:', updatedText)
 
             const updatedAnswers = {
                 ...answers,
@@ -296,18 +308,6 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         setEditedText('')
     }
 
-    const toggleExpand = (actionName: string) => {
-        setExpandedActions((prev) => {
-            const newSet = new Set(prev)
-            if (newSet.has(actionName)) {
-                newSet.delete(actionName)
-            } else {
-                newSet.add(actionName)
-            }
-            return newSet
-        })
-    }
-
     const splitIntoParagraphsAndSentences = (text: string): string[] => {
         if (!text) {
             return []
@@ -326,7 +326,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 .split(/(?<=[.!?])\s+(?=[A-Z])/)
                 .map((sentence) => sentence.trim())
                 .filter(Boolean)
-            // todo: 实现其它语言的分句
+            // todo: 实现其它语言的句
 
             // 如果段落只有一个句子，直接返回；否则返回分割后的句子
             return sentences.length === 1 ? paragraph : sentences
@@ -576,29 +576,172 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         ]
     )
 
+    // 当 answers 更新时，选择最新的标签
+    useEffect(() => {
+        if (!answers) return
+        const currentActions = Object.keys(answers)
+        if (currentActions.length > 0) {
+            const latestAction = currentActions[currentActions.length - 1]
+            console.log('[AnswerManager] Selecting latest action:', latestAction)
+            setExpandedActions(latestAction)
+        }
+    }, [answers]) // 只依赖 answers 的变化
+
+    // 处理标签切换
+    const handleTabChange = useCallback((actionName: string) => {
+        console.log('[AnswerManager] Switching to tab:', actionName)
+        setExpandedActions(actionName)
+    }, [])
+
+    // 更新可见标签的逻辑保持不变
+    const updateVisibleTabs = useCallback(() => {
+        if (!containerRef.current || !answers) return
+
+        const containerWidth = containerRef.current.offsetWidth
+        const availableWidth = containerWidth - ACTION_BUTTONS_WIDTH
+        const allTabs = Object.keys(answers)
+
+        let totalWidth = 0
+        const newVisibleTabs: string[] = []
+        const newHiddenTabs: string[] = []
+
+        // 确保当前选中的标签始终可见
+        if (expandedActions && allTabs.includes(expandedActions)) {
+            newVisibleTabs.push(expandedActions)
+            totalWidth += MAX_TAB_WIDTH
+        }
+
+        // 处理其他标签
+        allTabs.forEach((tab) => {
+            if (tab === expandedActions) return // 过已添加的选中标签
+
+            const isLastVisibleTab = newVisibleTabs.length === allTabs.length - 1
+            const needsMoreButton = !isLastVisibleTab
+            const spaceNeeded = needsMoreButton ? MORE_TAB_WIDTH : 0
+
+            if (totalWidth + MAX_TAB_WIDTH + spaceNeeded <= availableWidth) {
+                newVisibleTabs.push(tab)
+                totalWidth += MAX_TAB_WIDTH
+            } else {
+                newHiddenTabs.push(tab)
+            }
+        })
+
+        setVisibleTabs(newVisibleTabs)
+        setHiddenTabs(newHiddenTabs)
+    }, [answers, expandedActions])
+
+    useEffect(() => {
+        const debouncedUpdate = debounce(updateVisibleTabs, 100)
+        const resizeObserver = new ResizeObserver(debouncedUpdate)
+
+        updateVisibleTabs() // 初始化调用
+
+        if (containerRef.current) {
+            resizeObserver.observe(containerRef.current)
+        }
+
+        return () => {
+            resizeObserver.disconnect()
+            debouncedUpdate.cancel()
+        }
+    }, [updateVisibleTabs])
+
     if (showFullQuoteText && selectedWord?.text) {
         return <Block>{renderContent(selectedWord.text, 'markdown', undefined)}</Block>
     }
 
     return (
-        <Block>
-            {Object.entries(answers).map(([actionName, answer]) => (
-                <Block key={actionName} marginBottom={'20px'} width='100%'>
+        <Block data-testid='answer-manager'>
+            <Block
+                ref={containerRef}
+                display='flex'
+                alignItems='center'
+                marginBottom='16px'
+                $style={{
+                    borderBottom: '1px solid #e0e0e0',
+                    gap: '4px',
+                    width: '100%',
+                }}
+            >
+                {visibleTabs.map((actionName) => (
                     <Block
-                        onClick={() => toggleExpand(actionName)}
-                        display='flex'
-                        alignItems='center'
-                        $style={{ cursor: 'pointer' }}
-                        backgroundColor={'inherit'}
-                        padding={'4px 8px'}
+                        key={actionName}
+                        padding='4px 8px'
+                        onClick={() => handleTabChange(actionName)}
+                        $style={{
+                            cursor: 'pointer',
+                            borderBottom: expandedActions === actionName ? '2px solid #276EF1' : '2px solid transparent',
+                            color: expandedActions === actionName ? '#276EF1' : 'inherit',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.2s',
+                            fontSize: '12px',
+                            ':hover': {
+                                backgroundColor: 'rgba(39, 110, 241, 0.1)',
+                            }
+                        }}
                     >
-                        {expandedActions.has(actionName) ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-                        <Block marginLeft={'10px'}>{actionName}</Block>
+                        {actionName}
                     </Block>
-                    {expandedActions.has(actionName) && (
-                        <Block width='100%'>
+                ))}
+
+                {/* More 下拉菜单 */}
+                {hiddenTabs.length > 0 && (
+                    <StatefulPopover
+                        content={({ close }) => (
+                            <StatefulMenu
+                                items={hiddenTabs.map((key) => ({ id: key, label: key }))}
+                                onItemSelect={({ item }) => {
+                                    handleTabChange(item.id)
+                                    close()
+                                }}
+                                overrides={{
+                                    List: {
+                                        style: {
+                                            maxWidth: '300px',
+                                            width: 'auto',
+                                            minWidth: '150px',
+                                        },
+                                    },
+                                    Option: {
+                                        props: {
+                                            getStyles: () => ({
+                                                whiteSpace: 'normal',
+                                                wordBreak: 'break-word',
+                                            }),
+                                        },
+                                    },
+                                }}
+                            />
+                        )}
+                        placement={PLACEMENT.bottomLeft}
+                    >
+                        <Block
+                            padding='4px 8px'
+                            display='flex'
+                            alignItems='center'
+                            $style={{
+                                'cursor': 'pointer',
+                                'fontSize': '12px',
+                                'borderBottom': '2px solid transparent',
+                                ':hover': {
+                                    backgroundColor: 'rgba(39, 110, 241, 0.1)',
+                                },
+                            }}
+                        >
+                            {t('More')} <ChevronDown size={12} style={{ marginLeft: '4px' }} />
+                        </Block>
+                    </StatefulPopover>
+                )}
+            </Block>
+
+            {/* 内容区域添加日志 */}
+            {Object.entries(answers || {}).map(([actionName, answer]) => {
+                return (
+                    expandedActions === actionName && (
+                        <Block key={actionName} width='100%'>
                             {renderContent(answer.text, answer.format, actionName)}
-                            <Block className={styles.actionButtonsContainer}>
+                            <Block className={styles.actionButtonsContainer} data-testid='answer-actions'>
                                 {!isLoading && (
                                     <Tooltip content={t('Retry')} placement='bottom'>
                                         <div onClick={() => forceTranslate()} className={styles.actionButton}>
@@ -623,6 +766,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 </Tooltip>
                                 <Tooltip content={t('Add to Anki')}>
                                     <div
+                                        data-testid='add-to-anki-button'
                                         onClick={() => addToAnki(selectedGroup, finalText, answer.text)}
                                         className={styles.actionButton}
                                     >
@@ -636,9 +780,9 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 </Tooltip>
                             </Block>
                         </Block>
-                    )}
-                </Block>
-            ))}
+                    )
+                )
+            })}
         </Block>
     )
 }

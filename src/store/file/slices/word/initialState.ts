@@ -5,7 +5,7 @@ export interface ActionGroups {
 }
 
 export interface ChatWordState {
-    words: Content[] // 当前文件的所有单词
+    words: Content[]
     answers: Answers
     selectedGroup: string
     selectedWord: Content | null
@@ -13,11 +13,26 @@ export interface ChatWordState {
     actionGroups: ActionGroups
 }
 
+const defaultSelectedWord: Content = {
+    idx: 1,
+    text: 'This is a example',
+    reviewCount: 0,
+    answers: {
+        'translate to Chinese': {
+            text: '这是例子',
+            format: 'text',
+        },
+    },
+}
+
+const defaultAnswers: Answers = { ['Translate to Chinese']: { text: '翻译：这是一个例子', format: 'text' } }
+
+
 export const initialWordState: ChatWordState = {
-    words: [], // 当前文件的单词
-    answers: {},
-    selectedWord: { idx: 1, text: '', reviewCount: 0 },
-    currentWordPositions: {}, // 每个文件的选中单词
+    words: [],
+    answers: defaultAnswers,
+    selectedWord: defaultSelectedWord,
+    currentWordPositions: {},
     selectedGroup: 'Unsorted',
     actionGroups: {},
 }
