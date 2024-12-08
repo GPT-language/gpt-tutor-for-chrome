@@ -331,22 +331,23 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
 
         switch (query.inputLanguageLevel) {
             case 'Level0':
-                languageLevelText = '您对这门语言没有任何知识。我们将从基础知识开始介绍，例如字母和简单的问候语。'
+                languageLevelText =
+                    'I have no knowledge of this language. Please start with basic knowledge, such as letters and simple greetings. For example, "Hello" (你好) is a greeting.'
                 break
             case 'Level1':
                 languageLevelText =
-                    '您只知道一些基本的词汇。我们会用简单的句子来解释，像对五岁小孩一样。比如，"Hello"（你好）是一个问候语。'
+                    'I know some basic vocabulary. Please explain it in simple sentences, like explaining to a five-year-old. For example, "Hello" (你好) is a greeting.'
                 break
             case 'Level2':
                 languageLevelText =
-                    'You can understand some basic expressions. For example, "Good morning" (早上好) is a common greeting. It is used when you meet someone in the morning.'
+                    'I can understand some basic expressions. For example, "Good morning" (早上好) is a common greeting. It is used when you meet someone in the morning.'
                 break
             case 'Level3':
                 languageLevelText =
-                    'You can understand most phrases and expressions. For instance, "How are you?" (你好吗?) is a common way to ask someone about their well-being.'
+                    'I can understand most phrases and expressions. For instance, "How are you?" (你好吗?) is a common way to ask someone about their well-being.'
                 break
             case 'Level4':
-                languageLevelText = 'You can understand advanced expressions, so no adjustments are needed.'
+                languageLevelText = 'I can understand advanced expressions, so no adjustments are needed.'
                 break
             default:
                 languageLevelText = 'Invalid language level.'
