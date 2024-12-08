@@ -5,17 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
 
-- Designed a new UI, now distinguishing between single words, sentences, and writing, each with different UI and feature sets.
-- Completed the design of the IELTS learning feature set.
-- Implemented printing functionality.
-- Implemented functionality for use with Infinite Craft.
-- Implemented the ability to quickly implement a feature or feature set through AI.
-- Implemented remote storage of user learning records and feature sets to prevent loss.
+## [1.0.1.7] - 2024-12-08
 
-### To Be Fixed
-- The buttons for adding to review and adding to Anki should be moved to a more suitable location, distinguishing between adding entire words and parts of word content.
+### 🎉 New Features
+
+- Added operation guides explaining the usage of the main interface.
+- Added feature set store, supporting purchase, update, and customization of feature sets based on individual needs.
+
+### 🐛 Bug Fixes
+- Fixed an issue where the @ symbol couldn't be used to invoke GPT-Tutor functionality in reading mode.
+- Fixed an issue where answers were being saved incorrectly.
+
+### 🎉 New Features
+- Added reading mode for more convenient webpage content reading through gpt-tutor.
+
+## [1.0.1.4] - 2024-11-09
+
+### 🎉 New Features
+- Added reading mode for more convenient webpage content reading through gpt-tutor.
+- Added third-party API provider: openRouter.
+
+![alt text](readingMode_1.gif)
+
+### 🔄 Changes
+- Removed built-in review functionality, replaced with Anki integration.
+- Removed clerk usage from initial page, login no longer required.
+- Implemented state management using zustand.
 
 ## [1.0.1.3] - 2024-09-14
 
