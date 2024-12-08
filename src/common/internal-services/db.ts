@@ -29,8 +29,10 @@ export interface ActionGroup {
     category: string
     price: number
     version: string
+    language: string
+    targetLanguage: string
     actions: Action[]
-  }
+}
 
 export interface FollowUpAnswer {
     idx: number

@@ -474,7 +474,7 @@ export const jsonToActions = async (file: File): Promise<any> => {
         if (jsonData.actions && Array.isArray(jsonData.actions)) {
             return jsonData.actions
         }
-        
+
         // 如果数据本身就是数组，直接返回
         if (Array.isArray(jsonData)) {
             return jsonData

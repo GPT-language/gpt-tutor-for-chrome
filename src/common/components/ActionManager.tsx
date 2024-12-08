@@ -444,7 +444,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                 >
                                     {t('Create')}
                                 </Button>
-{/*                                 <Button
+                                {/*                                 <Button
                                     size='mini'
                                     kind='secondary'
                                     onClick={(e) => {
@@ -482,7 +482,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                         >
                                             {group}
                                         </h3>
-{/*                                         <Button
+                                        {/*                                         <Button
                                             size='mini'
                                             kind='secondary'
                                             onClick={() => {
@@ -491,7 +491,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                         >
                                             {t('Export')}
                                         </Button> */}
-{/*                                         <Button
+                                        <Button
                                             size='mini'
                                             kind='secondary'
                                             onClick={() => {
@@ -501,7 +501,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                             }}
                                         >
                                             {t('Publish')}
-                                        </Button> */}
+                                        </Button>
                                     </div>
                                     {openGroups.includes(group) && (
                                         <List

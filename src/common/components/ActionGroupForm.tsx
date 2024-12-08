@@ -20,6 +20,8 @@ export function ActionGroupForm({ isOpen, onClose, onSubmit, title, actions }: A
     const [category, setCategory] = useState('')
     const [price, setPrice] = useState(0)
     const [version, setVersion] = useState('1.0.0')
+    const [language, setLanguage] = useState('')
+    const [targetLanguage, setTargetLanguage] = useState('')
 
     const handleSubmit = () => {
         const actionGroup: ActionGroup = {
@@ -29,6 +31,8 @@ export function ActionGroupForm({ isOpen, onClose, onSubmit, title, actions }: A
             category,
             price,
             version,
+            language,
+            targetLanguage,
             actions,
         }
         onSubmit(actionGroup)
@@ -66,6 +70,20 @@ export function ActionGroupForm({ isOpen, onClose, onSubmit, title, actions }: A
                 </FormControl>
                 <FormControl label={t('Version')}>
                     <Input value={version} onChange={(e) => setVersion(e.currentTarget.value)} placeholder='1.0.0' />
+                </FormControl>
+                <FormControl label={t('Language')}>
+                    <Input
+                        value={language}
+                        onChange={(e) => setLanguage(e.currentTarget.value)}
+                        placeholder={t('Enter source language') || ''}
+                    />
+                </FormControl>
+                <FormControl label={t('Target Language')}>
+                    <Input
+                        value={targetLanguage}
+                        onChange={(e) => setTargetLanguage(e.currentTarget.value)}
+                        placeholder={t('Enter target language') || ''}
+                    />
                 </FormControl>
             </ModalBody>
             <ModalFooter>
