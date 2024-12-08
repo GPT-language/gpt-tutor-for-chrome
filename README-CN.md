@@ -81,3 +81,71 @@
 # License
 
 [LICENSE](./LICENSE)
+
+# 开发者指南
+
+想要参与GPT-Tutor的开发？以下是基本指引：
+
+## 开发环境设置
+
+1. 克隆仓库
+2. 安装依赖：
+
+```bash
+pnpm install
+```
+
+## 开发者提示
+
+### 常用命令
+
+- 安装依赖：
+
+```bash
+pnpm install
+```
+
+- 开发模式（支持热更新）：
+
+```bash
+npm run watch
+```
+
+- 构建浏览器扩展：
+
+```bash
+make build-browser-extension
+```
+
+- 代码格式化：
+
+```bash
+npm run lint:fix    # 修复代码格式问题
+npm run format     # 格式化代码
+```
+
+### 开发流程
+
+1. Fork 项目并克隆到本地
+2. 创建新的功能分支：`git checkout -b feature/your-feature-name`
+3. 安装依赖：`pnpm install`
+4. 启动开发模式：`npm run watch`
+5. 在Chrome扩展管理页面加载`dist/browser-extension/chromium`目录
+6. 开发完成后运行代码格式化：`npm run lint:fix && npm run format`
+7. 提交代码并创建Pull Request
+
+### 目录结构
+
+- `src/browser-extension/`: 浏览器扩展相关代码
+  - `background/`: 后台脚本
+  - `content_script/`: 内容脚本
+  - `popup/`: 弹出窗口
+- `src/common/`: 共用组件和工具
+- `public/`: 静态资源文件
+
+### 注意事项
+
+- 提交PR前请确保代码已经过格式化
+- 新功能请添加相应的测试用例
+- 遵循项目既定的代码风格
+- 重要更新请更新CHANGELOG.md
