@@ -29,9 +29,10 @@ export interface IGroupSelectProps {
     tagsValue?: string[] // Assuming the value should be an array of action IDs
     onChange?: (tagsValue: string[] | undefined) => void
     intialTags?: string[]
+    onKeyDown?: (e: React.KeyboardEvent) => void
 }
 
-export default function GroupSelect({ tagsValue, onChange, intialTags }: IGroupSelectProps) {
+export default function GroupSelect({ tagsValue, onChange, intialTags, onKeyDown }: IGroupSelectProps) {
     // Function to group actions into options
     // 将actions根据group属性分组
     const [value, setValue] = React.useState<string>('')

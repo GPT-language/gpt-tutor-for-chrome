@@ -65,13 +65,6 @@ export function ActionForm(props: IActionFormProps) {
         [props, createAction, updateAction]
     )
 
-    const handleFeedbackClick = () => {
-        window.open(
-            'https://github.com/GPT-language/gpt-tutor-resources/discussions/categories/prompt-related',
-            '_blank'
-        )
-    }
-
     const actionGroupsPlaceholderCaption = (
         <ul className={styles.placeholderCaptionContainer}>
             <li>
@@ -146,7 +139,15 @@ export function ActionForm(props: IActionFormProps) {
                 <Input size='compact' />
             </FormItem>
             <FormItem required name='groups' label={t("Action's Groups")} caption={actionGroupsCaption}>
-                <GroupSelect intialTags={props.action?.groups || []}></GroupSelect>
+                <GroupSelect
+                    intialTags={props.action?.groups || []}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault() // 阻止事件冒泡
+                            e.stopPropagation()
+                        }
+                    }}
+                />
             </FormItem>
             <FormItem name='rolePrompt' label={t('Role Prompt')} caption={rolePromptCaption}>
                 <Textarea size='compact' />
@@ -188,11 +189,6 @@ export function ActionForm(props: IActionFormProps) {
                     gap: 10,
                 }}
             >
-                <StatefulTooltip content={t('Submit feedback or suggestions for this action')}>
-                    <Button onClick={handleFeedbackClick} size='compact'>
-                        {t('Feedback')}
-                    </Button>
-                </StatefulTooltip>
                 <div
                     style={{
                         marginRight: 'auto',
@@ -207,8 +203,6 @@ export function ActionForm(props: IActionFormProps) {
                     placement='top'
                 >
                     <span>
-                        {' '}
-                        {/* 使用 span 包裹 Button，因为 Tooltip 不能直接包裹 disabled 的元素 */}
                         <Button isLoading={loading} size='compact' disabled={props.action?.mode === 'built-in'}>
                             {t('Save')}
                         </Button>
