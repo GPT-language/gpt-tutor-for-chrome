@@ -1,12 +1,10 @@
 /* eslint-disable prettier/prettier */
 import { StateCreator } from 'zustand'
-import { ChatState } from './initialState'
+import { ChatMessage, ChatState } from './initialState'
 import { produce } from 'immer'
-import { Action, Answer } from '@/common/internal-services/db'
-import { askAI } from '@/common/translate'
+import { Action} from '@/common/internal-services/db'
 import { IEngine } from '@/common/engines/interfaces'
 import { ISettings } from '@/common/types'
-import { useChatStore } from '../../store'
 
 
 export interface TranslateCallbacks {
@@ -43,6 +41,11 @@ export interface ChatAction {
     setTranslatedText: (text: string) => void
     setQuoteText: (text: string) => void
     setIndependentText: (text: string) => void
+    setIsMultipleConversation: (isMultiple: boolean) => void
+    addMessageToHistory: (message: ChatMessage) => void
+    clearConversationHistory: () => void
+    setCurrentConversationId: (id: string) => void
+    getConversationMessages: () => ChatMessage[]
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set, get) => ({
@@ -78,4 +81,36 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
     setIndependentText: (text) => set({ independentText: text }),
     setErrorMessage: (text) => set({ errorMessage: text }),
     setTranslatedText: (text) => set({ translatedText: text }),
+
+    setIsMultipleConversation: (isMultiple) => 
+        set({ isMultipleConversation: isMultiple }),
+
+    addMessageToHistory: (message) =>
+        set(
+            produce((draft: ChatState) => {
+                if (draft.isMultipleConversation) {
+                    draft.conversationHistory.push({
+                        ...message,
+                        timestamp: Date.now(),
+                        messageId: crypto.randomUUID()
+                    })
+                }
+            })
+        ),
+
+    clearConversationHistory: () =>
+        set(
+            produce((draft: ChatState) => {
+                draft.conversationHistory = []
+                draft.currentConversationId = ''
+            })
+        ),
+
+    setCurrentConversationId: (id) =>
+        set({ currentConversationId: id }),
+
+    getConversationMessages: () => {
+        const state = get()
+        return state.conversationHistory
+    },
 })

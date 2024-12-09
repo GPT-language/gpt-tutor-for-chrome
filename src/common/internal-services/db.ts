@@ -20,6 +20,7 @@ export interface Action {
     childrenIds?: number[]
     useBackgroundInfo?: boolean
     useLanguageLevelInfo?: boolean
+    isMultipleConversation?: boolean
 }
 
 export interface ActionGroup {

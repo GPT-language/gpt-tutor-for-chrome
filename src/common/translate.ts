@@ -9,6 +9,7 @@ import { ResponseContent } from './types'
 import Browser from 'webextension-polyfill'
 import { sha3_512 } from 'js-sha3'
 import { IEngine } from './engines/interfaces'
+import { useChatStore } from '@/store/file/store'
 
 export type TranslateMode = 'built-in' | 'translate' | 'explain-code' | 'Sentence analysis' | 'Free to ask'
 
@@ -33,10 +34,11 @@ interface BaseTranslateQuery {
     outputLanguageLevel?: string
     userBackground?: string
     useBackgroundInfo?: boolean
+    isMultipleConversation?: boolean
     languageLevelInfo?: boolean
     onMessage: (message: { content: string; role: string; isFullText?: boolean }) => void
     onError: (error: string) => void
-    onFinish: (reason: string) => void
+    onFinished: (reason: string) => void
     onStatusCode?: (statusCode: number) => void
     signal: AbortSignal
 }
@@ -304,16 +306,25 @@ async function registerWebsocket(token: string): Promise<{ wss_url: string; expi
 }
 
 export async function askAI(query: TranslateQuery, engine: IEngine | undefined, isOpenToAsk?: boolean) {
+    const chatStore = useChatStore.getState()
+
     if (!engine) {
         console.error('Translation engine is undefined')
         query.onError('Translation engine is undefined')
         return
     }
-    console.log('query', query)
+
     let rolePrompt = ''
     let commandPrompt = ''
     const assistantPrompts: string[] = []
     let userBackgroundPrompt = ''
+
+    // 获取多轮对话状态
+    console.log('query.activateAction', query.activateAction?.isMultipleConversation)
+    const isMultipleConversation = query.activateAction?.isMultipleConversation || false
+    chatStore.setIsMultipleConversation(isMultipleConversation)
+    console.log('isMultipleConversation', isMultipleConversation)
+
     if (query.context) {
         assistantPrompts.push('context: ' + query.context)
     }
@@ -391,18 +402,63 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
         }
     }
 
+    if (isMultipleConversation) {
+        // 先添加用户的消息到历史记录
+        console.log('addMessageToHistory', commandPrompt)
+        chatStore.addMessageToHistory({
+            role: 'user',
+            content: commandPrompt,
+            timestamp: Date.now(),
+            messageId: crypto.randomUUID(),
+        })
+    }
+
     console.log('assistantPrompts', assistantPrompts)
+
+    // 获取历史消息
+    const conversationMessages = isMultipleConversation
+        ? chatStore.getConversationMessages().map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+          }))
+        : []
+    console.log('conversationMessages', conversationMessages)
+
+    let currentMessage = ''
+    let messageAdded = false
 
     await engine?.sendMessage({
         signal: query.signal,
         rolePrompt,
         commandPrompt,
         assistantPrompts,
+        activateAction: query.activateAction,
+        parentAction: query.parentAction,
+        isMultipleConversation,
+        conversationMessages,
         onMessage: async (message) => {
-            await query.onMessage({ ...message })
+            if (message.isFullText && !messageAdded) {
+                // 只在收到完整消息时保存到历史记录
+                if (isMultipleConversation) {
+                    console.log('addMessageToHistory', message)
+                    chatStore.addMessageToHistory({
+                        role: message.role,
+                        content: message.content,
+                        timestamp: Date.now(),
+                        messageId: crypto.randomUUID(),
+                    })
+                    messageAdded = true
+                }
+                currentMessage = ''
+            } else {
+                // 流式响应，累积消息内容
+                currentMessage += message.content
+            }
+
+            await query.onMessage(message)
         },
         onFinished: (reason) => {
-            query.onFinish(reason)
+            query.onFinished(reason)
         },
         onError: (error) => {
             query.onError(error)
@@ -426,7 +482,7 @@ export async function simpleTranslate(query: TranslateQuery, engine: IEngine): P
             }
         },
         onFinished: (reason) => {
-            query.onFinish(reason)
+            query.onFinished(reason)
         },
         onError: (error) => {
             query.onError(error)

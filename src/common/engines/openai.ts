@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { CUSTOM_MODEL_ID } from '../constants'
+import { Action } from '../internal-services/db'
 import { getSettings } from '../utils'
 import { AbstractOpenAI } from './abstract-openai'
 import { IModel } from './interfaces'
@@ -67,5 +68,31 @@ export class OpenAI extends AbstractOpenAI {
     async getAPIURLPath(): Promise<string> {
         const settings = await getSettings()
         return settings.apiURLPath
+    }
+
+    async getBaseRequestBody(activatedAction?: Action): Promise<Record<string, any>> {
+        const model = await this.getAPIModel()
+        const requestBody = {
+            model,
+            temperature: 0,
+            top_p: 1,
+            frequency_penalty: 1,
+            presence_penalty: 1,
+            stream: true,
+        }
+
+        // 如果是多轮对话，可以调整一些参数
+        if (activatedAction?.isMultipleConversation) {
+            requestBody.temperature = 0.7 // 增加一些随机性
+            requestBody.presence_penalty = 0.6 // 降低重复内容的可能性
+        }
+
+        // 处理不同的输出格式
+        if (activatedAction?.outputRenderingFormat === 'json') {
+            requestBody.model = 'gpt-4-1106-preview'
+            requestBody.response_format = { type: 'json_object' }
+        }
+
+        return requestBody
     }
 }

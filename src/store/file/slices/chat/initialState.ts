@@ -1,4 +1,12 @@
 import { Action } from '@/common/internal-services/db'
+
+export interface ChatMessage {
+    role: string
+    content: string
+    timestamp: number
+    messageId: string
+}
+
 export interface ChatState {
     editableText: string
     independentText: string
@@ -20,6 +28,9 @@ export interface ChatState {
     translatedText: string
     errorMessage: string
     isNotLogin: boolean
+    conversationHistory: ChatMessage[]
+    currentConversationId: string
+    isMultipleConversation: boolean
 }
 
 export const initialChatState: ChatState = {
@@ -42,4 +53,7 @@ export const initialChatState: ChatState = {
     translatedText: '',
     errorMessage: '',
     isNotLogin: false,
+    conversationHistory: [],
+    currentConversationId: '',
+    isMultipleConversation: false,
 }

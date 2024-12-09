@@ -1148,6 +1148,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                         outputLanguageLevel: settings?.outputLanguageLevel,
                         userBackground: settings?.userBackground,
                         useBackgroundInfo: activateAction?.useBackgroundInfo,
+                        isMultipleConversation: activateAction?.isMultipleConversation,
                         languageLevelInfo: activateAction?.useLanguageLevelInfo,
                         signal,
                         text,
@@ -1183,7 +1184,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 return newTranslatedText
                             })
                         },
-                        onFinish: (reason) => {
+                        onFinished: (reason) => {
                             afterTranslate(reason)
                             setTranslatedText((translatedText) => {
                                 const result = translatedText

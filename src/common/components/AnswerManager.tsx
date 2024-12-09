@@ -582,7 +582,6 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         const currentActions = Object.keys(answers)
         if (currentActions.length > 0) {
             const latestAction = currentActions[currentActions.length - 1]
-            console.log('[AnswerManager] Selecting latest action:', latestAction)
             setExpandedActions(latestAction)
         }
     }, [answers]) // 只依赖 answers 的变化

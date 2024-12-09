@@ -14,6 +14,7 @@ export interface ICreateActionOption {
     outputRenderingFormat?: ActionOutputRenderingFormat
     useBackgroundInfo?: boolean
     useLanguageLevelInfo?: boolean
+    isMultipleConversation?: boolean
 }
 
 export interface IUpdateActionOption {
