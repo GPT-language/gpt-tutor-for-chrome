@@ -307,6 +307,19 @@ async function registerWebsocket(token: string): Promise<{ wss_url: string; expi
 
 export async function askAI(query: TranslateQuery, engine: IEngine | undefined, isOpenToAsk?: boolean) {
     const chatStore = useChatStore.getState()
+    let messageAdded = false
+    let currentMessage = ''
+    const assistantPrompts: string[] = []
+    // 将所有 assistantPrompts 合并为一条系统消息
+    if (assistantPrompts.length > 0) {
+        const systemPrompt = assistantPrompts.join('\n')
+        chatStore.addMessageToHistory({
+            role: 'system',
+            content: systemPrompt,
+            timestamp: Date.now(),
+            messageId: crypto.randomUUID(),
+        })
+    }
 
     if (!engine) {
         console.error('Translation engine is undefined')
@@ -316,7 +329,6 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
 
     let rolePrompt = ''
     let commandPrompt = ''
-    const assistantPrompts: string[] = []
     let userBackgroundPrompt = ''
 
     // 获取多轮对话状态
@@ -423,9 +435,6 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
           }))
         : []
     console.log('conversationMessages', conversationMessages)
-
-    let currentMessage = ''
-    let messageAdded = false
 
     await engine?.sendMessage({
         signal: query.signal,

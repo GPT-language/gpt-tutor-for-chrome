@@ -65,21 +65,23 @@ export abstract class AbstractOpenAI extends AbstractEngine {
         const body = await this.getBaseRequestBody(req.activateAction)
 
         if (isChatAPI) {
-            // 只构建发送给API的消息，不处理历史记录
-            const messages = [
-                {
-                    role: 'system',
-                    content: req.rolePrompt,
-                }
-            ]
+            // 构建消息数组
+            const messages = []
 
-            // 直接使用传入的conversationMessages
+            // 添加系统角色提示和助手提示
+            if (req.rolePrompt || (req.assistantPrompts && req.assistantPrompts.length > 0)) {
+                const systemContent = [req.rolePrompt, ...(req.assistantPrompts || [])].filter(Boolean).join('\n')
+
+                messages.push({
+                    role: 'system',
+                    content: systemContent,
+                })
+            }
+
+            // 添加历史消息
             if (req.isMultipleConversation && req.conversationMessages && req.conversationMessages.length > 0) {
                 messages.push(...req.conversationMessages)
             }
-
-            // 打印检查消息数组
-            console.log('Sending messages:', messages)
 
             body.messages = messages
         }
