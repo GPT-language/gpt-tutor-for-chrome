@@ -5,7 +5,7 @@ import { useChatStore } from '@/store/file/store'
 
 const AppTutorial = () => {
     const { t } = useTranslation()
-    const { tutorialState, setTutorialState, endTutorial, settings, updateSettings, setShowSettings } = useChatStore()
+    const { tutorialState, setTutorialState, endTutorial, settings, updateSettings, showSettings } = useChatStore()
     const hasCompletedTutorial = useChatStore.getState().settings.tutorialCompleted
     const [isReady, setIsReady] = useState(false)
     const [steps, setSteps] = useState([
@@ -101,6 +101,12 @@ const AppTutorial = () => {
     }
 
     useEffect(() => {
+        // 只在非设置页面时初始化检查
+        if (showSettings) {
+            setIsReady(false)
+            return
+        }
+
         console.log('[Tutorial] Initial tutorialState:', tutorialState)
         const checkInterval = setInterval(() => {
             if (checkTargets()) {
@@ -114,7 +120,7 @@ const AppTutorial = () => {
             console.log('[Tutorial] Cleaning up check interval')
             clearInterval(checkInterval)
         }
-    }, [])
+    }, [showSettings])
 
     const handleJoyrideCallback = (data: CallBackProps) => {
         const { action, index, status, type } = data
@@ -134,14 +140,17 @@ const AppTutorial = () => {
                 ...settings,
                 tutorialCompleted: true,
             })
-            setShowSettings(true)
         } else {
             setTutorialState({ currentStep: index })
         }
     }
 
-
-    if (!isReady || hasCompletedTutorial) {
+    if (!isReady || hasCompletedTutorial || showSettings) {
+        console.log('[Tutorial] Not showing tutorial:', {
+            isReady,
+            hasCompletedTutorial,
+            showSettings
+        })
         return null
     }
 
