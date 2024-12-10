@@ -249,13 +249,3 @@ const initializeState = () => {
 }
 
 initializeState()
-
-useChatStore.subscribe(
-    (state) => state.settings.tutorialCompleted,
-    (tutorialCompleted, previousValue) => {
-        if (tutorialCompleted && previousValue === false) {
-            const { resetInitialState } = useChatStore.getState()
-            resetInitialState()
-        }
-    }
-)
