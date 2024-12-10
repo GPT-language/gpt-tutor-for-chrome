@@ -198,6 +198,47 @@ useChatStore.subscribe(
     }
 )
 
+// 监听 conversationHistory 的变化，自动保存到 IndexedDB
+useChatStore.subscribe(
+    (state) => ({
+        conversationHistory: state.conversationHistory,
+        selectedWord: state.selectedWord,
+        activatedActionName: state.activatedActionName,
+    }),
+    (current, prev) => {
+        if (
+            current.conversationHistory !== prev.conversationHistory &&
+            current.selectedWord &&
+            current.activatedActionName
+        ) {
+            const { saveConversationToAnswer } = useChatStore.getState()
+            saveConversationToAnswer(current.activatedActionName)
+        }
+    },
+    {
+        equalityFn: shallow,
+    }
+)
+
+// 监听 activatedActionName 或 selectedWord 的变化
+useChatStore.subscribe(
+    (state) => ({
+        activatedActionName: state.activatedActionName,
+        selectedWord: state.selectedWord,
+    }),
+    (current, prev) => {
+        if (current.activatedActionName !== prev.activatedActionName || current.selectedWord !== prev.selectedWord) {
+            const { loadConversationFromAnswer } = useChatStore.getState()
+            if (current.activatedActionName) {
+                loadConversationFromAnswer(current.activatedActionName)
+            }
+        }
+    },
+    {
+        equalityFn: shallow,
+    }
+)
+
 // 初始化
 const initializeState = () => {
     const { files, currentFileId } = useChatStore.getState()
@@ -212,8 +253,7 @@ initializeState()
 useChatStore.subscribe(
     (state) => state.settings.tutorialCompleted,
     (tutorialCompleted, previousValue) => {
-        if (tutorialCompleted && !previousValue) {
-            // 当 tutorialCompleted 从 false 变为 true 时
+        if (tutorialCompleted && previousValue === false) {
             const { resetInitialState } = useChatStore.getState()
             resetInitialState()
         }
