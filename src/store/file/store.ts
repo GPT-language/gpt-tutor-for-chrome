@@ -239,6 +239,32 @@ useChatStore.subscribe(
     }
 )
 
+// 监听 selectedWord 的变化，初始化 conversationHistory
+useChatStore.subscribe(
+    (state) => ({
+        selectedWord: state.selectedWord,
+        activatedActionName: state.activatedActionName,
+    }),
+    (current) => {
+        if (current.selectedWord?.answers && current.activatedActionName) {
+            const answer = current.selectedWord.answers[current.activatedActionName]
+            if (answer?.conversationMessages) {
+                useChatStore.setState({
+                    conversationHistory: answer.conversationMessages,
+                })
+            } else {
+                // 如果没有历史对话，则清空对话历史
+                useChatStore.setState({
+                    conversationHistory: [],
+                })
+            }
+        }
+    },
+    {
+        equalityFn: shallow,
+    }
+)
+
 // 初始化
 const initializeState = () => {
     const { files, currentFileId } = useChatStore.getState()

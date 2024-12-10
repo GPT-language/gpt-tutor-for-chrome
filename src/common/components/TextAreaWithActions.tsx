@@ -44,9 +44,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     maxHeight,
     backgroundColor = DEFAULT_BG_COLOR,
     showSubmitButton = true,
-    showClearButton = true,
-    submitButtonText,
-    clearButtonText,
     disabled = false,
     onChange,
     onSubmit,
@@ -68,7 +65,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         setSelectedGroup,
         settings,
         updateSettings,
-        addWordToFile,
+        addMessageToHistory,
     } = useChatStore()
     const [searchTerm, setSearchTerm] = useState('')
     const [filteredActions, setFilteredActions] = useState<Action[]>([])
@@ -410,8 +407,21 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
 
     const handleSubmit = () => {
         console.log('handleSetEditableText', actionTagRef.current?.style.display, actionTagRef.current)
-        // 如果text以@开头，而且输入了新的文本，则添加新的selectedWord
-        if (actionTagRef.current && actionTagRef.current.style.display === 'inline-block' && editableText.length > 1) {
+        // 如果text以@开头，而且输入了新的文本，而且不为多轮对话，则添加新的selectedWord
+        if (
+            actionTagRef.current &&
+            actionTagRef.current.style.display === 'inline-block' &&
+            !activateAction?.isMultipleConversation &&
+            editableText.length > 1
+        ) {
+            // 添加新的消息
+            const newMessage = {
+                content: editableText,
+                role: 'user',
+                createdAt: Date.now(),
+                messageId: crypto.randomUUID(),
+            }
+            addMessageToHistory(newMessage)
             // 设置当前的selectedWord为undefined
             console.log('Set selectedWord to undefined', useChatStore.getState().selectedWord?.text)
             useChatStore.setState({ selectedWord: undefined })

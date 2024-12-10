@@ -11,6 +11,7 @@ import {
 } from '@/common/internal-services/db'
 import toast from 'react-hot-toast'
 import { ActionGroups } from './initialState'
+import { ChatMessage } from '../chat/initialState'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any
@@ -58,6 +59,12 @@ export interface ChatWordAction {
         targetFile: SavedFile,
         currentDate: Date
     ) => Promise<{ fileId: number; wordIdx: number }>
+    addMessageToHistory: (message: ChatMessage) => void
+    clearConversationHistory: () => void
+    setCurrentConversationId: (id: string) => void
+    getConversationMessages: () => ChatMessage[]
+    saveConversationToAnswer: (actionName: string) => void
+    loadConversationFromAnswer: (actionName: string) => void
 }
 
 export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatWordAction> = (set, get) => ({
@@ -480,9 +487,149 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 draft.words = []
                 draft.answers = {}
                 draft.selectedWord = null
-                draft.selectedGroup = 'Unsorted' // 或其他默认值
+                draft.selectedGroup = 'No Group' // 或其他默认值
                 // 其他需要重置的状态...
             })
         )
     },
+
+    addMessageToHistory: (message) =>
+        set(
+            produce((draft: ChatStore) => {
+                if (draft.isMultipleConversation) {
+                    console.log('Starting addMessageToHistory:', {
+                        message,
+                        currentState: {
+                            selectedWord: draft.selectedWord,
+                            activatedActionName: draft.activatedActionName,
+                            currentFileId: draft.currentFileId,
+                        },
+                    })
+
+                    const newMessage = {
+                        ...message,
+                        createdAt: Date.now(),
+                        messageId: message.messageId || crypto.randomUUID(),
+                    }
+                    draft.conversationHistory.push(newMessage)
+                    console.log('Added message to conversationHistory:', {
+                        newMessage,
+                        currentHistory: draft.conversationHistory,
+                    })
+
+                    if (draft.selectedWord && draft.activateAction?.name) {
+                        console.log('Updating selectedWord:', {
+                            beforeUpdate: draft.selectedWord.answers,
+                            actionName: draft.activateAction?.name,
+                        })
+
+                        const updatedAnswers = {
+                            ...draft.selectedWord.answers,
+                            [draft.activateAction?.name]: {
+                                ...(draft.selectedWord.answers?.[draft.activateAction?.name] || {}),
+                                text: draft.conversationHistory.map((m) => m.content).join('\n'),
+                                format: draft.activateAction?.outputRenderingFormat || 'text',
+                                conversationMessages: [...draft.conversationHistory],
+                                updatedAt: new Date(),
+                                isMultipleConversation: true,
+                            },
+                        }
+                        console.log('Created updatedAnswers:', updatedAnswers)
+
+                        // 更新 selectedWord
+                        draft.selectedWord = {
+                            ...draft.selectedWord,
+                            answers: updatedAnswers,
+                        }
+                        console.log('Updated selectedWord:', draft.selectedWord)
+
+                        // 更新 files 中的 word
+                        const fileIndex = draft.files?.findIndex((f) => f.id === draft.currentFileId)
+                        console.log('Finding file:', {
+                            fileIndex,
+                            currentFileId: draft.currentFileId,
+                            filesLength: draft.files?.length,
+                        })
+
+                        if (fileIndex !== -1 && draft.files[fileIndex].words) {
+                            const wordIndex = draft.files[fileIndex].words.findIndex(
+                                (w) => w.idx === draft.selectedWord?.idx
+                            )
+                            console.log('Finding word:', {
+                                wordIndex,
+                                selectedWordIdx: draft.selectedWord?.idx,
+                                wordsLength: draft.files[fileIndex].words.length,
+                            })
+
+                            if (wordIndex !== -1) {
+                                draft.files[fileIndex].words[wordIndex] = {
+                                    ...draft.files[fileIndex].words[wordIndex],
+                                    answers: updatedAnswers,
+                                }
+                                console.log('Updated word in files:', draft.files[fileIndex].words[wordIndex])
+                            }
+                        }
+                    } else {
+                        console.warn('Cannot update selectedWord:', {
+                            hasSelectedWord: !!draft.selectedWord,
+                            activatedActionName: draft.activatedActionName,
+                        })
+                    }
+                } else {
+                    console.log('Multiple conversation is disabled')
+                }
+            })
+        ),
+
+    clearConversationHistory: () =>
+        set(
+            produce((draft: ChatStore) => {
+                draft.conversationHistory = []
+                draft.currentConversationId = ''
+            })
+        ),
+
+    setCurrentConversationId: (id) => set({ currentConversationId: id }),
+
+    getConversationMessages: () => {
+        const state = get()
+        return state.conversationHistory
+    },
+
+    saveConversationToAnswer: (actionName) =>
+        set(
+            produce((draft: ChatStore) => {
+                const { selectedWord } = draft
+                if (!selectedWord || !actionName) return
+
+                if (!selectedWord.answers) {
+                    selectedWord.answers = {}
+                }
+
+                selectedWord.answers[actionName] = {
+                    ...(selectedWord.answers[actionName] || {}),
+                    text: draft.conversationHistory.map((m) => m.content).join('\n'),
+                    format: draft.activateAction?.outputRenderingFormat || 'text',
+                    conversationMessages: [...draft.conversationHistory],
+                    isMultipleConversation: true,
+                }
+            })
+        ),
+
+    loadConversationFromAnswer: (actionName) =>
+        set(
+            produce((draft: ChatStore) => {
+                const { selectedWord } = draft
+                if (!selectedWord || !actionName) return
+
+                const answer = selectedWord.answers?.[actionName]
+                if (answer?.conversationMessages) {
+                    draft.conversationHistory = answer.conversationMessages
+                    draft.currentConversationId = answer.conversationId || ''
+                } else {
+                    draft.conversationHistory = []
+                    draft.currentConversationId = ''
+                }
+            })
+        ),
 })

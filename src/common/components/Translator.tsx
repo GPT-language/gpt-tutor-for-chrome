@@ -1190,15 +1190,17 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 const result = translatedText
                                 const actionName = isOpenToAsk ? question : activateAction?.name
 
-                                updateWordAnswer(
-                                    actionName || question,
-                                    result,
-                                    activateAction?.outputRenderingFormat || 'markdown',
-                                    messageId,
-                                    conversationId,
-                                    fileId,
-                                    wordIdx
-                                )
+                                if (!activateAction?.isMultipleConversation) {
+                                    updateWordAnswer(
+                                        actionName || question,
+                                        result,
+                                        activateAction?.outputRenderingFormat || 'markdown',
+                                        messageId,
+                                        conversationId,
+                                        fileId,
+                                        wordIdx
+                                    )
+                                }
 
                                 return result
                             })
@@ -1294,7 +1296,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [answerFlag])
-
 
     const [isOCRProcessing, setIsOCRProcessing] = useState(false)
     const [showOCRProcessing, setShowOCRProcessing] = useState(false)

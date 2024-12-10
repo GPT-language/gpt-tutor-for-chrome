@@ -1,3 +1,4 @@
+import { ChatMessage } from '@/store/file/slices/chat/initialState'
 import { TranslateMode } from '../translate'
 
 export type ActionOutputRenderingFormat = 'text' | 'markdown' | 'latex' | 'json'
@@ -47,6 +48,8 @@ export interface Answer {
     messageId?: string
     conversationId?: string
     followUpAnswers?: FollowUpAnswer[]
+    isMultipleConversation?: boolean
+    conversationMessages?: ChatMessage[]
 }
 
 export interface Answers {

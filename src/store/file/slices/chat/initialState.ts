@@ -3,7 +3,7 @@ import { Action } from '@/common/internal-services/db'
 export interface ChatMessage {
     role: string
     content: string
-    timestamp: number
+    createdAt: number
     messageId: string
 }
 

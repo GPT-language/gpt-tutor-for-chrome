@@ -23,6 +23,7 @@ import { shallow } from 'zustand/shallow'
 import { StatefulPopover, PLACEMENT } from 'baseui-sd/popover'
 import { StatefulMenu } from 'baseui-sd/menu'
 import debounce from 'lodash-es/debounce'
+import ConversationView from './ConversationView'
 
 interface ITranslationManagerProps {
     isLoading: boolean
@@ -89,6 +90,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     const [hiddenTabs, setHiddenTabs] = useState<string[]>([])
     const [expandedActions, setExpandedActions] = useState<string>('')
     const [isManualSelection, setIsManualSelection] = useState(false)
+    const [isSpeaking, setIsSpeaking] = useState(false)
 
     const handleAsk = useCallback(
         (index: number, actionName?: string) => {
@@ -141,7 +143,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 return prevAnswer + message.content
                             })
                         },
-                        onFinish: async () => {
+                        onFinished: async () => {
                             const finalAnswer = await new Promise<string>((resolve) => {
                                 setCurrentAiAnswer((prevAnswer) => {
                                     const separator = prevAnswer ? '\n\n---\n\n' : ''
@@ -645,7 +647,15 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             debouncedUpdate.cancel()
         }
     }, [updateVisibleTabs])
+    const handleCopyMessage = (text: string) => {
+        navigator.clipboard.writeText(text)
+        toast.success(t('Copied to clipboard'))
+    }
 
+    const handleSpeakMessage = (text: string) => {
+        setIsSpeaking(true)
+        handleTranslatedSpeakAction(messageId, conversationId, text).finally(() => setIsSpeaking(false))
+    }
     if (showFullQuoteText && selectedWord?.text) {
         return <Block>{renderContent(selectedWord.text, 'markdown', undefined)}</Block>
     }
@@ -669,15 +679,16 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                         padding='4px 8px'
                         onClick={() => handleTabChange(actionName)}
                         $style={{
-                            cursor: 'pointer',
-                            borderBottom: expandedActions === actionName ? '2px solid #276EF1' : '2px solid transparent',
-                            color: expandedActions === actionName ? '#276EF1' : 'inherit',
-                            whiteSpace: 'nowrap',
-                            transition: 'all 0.2s',
-                            fontSize: '12px',
+                            'cursor': 'pointer',
+                            'borderBottom':
+                                expandedActions === actionName ? '2px solid #276EF1' : '2px solid transparent',
+                            'color': expandedActions === actionName ? '#276EF1' : 'inherit',
+                            'whiteSpace': 'nowrap',
+                            'transition': 'all 0.2s',
+                            'fontSize': '12px',
                             ':hover': {
                                 backgroundColor: 'rgba(39, 110, 241, 0.1)',
-                            }
+                            },
                         }}
                     >
                         {actionName}
@@ -734,54 +745,80 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 )}
             </Block>
 
-            {/* 内容区域添加日志 */}
-            {Object.entries(answers || {}).map(([actionName, answer]) => {
-                return (
-                    expandedActions === actionName && (
-                        <Block key={actionName} width='100%'>
-                            {renderContent(answer.text, answer.format, actionName)}
-                            <Block className={styles.actionButtonsContainer} data-testid='answer-actions'>
-                                {!isLoading && (
-                                    <Tooltip content={t('Retry')} placement='bottom'>
-                                        <div onClick={() => forceTranslate()} className={styles.actionButton}>
-                                            <RxReload size={15} />
-                                        </div>
-                                    </Tooltip>
+            {/* 根据 action 的 isMultipleConversation 属性决定显示方式 */}
+            <Block>
+                {Object.entries(answers || {}).map(
+                    ([actionName, answer]) =>
+                        expandedActions === actionName && (
+                            <Block key={actionName} width='100%'>
+                                {answers[actionName]?.isMultipleConversation ? (
+                                    <ConversationView
+                                        messages={answer.conversationMessages || []}
+                                        onCopy={handleCopyMessage}
+                                        onSpeak={handleSpeakMessage}
+                                        isSpeaking={isSpeaking}
+                                    />
+                                ) : (
+                                    <>
+                                        {renderContent(answer.text, answer.format, actionName)}
+                                        <Block className={styles.actionButtonsContainer} data-testid='answer-actions'>
+                                            {!isLoading && (
+                                                <Tooltip content={t('Retry')} placement='bottom'>
+                                                    <div
+                                                        onClick={() => forceTranslate()}
+                                                        className={styles.actionButton}
+                                                    >
+                                                        <RxReload size={15} />
+                                                    </div>
+                                                </Tooltip>
+                                            )}
+                                            <Tooltip content={t('Speak')} placement='bottom'>
+                                                <div
+                                                    className={styles.actionButton}
+                                                    onClick={() =>
+                                                        handleTranslatedSpeakAction(
+                                                            messageId,
+                                                            conversationId,
+                                                            answer.text
+                                                        )
+                                                    }
+                                                >
+                                                    {isSpeakingTranslatedText ? (
+                                                        <SpeakerMotion />
+                                                    ) : (
+                                                        <RxSpeakerLoud size={15} />
+                                                    )}
+                                                </div>
+                                            </Tooltip>
+                                            <Tooltip content={t('Copy to clipboard')} placement='bottom'>
+                                                <div className={styles.actionButton}>
+                                                    <CopyButton text={answer.text} styles={styles} />
+                                                </div>
+                                            </Tooltip>
+                                            <Tooltip content={t('Add to Anki')}>
+                                                <div
+                                                    data-testid='add-to-anki-button'
+                                                    onClick={() => addToAnki(selectedGroup, finalText, answer.text)}
+                                                    className={styles.actionButton}
+                                                >
+                                                    <AiOutlinePlusSquare size={15} />
+                                                </div>
+                                            </Tooltip>
+                                            <Tooltip content={t('Any question to this answer?')} placement='bottom'>
+                                                <div
+                                                    onClick={() => toggleMessageCard()}
+                                                    className={styles.actionButton}
+                                                >
+                                                    <AiOutlineQuestionCircle size={15} />
+                                                </div>
+                                            </Tooltip>
+                                        </Block>
+                                    </>
                                 )}
-                                <Tooltip content={t('Speak')} placement='bottom'>
-                                    <div
-                                        className={styles.actionButton}
-                                        onClick={() =>
-                                            handleTranslatedSpeakAction(messageId, conversationId, answer.text)
-                                        }
-                                    >
-                                        {isSpeakingTranslatedText ? <SpeakerMotion /> : <RxSpeakerLoud size={15} />}
-                                    </div>
-                                </Tooltip>
-                                <Tooltip content={t('Copy to clipboard')} placement='bottom'>
-                                    <div className={styles.actionButton}>
-                                        <CopyButton text={answer.text} styles={styles} />
-                                    </div>
-                                </Tooltip>
-                                <Tooltip content={t('Add to Anki')}>
-                                    <div
-                                        data-testid='add-to-anki-button'
-                                        onClick={() => addToAnki(selectedGroup, finalText, answer.text)}
-                                        className={styles.actionButton}
-                                    >
-                                        <AiOutlinePlusSquare size={15} />
-                                    </div>
-                                </Tooltip>
-                                <Tooltip content={t('Any question to this answer?')} placement='bottom'>
-                                    <div onClick={() => toggleMessageCard()} className={styles.actionButton}>
-                                        <AiOutlineQuestionCircle size={15} />
-                                    </div>
-                                </Tooltip>
                             </Block>
-                        </Block>
-                    )
-                )
-            })}
+                        )
+                )}
+            </Block>
         </Block>
     )
 }

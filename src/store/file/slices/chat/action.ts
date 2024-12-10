@@ -42,10 +42,6 @@ export interface ChatAction {
     setQuoteText: (text: string) => void
     setIndependentText: (text: string) => void
     setIsMultipleConversation: (isMultiple: boolean) => void
-    addMessageToHistory: (message: ChatMessage) => void
-    clearConversationHistory: () => void
-    setCurrentConversationId: (id: string) => void
-    getConversationMessages: () => ChatMessage[]
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set, get) => ({
@@ -84,33 +80,4 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
 
     setIsMultipleConversation: (isMultiple) => 
         set({ isMultipleConversation: isMultiple }),
-
-    addMessageToHistory: (message) =>
-        set(
-            produce((draft: ChatState) => {
-                if (draft.isMultipleConversation) {
-                    draft.conversationHistory.push({
-                        ...message,
-                        timestamp: Date.now(),
-                        messageId: crypto.randomUUID()
-                    })
-                }
-            })
-        ),
-
-    clearConversationHistory: () =>
-        set(
-            produce((draft: ChatState) => {
-                draft.conversationHistory = []
-                draft.currentConversationId = ''
-            })
-        ),
-
-    setCurrentConversationId: (id) =>
-        set({ currentConversationId: id }),
-
-    getConversationMessages: () => {
-        const state = get()
-        return state.conversationHistory
-    },
 })
