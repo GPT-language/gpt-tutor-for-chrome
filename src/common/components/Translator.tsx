@@ -697,7 +697,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     actions.splice(actions.indexOf(action), 1)
                 }
             })
-            // 使用 bulkPut 更新���有数据
+            // 使用 bulkPut 更新所有数据
             actions.push(...remoteData)
 
             if (latestCommitSha) {
@@ -1403,6 +1403,23 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         )
     }
 
+    const [showCategory, setShowCategory] = useState(false);
+
+    const handleMouseEnter = () => {
+        setShowCategory(true);
+    };
+
+    const handleMouseLeave = () => {
+        setShowCategory(false);
+    }
+
+    // 如果教程未完成，则显示分类选择器
+    useEffect(() => {
+        if (!useChatStore.getState().settings.tutorialCompleted) {
+            setShowCategory(true)
+        }
+    }, [])
+
     return (
         <div
             className={clsx(styles.popupCard, {
@@ -1438,7 +1455,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             top: 0,
                             zIndex: 100,
                             backgroundColor: theme.colors.backgroundPrimary,
+                            height: showCategory ? 'auto' : '8px',
+                            overflow: 'hidden',
+                            transition: 'all 0.3s ease',
                         }}
+                        onMouseEnter={handleMouseEnter}
+                        onMouseLeave={handleMouseLeave}
                     >
                         <CategorySelector />
                     </div>
