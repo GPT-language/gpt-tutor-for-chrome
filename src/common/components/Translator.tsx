@@ -1045,10 +1045,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return () => unsubscribe()
     }, [])
 
+    // 初始化 answers
     useEffect(() => {
         if (selectedWord && selectedWord.answers) {
             setAnswers(selectedWord.answers)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
@@ -1208,19 +1210,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             afterTranslate(reason)
                             setTranslatedText((translatedText) => {
                                 const result = translatedText
-                                const actionName = isOpenToAsk ? question : activateAction?.name
-
-                                if (!activateAction?.isMultipleConversation) {
-                                    updateWordAnswer(
-                                        actionName || question,
-                                        result,
-                                        activateAction?.outputRenderingFormat || 'markdown',
-                                        messageId,
-                                        conversationId,
-                                        fileId,
-                                        wordIdx
-                                    )
-                                }
 
                                 return result
                             })
@@ -1581,7 +1570,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     <div
                                                         style={{
                                                             position: 'fixed',
-                                                            bottom: 0,
+                                                            bottom: '40px',
                                                             left: 0,
                                                             right: 0,
                                                             zIndex: 1000,

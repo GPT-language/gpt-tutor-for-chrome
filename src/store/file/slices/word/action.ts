@@ -59,12 +59,12 @@ export interface ChatWordAction {
         targetFile: SavedFile,
         currentDate: Date
     ) => Promise<{ fileId: number; wordIdx: number }>
-    addMessageToConversation: (actionName: string, message: ChatMessage) => void
     clearConversationHistory: (actionName: string) => void
     saveConversationToAnswer: (actionName: string) => void
     loadConversationFromAnswer: (actionName: string) => void
     addMessageToHistory: (message: ChatMessage) => void
     getConversationMessages: () => ChatMessage[]
+    updateMessageContent: (messageId: string, content: string) => void
 }
 
 export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatWordAction> = (set, get) => ({
@@ -625,27 +625,6 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
             })
         ),
 
-    addMessageToConversation: (actionName: string, message: ChatMessage) =>
-        set(
-            produce((draft: ChatStore) => {
-                if (!draft.conversationHistory) {
-                    draft.conversationHistory = []
-                }
-                draft.conversationHistory.push(message)
-
-                // 如果有选中的 word，同时更新 word 的消息
-                if (draft.selectedWord) {
-                    if (!draft.selectedWord.answers) {
-                        draft.selectedWord.answers = {}
-                    }
-                    if (!draft.selectedWord.answers[actionName]) {
-                        draft.selectedWord.answers[actionName] = {}
-                    }
-                    draft.selectedWord.answers[actionName].conversationMessages = []
-                    draft.selectedWord.answers[actionName].conversationMessages.push(message)
-                }
-            })
-        ),
 
     updateConversation: (actionName: string, messages: ChatMessage[]) =>
         set(
@@ -664,6 +643,13 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 }
             })
         ),
+
+    updateMessageContent: (messageId: string, content: string) =>
+        set((state) => ({
+            conversationHistory: state.conversationHistory.map((msg) =>
+                msg.messageId === messageId ? { ...msg, content } : msg
+            ),
+        })),
 
     clearConversation: (actionName: string) =>
         set(

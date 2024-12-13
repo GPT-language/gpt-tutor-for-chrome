@@ -393,12 +393,11 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
     console.log('assistantPrompts', assistantPrompts)
 
     // 获取历史消息
-    const conversationMessages = isMultipleConversation
-        ? chatStore.getConversationMessages().map((msg) => ({
-              role: msg.role,
-              content: msg.content,
-          }))
-        : []
+    const conversationMessages = chatStore.getConversationMessages().map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+    }))
+
     console.log('conversationMessages', conversationMessages)
 
     // 1. 添加系统消息
@@ -437,28 +436,34 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
         onMessage: async (message) => {
             if (message.isFullText && !messageAdded) {
                 // 只在收到完整消息时保存到历史记录
-                if (isMultipleConversation || !query.activateAction) {
-                    console.log('addMessageToHistory', message)
-                    chatStore.addMessageToHistory({
-                        role: 'assistant',
-                        content: message.content,
-                        createdAt: date,
-                        messageId: messageId,
-                    })
-                    messageAdded = true
-                }
+
+                console.log('addMessageToHistory', message)
+                chatStore.addMessageToHistory({
+                    role: 'assistant',
+                    content: message.content,
+                    createdAt: date,
+                    messageId: messageId,
+                })
+                messageAdded = true
+
                 currentMessage = ''
             } else {
                 // 流式响应，累积消息内容
                 currentMessage += message.content
             }
 
-            await query.onMessage(message)
+            query.onMessage(message)
         },
         onFinished: (reason) => {
             query.onFinished(reason)
         },
         onError: (error) => {
+            chatStore.addMessageToHistory({
+                role: 'assistant',
+                content: error,
+                createdAt: date,
+                messageId: messageId,
+            })
             query.onError(error)
         },
         onStatusCode: (statusCode) => {

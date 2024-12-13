@@ -2,12 +2,11 @@ import React, { useEffect, useMemo } from 'react'
 import { Block } from 'baseui-sd/block'
 import { useTranslation } from 'react-i18next'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
-import { Button } from 'baseui-sd/button'
-import { RxCopy, RxSpeakerLoud } from 'react-icons/rx'
-import { Tooltip } from './Tooltip'
 import { formatDate } from '@/common/utils/format'
-import SpeakerMotion from './SpeakerMotion'
 import { useChatStore } from '@/store/file/store'
+import { RxChevronDown } from 'react-icons/rx'
+import { useStyletron } from 'styletron-react'
+import { debounce } from 'lodash-es'
 
 interface ConversationViewProps {
     onCopy?: (text: string) => void
@@ -19,10 +18,15 @@ interface ConversationViewProps {
 const ConversationView: React.FC<ConversationViewProps> = ({ onCopy, onSpeak, isSpeaking, renderContent }) => {
     const { t } = useTranslation()
     const { selectedWord, activateAction, answers, conversationHistory } = useChatStore()
+    const [css] = useStyletron()
+    const [latestExpandedMessageId, setLatestExpandedMessageId] = React.useState<string | null>(null)
+    const [isNewMessage, setIsNewMessage] = React.useState(false)
+    const previousMessagesLength = React.useRef(0)
 
     useEffect(() => {
+        console.log('answers is', answers)
         console.log('conversationHistory is', conversationHistory)
-    }, [conversationHistory])
+    }, [answers, conversationHistory])
 
     // 只依赖消息ID列表进行分组
     const groupedMessages = useMemo(() => {
@@ -67,7 +71,86 @@ const ConversationView: React.FC<ConversationViewProps> = ({ onCopy, onSpeak, is
         }
 
         return groups
-    }, [activateAction?.name, answers])
+    }, [activateAction?.name, answers, conversationHistory])
+
+    // 监听消息变化，检测新消息并自动展开
+    useEffect(() => {
+        const messages = answers?.[activateAction?.name || 'default']?.conversationMessages || conversationHistory
+
+        // 检查是否有新消息
+        if (messages.length > previousMessagesLength.current) {
+            setIsNewMessage(true)
+            // 找到最后一组用户消息和助手回复
+            for (let i = messages.length - 1; i >= 0; i--) {
+                if (messages[i].role === 'user' && i + 1 < messages.length && messages[i + 1].role === 'assistant') {
+                    setLatestExpandedMessageId(messages[i].messageId)
+                    break
+                }
+            }
+        } else {
+            setIsNewMessage(false)
+        }
+
+        // 更新消息长度记录
+        previousMessagesLength.current = messages.length
+        setIsNewMessage(false)
+    }, [answers, activateAction?.name, conversationHistory])
+
+    // 创建防抖的滚动函数
+    const debouncedScroll = useMemo(
+        () =>
+            debounce((node: HTMLElement) => {
+                node.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                })
+            }, 100),
+        []
+    )
+
+    // 清理防抖函数
+    useEffect(() => {
+        return () => {
+            debouncedScroll.cancel()
+        }
+    }, [debouncedScroll])
+
+    // 替换原来的 toggleMessage 函数
+    const toggleMessage = (messageId: string) => {
+        setLatestExpandedMessageId((prevId) => (prevId === messageId ? null : messageId))
+    }
+
+    // 定义样式
+    const animatedContentStyles = css({
+        transition: 'all 0.3s ease-in-out',
+        overflow: 'hidden',
+    })
+
+    const expandIconStyles = (isExpanded: boolean) =>
+        css({
+            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
+            transition: 'transform 0.3s ease',
+            marginLeft: '8px',
+        })
+
+    const messageContainerStyles = css({
+        'position': 'relative',
+        'cursor': 'pointer',
+        ':hover': {
+            '::after': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: '#F7F7F8',
+                opacity: 0.1,
+                borderRadius: '12px',
+                pointerEvents: 'none',
+            },
+        },
+    })
 
     return (
         <Block
@@ -119,128 +202,77 @@ const ConversationView: React.FC<ConversationViewProps> = ({ onCopy, onSpeak, is
                     </Block>
 
                     {/* 消息列表  */}
-                    {group.messages.map((message) => (
-                        <Block
-                            key={message.messageId}
-                            display='flex'
-                            marginBottom='24px'
-                            justifyContent={message.role === 'assistant' ? 'flex-start' : 'flex-end'}
-                            $style={{
-                                width: '100%',
-                                minWidth: 0,
-                            }}
-                        >
+                    {group.messages.map((message, index) => {
+                        const assistantMessage = group.messages[index + 1]
+                        const hasAssistantResponse = assistantMessage?.role === 'assistant'
+                        const isExpanded = message.messageId === latestExpandedMessageId
+
+                        return message.role === 'user' ? (
                             <Block
-                                backgroundColor={message.role === 'assistant' ? '#F7F7F8' : '#E3F2FD'}
-                                padding='12px 16px'
-                                maxWidth='95%'
-                                marginLeft={message.role === 'assistant' ? '0' : 'auto'}
-                                marginRight={message.role === 'assistant' ? 'auto' : '0'}
-                                $style={{
-                                    borderRadius: '12px',
-                                    position: 'relative',
-                                    borderTopLeftRadius: message.role === 'assistant' ? '4px' : '12px',
-                                    borderTopRightRadius: message.role === 'assistant' ? '12px' : '4px',
-                                    minWidth: 0,
-                                    width: '100%',
-                                    display: 'flex',
-                                    flexDirection: 'column',
+                                key={message.messageId}
+                                marginBottom='16px'
+                                // 只在新消息时触发滚动
+                                ref={(node: HTMLElement | null) => {
+                                    if (node && isExpanded && isNewMessage) {
+                                        debouncedScroll(node)
+                                    }
                                 }}
                             >
-                                {/* 消息内容容器 */}
-                                <Block
-                                    $style={{
-                                        'minWidth': 0,
-                                        'width': '100%',
-                                        'flex': '1 1 auto',
-                                        '& p, & div, & span, & code, & pre': {
-                                            maxWidth: '100%',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            overflowWrap: 'break-word',
-                                            wordWrap: 'break-word',
-                                            wordBreak: 'break-all',
-                                            hyphens: 'auto',
-                                        },
-                                        '& pre, & code': {
-                                            whiteSpace: 'pre-wrap',
-                                            wordWrap: 'break-word',
-                                            overflowX: 'auto',
-                                        },
-                                        '& table': {
-                                            'width': '100%',
-                                            'tableLayout': 'fixed',
-                                            '& td, & th': {
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                            },
-                                        },
-                                        '& img': {
-                                            maxWidth: '100%',
-                                            height: 'auto',
-                                            objectFit: 'contain',
-                                        },
-                                        '& a': {
-                                            wordBreak: 'break-all',
-                                        },
-                                    }}
+                                <div
+                                    className={messageContainerStyles}
+                                    onClick={() => hasAssistantResponse && toggleMessage(message.messageId)}
                                 >
-                                    {renderContent(message.content, message.format || 'markdown', message.actionName)}
-                                </Block>
+                                    <Block
+                                        backgroundColor='#E3F2FD'
+                                        padding='12px 16px'
+                                        display='flex'
+                                        alignItems='center'
+                                        justifyContent='space-between'
+                                        $style={{
+                                            borderRadius: '12px',
+                                            borderTopRightRadius: '4px',
+                                        }}
+                                    >
+                                        <Block flex='1'>
+                                            {renderContent(
+                                                message.content,
+                                                message.format || 'markdown',
+                                                message.actionName
+                                            )}
+                                        </Block>
+                                        {hasAssistantResponse && (
+                                            <RxChevronDown size={20} className={expandIconStyles(isExpanded)} />
+                                        )}
+                                    </Block>
 
-                                {/* 操作按钮容器 */}
-                                {/*  <Block
-                                    display='flex'
-                                    justifyContent='flex-end'
-                                    marginTop='8px'
-                                    $style={{
-                                        'gap': '8px',
-                                        'minWidth': 0,
-                                        'opacity': 0.7,
-                                        'transition': 'opacity 0.2s',
-                                        ':hover': {
-                                            opacity: 1,
-                                        },
-                                    }}
-                                >
-                                    {onCopy && (
-                                        <Tooltip content={t('Copy')} placement='bottom'>
-                                            <Button size='mini' kind='tertiary' onClick={() => onCopy(message.content)}>
-                                                <RxCopy size={14} />
-                                            </Button>
-                                        </Tooltip>
-                                    )}
-
-                                    {onSpeak && (
-                                        <Tooltip content={t('Speak')} placement='bottom'>
-                                            <Button
-                                                size='mini'
-                                                kind='tertiary'
-                                                onClick={() => onSpeak(message.content)}
+                                    <div
+                                        className={`${animatedContentStyles} ${css({
+                                            maxHeight: isExpanded ? '2000px' : '0px',
+                                            marginTop: isExpanded ? '12px' : '0px',
+                                            opacity: isExpanded ? 1 : 0,
+                                        })}`}
+                                    >
+                                        {hasAssistantResponse && (
+                                            <Block
+                                                backgroundColor='#F7F7F8'
+                                                padding='12px 16px'
+                                                $style={{
+                                                    borderRadius: '12px',
+                                                    borderTopLeftRadius: '4px',
+                                                }}
                                             >
-                                                {isSpeaking ? <SpeakerMotion /> : <RxSpeakerLoud size={14} />}
-                                            </Button>
-                                        </Tooltip>
-                                    )}
-                                </Block> */}
-
-                                {/* 时间戳容器 */}
-                                <Block
-                                    position='absolute'
-                                    bottom='-20px'
-                                    $style={{
-                                        [message.role === 'assistant' ? 'left' : 'right']: '12px',
-                                        fontSize: '11px',
-                                        color: '#999',
-                                        whiteSpace: 'nowrap',
-                                    }}
-                                >
-                                    {new Date(message.createdAt).toLocaleTimeString()}
-                                </Block>
+                                                {renderContent(
+                                                    assistantMessage.content,
+                                                    assistantMessage.format || 'markdown',
+                                                    assistantMessage.actionName
+                                                )}
+                                            </Block>
+                                        )}
+                                    </div>
+                                </div>
                             </Block>
-                        </Block>
-                    ))}
+                        ) : null
+                    })}
                 </Block>
             ))}
         </Block>
