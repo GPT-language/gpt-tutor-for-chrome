@@ -24,6 +24,7 @@ import { StatefulPopover, PLACEMENT } from 'baseui-sd/popover'
 import { StatefulMenu } from 'baseui-sd/menu'
 import debounce from 'lodash-es/debounce'
 import ConversationView from './ConversationView'
+import { ChatMessage } from '@/store/file/slices/chat/initialState'
 
 interface ITranslationManagerProps {
     isLoading: boolean
@@ -64,6 +65,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     const [editedText, setEditedText] = useState('')
     const {
         answers,
+        activateAction,
         currentFileId,
         setAnswers,
         selectedWord,
@@ -411,10 +413,14 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                         />
                                         <Block
                                             display='flex'
-                                            justifyContent='flex-end'
+                                            justifyContent='flex-start'
                                             marginTop='10px'
                                             width='100%'
-                                            $style={{ gap: '10px' }}
+                                            $style={{
+                                                gap: '10px',
+                                                flexDirection: 'row',
+                                                marginLeft: '0px',
+                                            }}
                                         >
                                             <Button
                                                 kind='primary'
@@ -464,7 +470,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                 position='relative'
                                                 top='50%'
                                                 $style={{
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.8)', // 半透明背景
+                                                    backgroundColor: 'transparent', // 半透明背景
                                                     padding: '0 4px', // 添加一些内边距
                                                 }}
                                             >
@@ -578,75 +584,21 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         ]
     )
 
-    // 当 answers 更新时，选择最新的标签
-    useEffect(() => {
-        if (!answers) return
-        const currentActions = Object.keys(answers)
-        if (currentActions.length > 0) {
-            const latestAction = currentActions[currentActions.length - 1]
-            setExpandedActions(latestAction)
-        }
-    }, [answers]) // 只依赖 answers 的变化
+    // 将所有答案转换为消息格式，包括用户消息
+    const allMessages = useMemo(() => {
 
-    // 处理标签切换
-    const handleTabChange = useCallback((actionName: string) => {
-        console.log('[AnswerManager] Switching to tab:', actionName)
-        setExpandedActions(actionName)
-    }, [])
+        const messages: ChatMessage[] = []
 
-    // 更新可见标签的逻辑保持不变
-    const updateVisibleTabs = useCallback(() => {
-        if (!containerRef.current || !answers) return
+        // 获取当前激活的actionName
+        const activeActionName = activateAction?.name
+        if (!activeActionName) return []
+        // 如果是对话形式，直接添加现有的对话消息
+        messages.push(...(selectedWord?.answers?.[activeActionName]?.conversationMessages || []))
 
-        const containerWidth = containerRef.current.offsetWidth
-        const availableWidth = containerWidth - ACTION_BUTTONS_WIDTH
-        const allTabs = Object.keys(answers)
+        // 按时间顺序排序
+        return messages.sort((a, b) => a.createdAt - b.createdAt)
+    }, [activateAction?.name, selectedWord?.answers])
 
-        let totalWidth = 0
-        const newVisibleTabs: string[] = []
-        const newHiddenTabs: string[] = []
-
-        // 确保当前选中的标签始终可见
-        if (expandedActions && allTabs.includes(expandedActions)) {
-            newVisibleTabs.push(expandedActions)
-            totalWidth += MAX_TAB_WIDTH
-        }
-
-        // 处理其他标签
-        allTabs.forEach((tab) => {
-            if (tab === expandedActions) return // 过已添加的选中标签
-
-            const isLastVisibleTab = newVisibleTabs.length === allTabs.length - 1
-            const needsMoreButton = !isLastVisibleTab
-            const spaceNeeded = needsMoreButton ? MORE_TAB_WIDTH : 0
-
-            if (totalWidth + MAX_TAB_WIDTH + spaceNeeded <= availableWidth) {
-                newVisibleTabs.push(tab)
-                totalWidth += MAX_TAB_WIDTH
-            } else {
-                newHiddenTabs.push(tab)
-            }
-        })
-
-        setVisibleTabs(newVisibleTabs)
-        setHiddenTabs(newHiddenTabs)
-    }, [answers, expandedActions])
-
-    useEffect(() => {
-        const debouncedUpdate = debounce(updateVisibleTabs, 100)
-        const resizeObserver = new ResizeObserver(debouncedUpdate)
-
-        updateVisibleTabs() // 初始化调用
-
-        if (containerRef.current) {
-            resizeObserver.observe(containerRef.current)
-        }
-
-        return () => {
-            resizeObserver.disconnect()
-            debouncedUpdate.cancel()
-        }
-    }, [updateVisibleTabs])
     const handleCopyMessage = (text: string) => {
         navigator.clipboard.writeText(text)
         toast.success(t('Copied to clipboard'))
@@ -656,169 +608,15 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         setIsSpeaking(true)
         handleTranslatedSpeakAction(messageId, conversationId, text).finally(() => setIsSpeaking(false))
     }
-    if (showFullQuoteText && selectedWord?.text) {
-        return <Block>{renderContent(selectedWord.text, 'markdown', undefined)}</Block>
-    }
 
     return (
         <Block data-testid='answer-manager'>
-            <Block
-                ref={containerRef}
-                display='flex'
-                alignItems='center'
-                marginBottom='16px'
-                $style={{
-                    borderBottom: '1px solid #e0e0e0',
-                    gap: '4px',
-                    width: '100%',
-                }}
-            >
-                {visibleTabs.map((actionName) => (
-                    <Block
-                        key={actionName}
-                        padding='4px 8px'
-                        onClick={() => handleTabChange(actionName)}
-                        $style={{
-                            'cursor': 'pointer',
-                            'borderBottom':
-                                expandedActions === actionName ? '2px solid #276EF1' : '2px solid transparent',
-                            'color': expandedActions === actionName ? '#276EF1' : 'inherit',
-                            'whiteSpace': 'nowrap',
-                            'transition': 'all 0.2s',
-                            'fontSize': '12px',
-                            ':hover': {
-                                backgroundColor: 'rgba(39, 110, 241, 0.1)',
-                            },
-                        }}
-                    >
-                        {actionName}
-                    </Block>
-                ))}
-
-                {/* More 下拉菜单 */}
-                {hiddenTabs.length > 0 && (
-                    <StatefulPopover
-                        content={({ close }) => (
-                            <StatefulMenu
-                                items={hiddenTabs.map((key) => ({ id: key, label: key }))}
-                                onItemSelect={({ item }) => {
-                                    handleTabChange(item.id)
-                                    close()
-                                }}
-                                overrides={{
-                                    List: {
-                                        style: {
-                                            maxWidth: '300px',
-                                            width: 'auto',
-                                            minWidth: '150px',
-                                        },
-                                    },
-                                    Option: {
-                                        props: {
-                                            getStyles: () => ({
-                                                whiteSpace: 'normal',
-                                                wordBreak: 'break-word',
-                                            }),
-                                        },
-                                    },
-                                }}
-                            />
-                        )}
-                        placement={PLACEMENT.bottomLeft}
-                    >
-                        <Block
-                            padding='4px 8px'
-                            display='flex'
-                            alignItems='center'
-                            $style={{
-                                'cursor': 'pointer',
-                                'fontSize': '12px',
-                                'borderBottom': '2px solid transparent',
-                                ':hover': {
-                                    backgroundColor: 'rgba(39, 110, 241, 0.1)',
-                                },
-                            }}
-                        >
-                            {t('More')} <ChevronDown size={12} style={{ marginLeft: '4px' }} />
-                        </Block>
-                    </StatefulPopover>
-                )}
-            </Block>
-
-            {/* 根据 action 的 isMultipleConversation 属性决定显示方式 */}
-            <Block>
-                {Object.entries(answers || {}).map(
-                    ([actionName, answer]) =>
-                        expandedActions === actionName && (
-                            <Block key={actionName} width='100%'>
-                                {answers[actionName]?.isMultipleConversation ? (
-                                    <ConversationView
-                                        messages={answer.conversationMessages || []}
-                                        onCopy={handleCopyMessage}
-                                        onSpeak={handleSpeakMessage}
-                                        isSpeaking={isSpeaking}
-                                    />
-                                ) : (
-                                    <>
-                                        {renderContent(answer.text, answer.format, actionName)}
-                                        <Block className={styles.actionButtonsContainer} data-testid='answer-actions'>
-                                            {!isLoading && (
-                                                <Tooltip content={t('Retry')} placement='bottom'>
-                                                    <div
-                                                        onClick={() => forceTranslate()}
-                                                        className={styles.actionButton}
-                                                    >
-                                                        <RxReload size={15} />
-                                                    </div>
-                                                </Tooltip>
-                                            )}
-                                            <Tooltip content={t('Speak')} placement='bottom'>
-                                                <div
-                                                    className={styles.actionButton}
-                                                    onClick={() =>
-                                                        handleTranslatedSpeakAction(
-                                                            messageId,
-                                                            conversationId,
-                                                            answer.text
-                                                        )
-                                                    }
-                                                >
-                                                    {isSpeakingTranslatedText ? (
-                                                        <SpeakerMotion />
-                                                    ) : (
-                                                        <RxSpeakerLoud size={15} />
-                                                    )}
-                                                </div>
-                                            </Tooltip>
-                                            <Tooltip content={t('Copy to clipboard')} placement='bottom'>
-                                                <div className={styles.actionButton}>
-                                                    <CopyButton text={answer.text} styles={styles} />
-                                                </div>
-                                            </Tooltip>
-                                            <Tooltip content={t('Add to Anki')}>
-                                                <div
-                                                    data-testid='add-to-anki-button'
-                                                    onClick={() => addToAnki(selectedGroup, finalText, answer.text)}
-                                                    className={styles.actionButton}
-                                                >
-                                                    <AiOutlinePlusSquare size={15} />
-                                                </div>
-                                            </Tooltip>
-                                            <Tooltip content={t('Any question to this answer?')} placement='bottom'>
-                                                <div
-                                                    onClick={() => toggleMessageCard()}
-                                                    className={styles.actionButton}
-                                                >
-                                                    <AiOutlineQuestionCircle size={15} />
-                                                </div>
-                                            </Tooltip>
-                                        </Block>
-                                    </>
-                                )}
-                            </Block>
-                        )
-                )}
-            </Block>
+            <ConversationView
+                onCopy={handleCopyMessage}
+                onSpeak={handleSpeakMessage}
+                isSpeaking={isSpeaking}
+                renderContent={renderContent}
+            />
         </Block>
     )
 }

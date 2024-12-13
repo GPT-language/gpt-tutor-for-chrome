@@ -197,24 +197,6 @@ interface ConversationContext {
     lastMessageId: string
 }
 
-function getConversationId() {
-    return new Promise(function (resolve) {
-        chrome.storage.local.get(['conversationId'], function (result) {
-            const conversationId = result.conversationId?.value
-            resolve(conversationId)
-        })
-    })
-}
-
-function getlastMessageId() {
-    return new Promise(function (resolve) {
-        chrome.storage.local.get(['lastMessageId'], function (result) {
-            const lastMessageId = result.lastMessageId?.value
-            resolve(lastMessageId)
-        })
-    })
-}
-
 export async function getArkoseToken() {
     const config = await Browser.storage.local.get(['chatgptArkoseReqUrl', 'chatgptArkoseReqForm'])
     const arkoseToken = await getUniversalFetch()(
@@ -311,15 +293,6 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
     let currentMessage = ''
     const assistantPrompts: string[] = []
     // 将所有 assistantPrompts 合并为一条系统消息
-    if (assistantPrompts.length > 0) {
-        const systemPrompt = assistantPrompts.join('\n')
-        chatStore.addMessageToHistory({
-            role: 'system',
-            content: systemPrompt,
-            timestamp: Date.now(),
-            messageId: crypto.randomUUID(),
-        })
-    }
 
     if (!engine) {
         console.error('Translation engine is undefined')
@@ -332,9 +305,12 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
     let userBackgroundPrompt = ''
 
     // 获取多轮对话状态
-    console.log('query.activateAction', query.activateAction?.isMultipleConversation)
-    const isMultipleConversation = query.activateAction?.isMultipleConversation || false
-    chatStore.setIsMultipleConversation(isMultipleConversation)
+    let isMultipleConversation = query.activateAction?.isMultipleConversation
+
+    if (!query.activateAction) {
+        chatStore.setIsMultipleConversation(true)
+        isMultipleConversation = true
+    }
     console.log('isMultipleConversation', isMultipleConversation)
 
     if (query.context) {
@@ -414,17 +390,6 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
         }
     }
 
-    if (isMultipleConversation) {
-        // 先添加用户的消息到历史记录
-        console.log('addMessageToHistory', commandPrompt)
-        chatStore.addMessageToHistory({
-            role: 'user',
-            content: commandPrompt,
-            timestamp: Date.now(),
-            messageId: crypto.randomUUID(),
-        })
-    }
-
     console.log('assistantPrompts', assistantPrompts)
 
     // 获取历史消息
@@ -435,6 +400,30 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
           }))
         : []
     console.log('conversationMessages', conversationMessages)
+
+    // 1. 添加系统消息
+    if (assistantPrompts.length > 0 && conversationMessages.length === 0) {
+        const systemPrompt = assistantPrompts.join('\n')
+        chatStore.addMessageToHistory({
+            role: 'system',
+            content: systemPrompt,
+            createdAt: Date.now(),
+            messageId: crypto.randomUUID(),
+        })
+    }
+
+    // 2. 添加用户消息
+    if (query.text) {
+        chatStore.addMessageToHistory({
+            role: 'user',
+            content: query.text,
+            createdAt: Date.now(),
+            messageId: crypto.randomUUID(),
+        })
+    }
+
+    const date = Date.now()
+    const messageId = crypto.randomUUID()
 
     await engine?.sendMessage({
         signal: query.signal,
@@ -448,13 +437,13 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
         onMessage: async (message) => {
             if (message.isFullText && !messageAdded) {
                 // 只在收到完整消息时保存到历史记录
-                if (isMultipleConversation) {
+                if (isMultipleConversation || !query.activateAction) {
                     console.log('addMessageToHistory', message)
                     chatStore.addMessageToHistory({
-                        role: message.role,
+                        role: 'assistant',
                         content: message.content,
-                        timestamp: Date.now(),
-                        messageId: crypto.randomUUID(),
+                        createdAt: date,
+                        messageId: messageId,
                     })
                     messageAdded = true
                 }

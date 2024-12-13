@@ -5,6 +5,8 @@ export interface ChatMessage {
     content: string
     createdAt: number
     messageId: string
+    actionName?: string
+    format?: string
 }
 
 export interface ChatState {
@@ -15,7 +17,6 @@ export interface ChatState {
     ttsProvider: string
     conversationId: string
     messageId: string
-    activatedActionName: string
     activatedModel: string
     activatedProvider: string
     accessToken: string
@@ -28,7 +29,6 @@ export interface ChatState {
     translatedText: string
     errorMessage: string
     isNotLogin: boolean
-    conversationHistory: ChatMessage[]
     currentConversationId: string
     isMultipleConversation: boolean
 }
@@ -44,7 +44,6 @@ export const initialChatState: ChatState = {
     messageId: '',
     activateAction: undefined,
     assistantAction: undefined,
-    activatedActionName: '',
     activatedModel: '',
     activatedProvider: '',
     accessToken: '',
@@ -53,7 +52,6 @@ export const initialChatState: ChatState = {
     translatedText: '',
     errorMessage: '',
     isNotLogin: false,
-    conversationHistory: [],
     currentConversationId: '',
     isMultipleConversation: false,
 }

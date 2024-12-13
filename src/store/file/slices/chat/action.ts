@@ -29,7 +29,6 @@ export interface ChatAction {
     setEditableText: (text: string) => void
     setConversationId: (id: string) => void
     setMessageId: (id: string) => void
-    setActivatedActionName: (name: string) => void
     setActivatedModel: (model: string) => void
     setActivatedProvider: (provider: string) => void
     setAccessToken: (token: string) => void
@@ -62,7 +61,6 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
                 }
             })
         ),
-    setActivatedActionName: (name) => set({ activatedActionName: name }),
     setActivatedModel: (model) => set({ activatedModel: model }),
     setActivatedProvider: (provider) => set({ activatedProvider: provider }),
     setAccessToken: (token) => set({ accessToken: token }),

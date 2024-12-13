@@ -19,8 +19,11 @@ export interface IMessageRequest {
     activateAction?: Action
     parentAction?: Action
     isMultipleConversation?: boolean
-    conversationMessages?: Array<{ role: string; content: string }>
-    onMessage: (message: { content: string; role: string; isFullText: boolean }) => Promise<void>
+    conversationMessages?: Array<{
+        role: string
+        content: string
+    }>
+    onMessage: (message: { content: string; role: string; isFullText: boolean; actionName?: string }) => Promise<void>
     onError?: (error: string) => void
     onFinished?: (reason: string) => void
     onStatusCode?: (statusCode: number) => void

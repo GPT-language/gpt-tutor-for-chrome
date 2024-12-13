@@ -56,6 +56,7 @@ import AnswerManager from './AnswerManager'
 import QuotePreview from './QuotePreview'
 import { Notification, KIND } from 'baseui-sd/notification'
 import { StyledLink } from 'baseui-sd/link'
+import { ChatMessage } from '@/store/file/slices/chat/initialState'
 /* import { useClerkUser } from '@/hooks/useClerkUser'
 import { AuthModal } from './AuthModal' */
 
@@ -224,7 +225,6 @@ export const useStyles = createUseStyles({
     },
     'popupCardTranslatedContainer': (props: IThemedStyleProps) => ({
         'position': 'relative',
-        'padding': '26px 16px 16px 16px',
         'border-top': `1px solid ${props.theme.colors.borderTransparent}`,
         '-ms-user-select': 'none',
         '-webkit-user-select': 'none',
@@ -260,7 +260,6 @@ export const useStyles = createUseStyles({
     },
     'popupCardTranslatedContentContainer': (props: IThemedStyleProps) => ({
         fontSize: '15px',
-        marginTop: '-14px',
         display: 'flex',
         overflowY: 'auto',
         color: props.themeType === 'dark' ? props.theme.colors.contentSecondary : props.theme.colors.contentPrimary,
@@ -324,7 +323,6 @@ export const useStyles = createUseStyles({
         'color': props.theme.colors.contentSecondary,
     }),
     'fileDragArea': (props: IThemedStyleProps) => ({
-        padding: '10px',
         display: 'flex',
         justifyContent: 'center',
         marginBottom: '10px',
@@ -1136,6 +1134,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
             beforeTranslate()
             let isStopped = false
+            const messageId = crypto.randomUUID()
+            const date = Date.now()
             try {
                 await askAI(
                     {
@@ -1172,12 +1172,32 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
                                 const actionName = isOpenToAsk ? question : activateAction?.name
                                 // 更新 answers
-                                const newAnswers = {
-                                    ...answers,
-                                    [actionName || question]: {
-                                        text: newTranslatedText,
-                                        format: activateAction?.outputRenderingFormat || 'markdown',
-                                    },
+                                let newAnswers = {}
+                                if (!activateAction?.isMultipleConversation) {
+                                    newAnswers = {
+                                        ...answers,
+                                        [actionName || question]: {
+                                            text: newTranslatedText,
+                                            format: activateAction?.outputRenderingFormat || 'markdown',
+                                        },
+                                    }
+                                } else {
+                                    const conversationMessages: ChatMessage[] = [
+                                        ...(answers[actionName || question]?.conversationMessages || []),
+                                        {
+                                            role: 'assistant',
+                                            content: newTranslatedText,
+                                            createdAt: date,
+                                            messageId: messageId,
+                                            format: activateAction?.outputRenderingFormat || 'markdown',
+                                        },
+                                    ]
+                                    newAnswers = {
+                                        ...answers,
+                                        [actionName || question]: {
+                                            conversationMessages,
+                                        },
+                                    }
                                 }
                                 setAnswers(newAnswers)
 
@@ -1234,6 +1254,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     stopLoading()
                     isStopped = true
                 }
+                setAction(undefined)
             }
         },
 
@@ -1257,11 +1278,11 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             engine,
             isOpenToAsk,
             showTextParser,
-            answers,
             setAnswers,
+            answers,
             updateWordAnswer,
-            messageId,
             conversationId,
+            setAction,
         ]
     )
 
@@ -1403,14 +1424,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         )
     }
 
-    const [showCategory, setShowCategory] = useState(false);
+    const [showCategory, setShowCategory] = useState(false)
 
     const handleMouseEnter = () => {
-        setShowCategory(true);
-    };
+        setShowCategory(true)
+    }
 
     const handleMouseLeave = () => {
-        setShowCategory(false);
+        setShowCategory(false)
     }
 
     // 如果教程未完成，则显示分类选择器
@@ -1492,13 +1513,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 )}
                                 <div style={{ display: 'flex', flexDirection: 'row', height: '100%' }}>
                                     <WordListUploader />
-                                    {showFullQuoteText ? null : (
-                                        <TextareaWithActions
-                                            editableText={editableText}
-                                            onChange={setEditableText}
-                                            onSubmit={handleSubmit}
-                                        />
-                                    )}
                                 </div>
                                 {selectedWord?.text !== '' && (
                                     <div
@@ -1563,6 +1577,26 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                         />
                                                     </div>
                                                 </div>
+                                                {showFullQuoteText ? null : (
+                                                    <div
+                                                        style={{
+                                                            position: 'fixed',
+                                                            bottom: 0,
+                                                            left: 0,
+                                                            right: 0,
+                                                            zIndex: 1000,
+                                                            background: theme.colors.backgroundPrimary,
+                                                            borderTop: `1px solid ${theme.colors.borderOpaque}`,
+                                                            boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
+                                                        }}
+                                                    >
+                                                        <TextareaWithActions
+                                                            editableText={editableText}
+                                                            onChange={setEditableText}
+                                                            onSubmit={handleSubmit}
+                                                        />
+                                                    </div>
+                                                )}
                                                 <Dropzone noClick={true}>
                                                     {({ getRootProps }) => (
                                                         <div

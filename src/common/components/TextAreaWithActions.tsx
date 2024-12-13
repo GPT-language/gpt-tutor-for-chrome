@@ -37,6 +37,16 @@ const DEFAULT_MIN_HEIGHT = '40px'
 const DEFAULT_BG_COLOR = '#f5f5f5'
 const DEFAULT_PADDING = '8px'
 
+// 1. 提取样式常量
+const TEXTAREA_STYLES = {
+    border: '1px solid rgba(0, 0, 0, 0.15)',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    minHeight: '48px',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+} as const
+
 const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     editableText,
     placeholder = '',
@@ -126,21 +136,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         onChange(text)
     }
 
-    useEffect(() => {
-        console.log('editableText', editableText)
-        onChange(editableText)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editableText])
-
-    useEffect(() => {
-        if (actionTagRef.current && activateAction) {
-            actionTagRef.current.style.display = 'inline-block'
-            actionTagRef.current.setAttribute('data-action-id', activateAction.id?.toString() || '')
-            actionTagRef.current.textContent = `@${activateAction.name}`
-        } else {
-            setAction(undefined)
-        }
-    }, [activateAction, setAction])
     const handleClear = () => {
         if (editorRef.current) {
             editorRef.current.innerHTML = ''
@@ -406,27 +401,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     }
 
     const handleSubmit = () => {
-        console.log('handleSetEditableText', actionTagRef.current?.style.display, actionTagRef.current)
-        // 如果text以@开头，而且输入了新的文本，而且不为多轮对话，则添加新的selectedWord
-        if (
-            actionTagRef.current &&
-            actionTagRef.current.style.display === 'inline-block' &&
-            !activateAction?.isMultipleConversation &&
-            editableText.length > 1
-        ) {
-            // 添加新的消息
-            const newMessage = {
-                content: editableText,
-                role: 'user',
-                createdAt: Date.now(),
-                messageId: crypto.randomUUID(),
-            }
-            addMessageToHistory(newMessage)
-            // 设置当前的selectedWord为undefined
-            console.log('Set selectedWord to undefined', useChatStore.getState().selectedWord?.text)
-            useChatStore.setState({ selectedWord: undefined })
-        }
-
         // 设置一定的延迟，等待selectedWord被设置为undefined
         setTimeout(() => {
             onSubmit?.()
@@ -511,21 +485,39 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         }
     }
 
-    // 4. 提取样式配置
+    // 2. 修改文本框样式配置
     const textareaStyles = {
-        width: 'auto',
-        border: '1px solid #ccc',
-        minHeight: minHeight,
-        maxHeight: maxHeight,
-        padding: DEFAULT_PADDING,
-        marginBottom: '10px',
-        whiteSpace: 'pre-wrap' as const,
-        alignItems: 'center',
-        overflow: 'auto',
+        ...TEXTAREA_STYLES,
+        'width': 'auto',
+        'minHeight': minHeight,
+        'maxHeight': maxHeight,
+        'whiteSpace': 'pre-wrap' as const,
+        'alignItems': 'center',
+        'overflow': 'auto',
         backgroundColor,
-        opacity: disabled ? 0.5 : 1,
-        cursor: disabled ? 'not-allowed' : 'text',
-        borderRadius: '8px',
+        'opacity': disabled ? 0.5 : 1,
+        'cursor': disabled ? 'not-allowed' : 'text',
+
+        // 3. 添加hover和focus状态
+        ':hover': {
+            borderColor: 'rgba(0, 0, 0, 0.25)',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+        },
+        ':focus': {
+            outline: 'none',
+            borderColor: '#4285f4',
+            boxShadow: '0 0 0 2px rgba(66, 133, 244, 0.2)',
+        },
+
+        // 4. 添加placeholder样式
+        '::before': {
+            content: 'attr(data-placeholder)',
+            color: '#999',
+            position: 'absolute',
+            pointerEvents: 'none',
+            display: 'block',
+            opacity: editableText ? 0 : 1,
+        },
     }
 
     // 添加输入法事件处理
@@ -543,6 +535,22 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         console.log('activateAction', activateAction)
     }, [activateAction])
 
+    useEffect(() => {
+        if (!actionTagRef.current) return
+
+        if (activateAction) {
+            // 当有激活的 action 时，显示并设置相关属性
+            actionTagRef.current.style.display = 'inline-block'
+            actionTagRef.current.setAttribute('data-action-id', activateAction.id?.toString() || '')
+            actionTagRef.current.textContent = `@${activateAction.name}`
+        } else {
+            // 当没有激活的 action 时，隐藏并清空相关属性
+            actionTagRef.current.style.display = 'none'
+            actionTagRef.current.setAttribute('data-action-id', '')
+            actionTagRef.current.textContent = ''
+        }
+    }, [activateAction])
+
     return (
         <div
             className={css({
@@ -553,6 +561,10 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
+                // 添加外层容器阴影
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+                borderRadius: '8px',
+                backgroundColor: 'white',
             })}
         >
             {!settings.hideInputTip && (
@@ -803,7 +815,15 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
             )}
 
             {showActionMenu && selectedActions.length > 0 && filteredActions.length > 0 && (
-                <div className={css(menuStyles)}>
+                <div
+                    className={css({
+                        ...menuStyles,
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '0',
+                        right: '0',
+                    })}
+                >
                     <StatefulMenu
                         rootRef={actionMenuRef}
                         items={filteredActions.map((action) => ({
@@ -814,8 +834,14 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                         overrides={{
                             List: {
                                 style: {
-                                    maxHeight: 'none',
-                                    overflow: 'visible',
+                                    maxHeight: '200px',
+                                    overflow: 'auto',
+                                    backgroundColor: 'white',
+                                },
+                            },
+                            Option: {
+                                style: {
+                                    cursor: 'pointer',
                                 },
                             },
                         }}
@@ -824,7 +850,15 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
             )}
 
             {showGroupMenu && filteredGroups.length > 0 && (
-                <div className={css(menuStyles)}>
+                <div
+                    className={css({
+                        ...menuStyles,
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '0',
+                        right: '0',
+                    })}
+                >
                     <StatefulMenu
                         rootRef={groupMenuRef}
                         items={filteredGroups.map((group) => ({
@@ -835,8 +869,14 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                         overrides={{
                             List: {
                                 style: {
-                                    maxHeight: 'none',
-                                    overflow: 'visible',
+                                    maxHeight: '200px',
+                                    overflow: 'auto',
+                                    backgroundColor: 'white',
+                                },
+                            },
+                            Option: {
+                                style: {
+                                    cursor: 'pointer',
                                 },
                             },
                         }}
@@ -862,12 +902,14 @@ const menuStyles = {
     position: 'absolute',
     left: '0',
     right: '0',
-    top: '100%',
-    marginTop: '4px',
+    bottom: '100%',
+    marginBottom: '4px',
     zIndex: 1000,
     overflowY: 'auto',
     maxHeight: '200px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+    backgroundColor: 'white',
+    borderRadius: '8px',
 } as const
 
 const buttonOverrides = {

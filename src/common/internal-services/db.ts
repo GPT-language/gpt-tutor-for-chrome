@@ -43,8 +43,8 @@ export interface FollowUpAnswer {
 }
 
 export interface Answer {
-    text: string
-    format: ActionOutputRenderingFormat
+    text?: string
+    format?: ActionOutputRenderingFormat
     messageId?: string
     conversationId?: string
     followUpAnswers?: FollowUpAnswer[]

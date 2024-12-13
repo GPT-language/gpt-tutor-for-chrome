@@ -59,12 +59,12 @@ export interface ChatWordAction {
         targetFile: SavedFile,
         currentDate: Date
     ) => Promise<{ fileId: number; wordIdx: number }>
-    addMessageToHistory: (message: ChatMessage) => void
-    clearConversationHistory: () => void
-    setCurrentConversationId: (id: string) => void
-    getConversationMessages: () => ChatMessage[]
+    addMessageToConversation: (actionName: string, message: ChatMessage) => void
+    clearConversationHistory: (actionName: string) => void
     saveConversationToAnswer: (actionName: string) => void
     loadConversationFromAnswer: (actionName: string) => void
+    addMessageToHistory: (message: ChatMessage) => void
+    getConversationMessages: () => ChatMessage[]
 }
 
 export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatWordAction> = (set, get) => ({
@@ -493,90 +493,82 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
         )
     },
 
-    addMessageToHistory: (message) =>
+    addMessageToHistory: (message: ChatMessage) =>
         set(
             produce((draft: ChatStore) => {
-                if (draft.isMultipleConversation) {
-                    console.log('Starting addMessageToHistory:', {
-                        message,
-                        currentState: {
-                            selectedWord: draft.selectedWord,
-                            activatedActionName: draft.activatedActionName,
-                            currentFileId: draft.currentFileId,
+                console.log('Starting addMessageToHistory:', {
+                    message,
+                    currentState: {
+                        selectedWord: draft.selectedWord,
+                        activateAction: draft.activateAction,
+                        currentFileId: draft.currentFileId,
+                    },
+                })
+                const newMessage = {
+                    ...message,
+                    createdAt: message.createdAt || Date.now(),
+                    messageId: message.messageId || crypto.randomUUID(),
+                }
+                draft.conversationHistory.push(newMessage)
+                console.log('Added message to conversationHistory:', {
+                    newMessage,
+                    currentHistory: draft.conversationHistory,
+                })
+
+                if (draft.selectedWord && draft.activateAction?.name) {
+                    console.log('Updating selectedWord:', {
+                        beforeUpdate: draft.selectedWord.answers,
+                        actionName: draft.activateAction?.name,
+                    })
+
+                    const updatedAnswers = {
+                        ...draft.selectedWord.answers,
+                        [draft.activateAction?.name]: {
+                            ...(draft.selectedWord.answers?.[draft.activateAction?.name] || {}),
+                            conversationMessages: draft.conversationHistory,
+                            isMultipleConversation: true,
                         },
-                    })
-
-                    const newMessage = {
-                        ...message,
-                        createdAt: Date.now(),
-                        messageId: message.messageId || crypto.randomUUID(),
                     }
-                    draft.conversationHistory.push(newMessage)
-                    console.log('Added message to conversationHistory:', {
-                        newMessage,
-                        currentHistory: draft.conversationHistory,
+                    console.log('Created updatedAnswers:', updatedAnswers)
+
+                    // 更新 selectedWord
+                    draft.selectedWord = {
+                        ...draft.selectedWord,
+                        answers: updatedAnswers,
+                    }
+                    console.log('Updated selectedWord:', draft.selectedWord)
+
+                    // 更新 files 中的 word
+                    const fileIndex = draft.files?.findIndex((f) => f.id === draft.currentFileId)
+                    console.log('Finding file:', {
+                        fileIndex,
+                        currentFileId: draft.currentFileId,
+                        filesLength: draft.files?.length,
                     })
 
-                    if (draft.selectedWord && draft.activateAction?.name) {
-                        console.log('Updating selectedWord:', {
-                            beforeUpdate: draft.selectedWord.answers,
-                            actionName: draft.activateAction?.name,
+                    if (fileIndex !== -1 && draft.files[fileIndex].words) {
+                        const wordIndex = draft.files[fileIndex].words.findIndex(
+                            (w) => w.idx === draft.selectedWord?.idx
+                        )
+                        console.log('Finding word:', {
+                            wordIndex,
+                            selectedWordIdx: draft.selectedWord?.idx,
+                            wordsLength: draft.files[fileIndex].words.length,
                         })
 
-                        const updatedAnswers = {
-                            ...draft.selectedWord.answers,
-                            [draft.activateAction?.name]: {
-                                ...(draft.selectedWord.answers?.[draft.activateAction?.name] || {}),
-                                text: draft.conversationHistory.map((m) => m.content).join('\n'),
-                                format: draft.activateAction?.outputRenderingFormat || 'text',
-                                conversationMessages: [...draft.conversationHistory],
-                                updatedAt: new Date(),
-                                isMultipleConversation: true,
-                            },
-                        }
-                        console.log('Created updatedAnswers:', updatedAnswers)
-
-                        // 更新 selectedWord
-                        draft.selectedWord = {
-                            ...draft.selectedWord,
-                            answers: updatedAnswers,
-                        }
-                        console.log('Updated selectedWord:', draft.selectedWord)
-
-                        // 更新 files 中的 word
-                        const fileIndex = draft.files?.findIndex((f) => f.id === draft.currentFileId)
-                        console.log('Finding file:', {
-                            fileIndex,
-                            currentFileId: draft.currentFileId,
-                            filesLength: draft.files?.length,
-                        })
-
-                        if (fileIndex !== -1 && draft.files[fileIndex].words) {
-                            const wordIndex = draft.files[fileIndex].words.findIndex(
-                                (w) => w.idx === draft.selectedWord?.idx
-                            )
-                            console.log('Finding word:', {
-                                wordIndex,
-                                selectedWordIdx: draft.selectedWord?.idx,
-                                wordsLength: draft.files[fileIndex].words.length,
-                            })
-
-                            if (wordIndex !== -1) {
-                                draft.files[fileIndex].words[wordIndex] = {
-                                    ...draft.files[fileIndex].words[wordIndex],
-                                    answers: updatedAnswers,
-                                }
-                                console.log('Updated word in files:', draft.files[fileIndex].words[wordIndex])
+                        if (wordIndex !== -1) {
+                            draft.files[fileIndex].words[wordIndex] = {
+                                ...draft.files[fileIndex].words[wordIndex],
+                                answers: updatedAnswers,
                             }
+                            console.log('Updated word in files:', draft.files[fileIndex].words[wordIndex])
                         }
-                    } else {
-                        console.warn('Cannot update selectedWord:', {
-                            hasSelectedWord: !!draft.selectedWord,
-                            activatedActionName: draft.activatedActionName,
-                        })
                     }
                 } else {
-                    console.log('Multiple conversation is disabled')
+                    console.warn('Cannot update selectedWord:', {
+                        hasSelectedWord: !!draft.selectedWord,
+                        activatedActionName: draft.activateAction?.name,
+                    })
                 }
             })
         ),
@@ -589,14 +581,14 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
             })
         ),
 
-    setCurrentConversationId: (id) => set({ currentConversationId: id }),
+    setCurrentConversationId: (id: string) => set({ currentConversationId: id }),
 
     getConversationMessages: () => {
         const state = get()
-        return state.conversationHistory
+        return state.conversationHistory || []
     },
 
-    saveConversationToAnswer: (actionName) =>
+    saveConversationToAnswer: (actionName: string) =>
         set(
             produce((draft: ChatStore) => {
                 const { selectedWord } = draft
@@ -610,13 +602,13 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                     ...(selectedWord.answers[actionName] || {}),
                     text: draft.conversationHistory.map((m) => m.content).join('\n'),
                     format: draft.activateAction?.outputRenderingFormat || 'text',
-                    conversationMessages: [...draft.conversationHistory],
+                    conversationMessages: draft.conversationHistory,
                     isMultipleConversation: true,
                 }
             })
         ),
 
-    loadConversationFromAnswer: (actionName) =>
+    loadConversationFromAnswer: (actionName: string) =>
         set(
             produce((draft: ChatStore) => {
                 const { selectedWord } = draft
@@ -629,6 +621,102 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 } else {
                     draft.conversationHistory = []
                     draft.currentConversationId = ''
+                }
+            })
+        ),
+
+    addMessageToConversation: (actionName: string, message: ChatMessage) =>
+        set(
+            produce((draft: ChatStore) => {
+                if (!draft.conversationHistory) {
+                    draft.conversationHistory = []
+                }
+                draft.conversationHistory.push(message)
+
+                // 如果有选中的 word，同时更新 word 的消息
+                if (draft.selectedWord) {
+                    if (!draft.selectedWord.answers) {
+                        draft.selectedWord.answers = {}
+                    }
+                    if (!draft.selectedWord.answers[actionName]) {
+                        draft.selectedWord.answers[actionName] = {}
+                    }
+                    draft.selectedWord.answers[actionName].conversationMessages = []
+                    draft.selectedWord.answers[actionName].conversationMessages.push(message)
+                }
+            })
+        ),
+
+    updateConversation: (actionName: string, messages: ChatMessage[]) =>
+        set(
+            produce((draft: ChatStore) => {
+                draft.conversationHistory = messages
+
+                // 同时更新 word 的消息
+                if (draft.selectedWord) {
+                    if (!draft.selectedWord.answers) {
+                        draft.selectedWord.answers = {}
+                    }
+                    draft.selectedWord.answers[actionName] = {
+                        ...(draft.selectedWord.answers[actionName] || {}),
+                        conversationMessages: messages,
+                    }
+                }
+            })
+        ),
+
+    clearConversation: (actionName: string) =>
+        set(
+            produce((draft: ChatStore) => {
+                draft.conversationHistory = []
+                if (draft.selectedWord?.answers) {
+                    draft.selectedWord.answers[actionName] = {
+                        ...(draft.selectedWord.answers[actionName] || {}),
+                        conversationMessages: [],
+                    }
+                }
+            })
+        ),
+
+    saveConversationToWord: (actionName: string) =>
+        set(
+            produce((draft: ChatStore) => {
+                const { selectedWord, conversationHistory } = draft
+                if (!selectedWord || !actionName) return
+
+                // 只保存消息到 messages
+                if (!selectedWord.answers) {
+                    selectedWord.answers = {}
+                }
+                selectedWord.answers[actionName] = {
+                    ...(selectedWord.answers[actionName] || {}),
+                    conversationMessages: conversationHistory || [],
+                }
+
+                // 更新文件中的 word
+                if (draft.currentFileId) {
+                    const fileIndex = draft.files.findIndex((f) => f.id === draft.currentFileId)
+                    if (fileIndex !== -1) {
+                        const wordIndex = draft.files[fileIndex].words.findIndex((w) => w.idx === selectedWord.idx)
+                        if (wordIndex !== -1) {
+                            draft.files[fileIndex].words[wordIndex] = selectedWord
+                        }
+                    }
+                }
+            })
+        ),
+
+    loadConversationFromWord: (actionName: string) =>
+        set(
+            produce((draft: ChatStore) => {
+                const { selectedWord } = draft
+                if (!selectedWord || !actionName) return
+
+                // 从 word 加载消息
+                if (selectedWord.answers?.[actionName]) {
+                    draft.conversationHistory = selectedWord.answers[actionName].conversationMessages || []
+                } else {
+                    draft.conversationHistory = []
                 }
             })
         ),

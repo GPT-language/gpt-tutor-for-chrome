@@ -65,22 +65,30 @@ export abstract class AbstractOpenAI extends AbstractEngine {
         const body = await this.getBaseRequestBody(req.activateAction)
 
         if (isChatAPI) {
-            // 构建消息数组
             const messages = []
 
             // 添加系统角色提示和助手提示
             if (req.rolePrompt || (req.assistantPrompts && req.assistantPrompts.length > 0)) {
                 const systemContent = [req.rolePrompt, ...(req.assistantPrompts || [])].filter(Boolean).join('\n')
-
                 messages.push({
                     role: 'system',
                     content: systemContent,
                 })
             }
 
-            // 添加历史消息
+            // 添加历史消息，确保使用正确的conversationMessages
             if (req.isMultipleConversation && req.conversationMessages && req.conversationMessages.length > 0) {
-                messages.push(...req.conversationMessages)
+                // 过滤掉system消息，因为我们已经在上面添加了
+                const nonSystemMessages = req.conversationMessages.filter((msg) => msg.role !== 'system')
+                messages.push(...nonSystemMessages)
+            }
+
+            // 添加当前的command prompt作为用户消息
+            if (req.commandPrompt) {
+                messages.push({
+                    role: 'user',
+                    content: req.commandPrompt,
+                })
             }
 
             body.messages = messages
@@ -103,6 +111,7 @@ export abstract class AbstractOpenAI extends AbstractEngine {
                             content: currentMessage,
                             role: 'assistant',
                             isFullText: true,
+                            actionName: req.activateAction?.name,
                         })
                     }
                     req.onFinished?.('stop')
@@ -132,6 +141,7 @@ export abstract class AbstractOpenAI extends AbstractEngine {
                             content: currentMessage,
                             role: 'assistant',
                             isFullText: true,
+                            actionName: req.activateAction?.name,
                         })
                     }
                     req.onFinished?.(finishReason)
@@ -146,6 +156,7 @@ export abstract class AbstractOpenAI extends AbstractEngine {
                         content: delta.content,
                         role: 'assistant',
                         isFullText: false,
+                        actionName: req.activateAction?.name,
                     })
                 }
             },

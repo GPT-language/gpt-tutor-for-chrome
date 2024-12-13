@@ -1,4 +1,5 @@
 import { Action, Answers, Content } from '@/common/internal-services/db'
+import { ChatMessage } from '../chat/initialState'
 
 export interface ActionGroups {
     [key: string]: Action[]
@@ -11,6 +12,7 @@ export interface ChatWordState {
     selectedWord: Content | null
     currentWordPositions: { [fileId: number]: number | null }
     actionGroups: ActionGroups
+    conversationHistory: ChatMessage[]
 }
 
 const defaultSelectedWord: Content = {
@@ -35,4 +37,5 @@ export const initialWordState: ChatWordState = {
     currentWordPositions: {},
     selectedGroup: 'Unsorted',
     actionGroups: {},
+    conversationHistory: [],
 }
