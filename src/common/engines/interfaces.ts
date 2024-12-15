@@ -17,13 +17,20 @@ export interface IMessageRequest {
     commandPrompt: string
     assistantPrompts?: string[]
     activateAction?: Action
+    messageId?: string
     parentAction?: Action
     isMultipleConversation?: boolean
     conversationMessages?: Array<{
         role: string
         content: string
     }>
-    onMessage: (message: { content: string; role: string; isFullText: boolean; actionName?: string }) => Promise<void>
+    onMessage: (message: {
+        content: string
+        role: string
+        isFullText: boolean
+        actionName?: string
+        messageId?: string
+    }) => Promise<void>
     onError?: (error: string) => void
     onFinished?: (reason: string) => void
     onStatusCode?: (statusCode: number) => void

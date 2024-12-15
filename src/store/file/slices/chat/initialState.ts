@@ -23,6 +23,7 @@ export interface ChatState {
     actions: Action[]
     assistantAction: Action | undefined
     activateAction: Action | undefined
+    lastUsedAction?: Action | undefined
     actionStr: string
     // 复习周期
     reviewIntervals: number[]
@@ -30,6 +31,7 @@ export interface ChatState {
     errorMessage: string
     isNotLogin: boolean
     currentConversationId: string
+    currentConversationTitle: string
     isMultipleConversation: boolean
 }
 
@@ -43,6 +45,7 @@ export const initialChatState: ChatState = {
     conversationId: '',
     messageId: '',
     activateAction: undefined,
+    lastUsedAction: undefined,
     assistantAction: undefined,
     activatedModel: '',
     activatedProvider: '',
@@ -53,5 +56,6 @@ export const initialChatState: ChatState = {
     errorMessage: '',
     isNotLogin: false,
     currentConversationId: '',
+    currentConversationTitle: '',
     isMultipleConversation: false,
 }

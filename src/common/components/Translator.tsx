@@ -385,10 +385,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [])
     const {
         activateAction,
+        lastUsedAction,
         currentFileId,
         selectedWord,
         deleteSelectedWord,
-        setActions,
         setAction,
         isShowMessageCard,
         toggleMessageCard,
@@ -404,12 +404,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowReviewManager,
         answers,
         setAnswers,
-        selectedGroup,
         messageId,
         conversationId,
         updateWordAnswer,
         addWordToFile,
-        actions,
         quoteText,
         setQuoteText,
         settings,
@@ -794,12 +792,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     // 如果没有设置activateAction，则设置为开放提问
     useEffect(() => {
-        if (!activateAction) {
+        if (!activateAction && !lastUsedAction) {
             setIsOpenToAsk(true)
         } else {
             setIsOpenToAsk(false)
         }
-    }, [activateAction])
+    }, [activateAction, lastUsedAction])
 
     useEffect(() => {
         setTranslatedLines(translatedText.split('\n'))
@@ -1172,35 +1170,37 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     ? message.content
                                     : translatedText + message.content
 
-                                const actionName = isOpenToAsk ? question : activateAction?.name
+                                const actionName =
+                                    useChatStore.getState().currentConversationTitle ||
+                                    (isOpenToAsk ? question : activateAction?.name || lastUsedAction?.name)
+
                                 // 更新 answers
                                 let newAnswers = {}
-                                if (!activateAction?.isMultipleConversation) {
-                                    newAnswers = {
-                                        ...answers,
-                                        [actionName || question]: {
-                                            text: newTranslatedText,
-                                            format: activateAction?.outputRenderingFormat || 'markdown',
-                                        },
-                                    }
-                                } else {
-                                    const conversationMessages: ChatMessage[] = [
-                                        ...(answers[actionName || question]?.conversationMessages || []),
-                                        {
-                                            role: 'assistant',
-                                            content: newTranslatedText,
-                                            createdAt: date,
-                                            messageId: messageId,
-                                            format: activateAction?.outputRenderingFormat || 'markdown',
-                                        },
-                                    ]
-                                    newAnswers = {
-                                        ...answers,
-                                        [actionName || question]: {
-                                            conversationMessages,
-                                        },
-                                    }
+
+                                const conversationMessages: ChatMessage[] = [
+                                    ...(answers[actionName || question]?.conversationMessages || []),
+                                    {
+                                        role: 'user',
+                                        content: text || activateAction?.name || '',
+                                        createdAt: date,
+                                        messageId: messageId,
+                                        format: activateAction?.outputRenderingFormat || 'markdown',
+                                    },
+                                    {
+                                        role: 'assistant',
+                                        content: newTranslatedText,
+                                        createdAt: date,
+                                        messageId: messageId,
+                                        format: activateAction?.outputRenderingFormat || 'markdown',
+                                    },
+                                ]
+                                newAnswers = {
+                                    ...answers,
+                                    [actionName || question]: {
+                                        conversationMessages,
+                                    },
                                 }
+
                                 setAnswers(newAnswers)
 
                                 return newTranslatedText
@@ -1210,7 +1210,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             afterTranslate(reason)
                             setTranslatedText((translatedText) => {
                                 const result = translatedText
-
                                 return result
                             })
                         },

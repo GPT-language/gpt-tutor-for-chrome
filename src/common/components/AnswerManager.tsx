@@ -480,6 +480,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                         kind='tertiary'
                                                         onClick={(e) => {
                                                             e.stopPropagation()
+                                                            e.preventDefault()
                                                             handleEdit(index, paragraph, actionName)
                                                         }}
                                                     >
@@ -492,6 +493,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                         kind='tertiary'
                                                         onClick={(e) => {
                                                             e.stopPropagation()
+                                                            e.preventDefault()
                                                             handleAsk(index, actionName)
                                                         }}
                                                     >
@@ -504,6 +506,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                         kind='tertiary'
                                                         onClick={(e) => {
                                                             e.stopPropagation()
+                                                            e.preventDefault()
                                                             handleCopy(paragraph)
                                                         }}
                                                     >
@@ -513,13 +516,15 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                 <Tooltip content={t('Speak')} placement='bottom'>
                                                     <div
                                                         className={styles.actionButton}
-                                                        onClick={() =>
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            e.preventDefault()
                                                             handleTranslatedSpeakAction(
                                                                 messageId,
                                                                 conversationId,
                                                                 paragraph
                                                             )
-                                                        }
+                                                        }}
                                                     >
                                                         {isSpeakingTranslatedText ? (
                                                             <SpeakerMotion />

@@ -41,6 +41,7 @@ export interface ChatAction {
     setQuoteText: (text: string) => void
     setIndependentText: (text: string) => void
     setIsMultipleConversation: (isMultiple: boolean) => void
+    setCurrentConversationTitle: (title: string) => void
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set, get) => ({
@@ -68,13 +69,21 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
         set({ actions })
     },
 
-    setAction: (action) =>set({activateAction: action}),
+    setAction: (action?: Action) => {
+        const currentAction = get().activateAction;
+        set({
+          activateAction: action,
+          // 当清除 activateAction 时，保存到 lastUsedAction
+          lastUsedAction: action === undefined ? currentAction : undefined
+        })
+    },
     setAssistantAction: (action) => set({ assistantAction: action }),
     setActionStr: (text) => set({ actionStr: text }),
     setQuoteText: (text) => set({ quoteText: text }),
     setIndependentText: (text) => set({ independentText: text }),
     setErrorMessage: (text) => set({ errorMessage: text }),
     setTranslatedText: (text) => set({ translatedText: text }),
+    setCurrentConversationTitle: (title) => set({ currentConversationTitle: title }),
 
     setIsMultipleConversation: (isMultiple) => 
         set({ isMultipleConversation: isMultiple }),

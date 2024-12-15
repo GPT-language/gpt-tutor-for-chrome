@@ -418,6 +418,7 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
             content: query.text,
             createdAt: Date.now(),
             messageId: crypto.randomUUID(),
+            actionName: query.activateAction?.name,
         })
     }
 
@@ -443,6 +444,7 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
                     content: message.content,
                     createdAt: date,
                     messageId: messageId,
+                    status: 'pending',
                 })
                 messageAdded = true
 
@@ -456,14 +458,10 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
         },
         onFinished: (reason) => {
             query.onFinished(reason)
+            chatStore.updateMessageStatus(messageId, 'finished')
         },
         onError: (error) => {
-            chatStore.addMessageToHistory({
-                role: 'assistant',
-                content: error,
-                createdAt: date,
-                messageId: messageId,
-            })
+            chatStore.updateMessageStatus(messageId, 'error')
             query.onError(error)
         },
         onStatusCode: (statusCode) => {
