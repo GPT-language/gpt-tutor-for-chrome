@@ -24,6 +24,7 @@ const CategorySelector = () => {
         setShowActionManager,
         setShowReviewManager,
         setShowWordBookManager,
+        setShowSettings,
         setShowSidebar,
         showSidebar,
     } = useChatStore()
@@ -189,6 +190,7 @@ const CategorySelector = () => {
         if (id === '__manager__') setShowActionManager(true)
         else if (id === '__review__') setShowReviewManager(true)
         else if (id === '__wordbook__') setShowWordBookManager(true)
+        else if (id === '__settings__') setShowSettings(true)
     }
 
     useEffect(() => {
@@ -243,6 +245,7 @@ const CategorySelector = () => {
                                                 { id: '__manager__', label: t('Action Manager') },
                                                 /*                                                 { id: '__review__', label: t('Review Manager') }, */
                                                 { id: '__wordbook__', label: t('Word Book Manager') },
+                                                { id: '__settings__', label: t('Settings') },
                                             ]}
                                             onItemSelect={({ item }) => {
                                                 if (item.id) {

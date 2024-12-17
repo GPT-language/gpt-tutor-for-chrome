@@ -412,15 +412,14 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
     }
 
     // 2. 添加用户消息
-    if (query.text) {
-        chatStore.addMessageToHistory({
-            role: 'user',
-            content: query.text,
-            createdAt: Date.now(),
-            messageId: crypto.randomUUID(),
-            actionName: query.activateAction?.name,
-        })
-    }
+
+    chatStore.addMessageToHistory({
+        role: 'user',
+        content: query.activateAction?.name ? `${query.activateAction.name}: ${query.text}` : query.text || 'default',
+        createdAt: Date.now(),
+        messageId: crypto.randomUUID(),
+        actionName: query.activateAction?.name,
+    })
 
     const date = Date.now()
     const messageId = crypto.randomUUID()
@@ -444,7 +443,6 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
                     content: message.content,
                     createdAt: date,
                     messageId: messageId,
-                    status: 'pending',
                 })
                 messageAdded = true
 
@@ -458,10 +456,8 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
         },
         onFinished: (reason) => {
             query.onFinished(reason)
-            chatStore.updateMessageStatus(messageId, 'finished')
         },
         onError: (error) => {
-            chatStore.updateMessageStatus(messageId, 'error')
             query.onError(error)
         },
         onStatusCode: (statusCode) => {

@@ -75,7 +75,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         setSelectedGroup,
         settings,
         updateSettings,
-        addMessageToHistory,
     } = useChatStore()
     const [searchTerm, setSearchTerm] = useState('')
     const [filteredActions, setFilteredActions] = useState<Action[]>([])

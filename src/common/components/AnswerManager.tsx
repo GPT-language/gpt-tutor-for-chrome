@@ -33,7 +33,7 @@ interface ITranslationManagerProps {
     showFullQuoteText: boolean
     setShowFullQuoteText: (show: boolean) => void
     forceTranslate: () => void
-    handleTranslatedSpeakAction: (messageId: string, conversationId: string, text: string) => void
+    handleTranslatedSpeakAction: (messageId: string, conversationId: string, text: string) => Promise<void>
     messageId: string
     conversationId: string
     finalText: string
@@ -65,12 +65,9 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     const [editedText, setEditedText] = useState('')
     const {
         answers,
-        activateAction,
         currentFileId,
         setAnswers,
         selectedWord,
-        selectedGroup,
-        toggleMessageCard,
         updateWordAnswers,
         updateFollowUpAnswer,
         updateSentenceAnswer,
@@ -87,11 +84,6 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         }),
         shallow
     )
-    const containerRef = useRef<HTMLDivElement>(null)
-    const [visibleTabs, setVisibleTabs] = useState<string[]>([])
-    const [hiddenTabs, setHiddenTabs] = useState<string[]>([])
-    const [expandedActions, setExpandedActions] = useState<string>('')
-    const [isManualSelection, setIsManualSelection] = useState(false)
     const [isSpeaking, setIsSpeaking] = useState(false)
 
     const handleAsk = useCallback(
@@ -254,7 +246,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             console.log('更新前的完整文本:', currentTranslation.text)
 
             // 使用正确的分隔符分割文本
-            const paragraphs = currentTranslation.text.split('\n').filter((p) => p.trim() !== '')
+            const paragraphs = currentTranslation.text?.split('\n').filter((p) => p.trim() !== '') || []
             // console.log('分割后的段落数组:', paragraphs)
             // console.log('要更新的段落索引:', editingParagraph)
             // console.log('更新前的段落内容:', paragraphs[editingParagraph])
@@ -282,7 +274,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                     setAnswers(updatedAnswers)
                     toast.success(t('Edit saved successfully'))
                 } catch (error) {
-                    console.error('更新翻译失败:', error)
+                    console.error('更新失败:', error)
                     toast.error(t('Failed to save edit'))
                 }
             } else {
@@ -588,21 +580,6 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             setShowFullQuoteText,
         ]
     )
-
-    // 将所有答案转换为消息格式，包括用户消息
-    const allMessages = useMemo(() => {
-
-        const messages: ChatMessage[] = []
-
-        // 获取当前激活的actionName
-        const activeActionName = activateAction?.name
-        if (!activeActionName) return []
-        // 如果是对话形式，直接添加现有的对话消息
-        messages.push(...(selectedWord?.answers?.[activeActionName]?.conversationMessages || []))
-
-        // 按时间顺序排序
-        return messages.sort((a, b) => a.createdAt - b.createdAt)
-    }, [activateAction?.name, selectedWord?.answers])
 
     const handleCopyMessage = (text: string) => {
         navigator.clipboard.writeText(text)

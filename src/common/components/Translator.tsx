@@ -88,6 +88,7 @@ export const useStyles = createUseStyles({
                   bottom: '16px',
                   left: '16px',
                   lineHeight: '1',
+                  zIndex: 1000,
               },
     'popupCardHeaderContainer': (props: IThemedStyleProps) =>
         props.isDesktopApp
@@ -1181,7 +1182,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     ...(answers[actionName || question]?.conversationMessages || []),
                                     {
                                         role: 'user',
-                                        content: text || activateAction?.name || '',
+                                        content: activateAction?.name || question || '',
                                         createdAt: date,
                                         messageId: messageId,
                                         format: activateAction?.outputRenderingFormat || 'markdown',
@@ -1569,10 +1570,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     <div
                                                         style={{
                                                             position: 'fixed',
-                                                            bottom: '40px',
+                                                            bottom: 0,
                                                             left: 0,
                                                             right: 0,
-                                                            zIndex: 1000,
+                                                            zIndex: 999,
                                                             background: theme.colors.backgroundPrimary,
                                                             borderTop: `1px solid ${theme.colors.borderOpaque}`,
                                                             boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
@@ -1710,11 +1711,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 </div>
             </div>
             <div className={styles.footer}>
-                <Tooltip content={showSettings ? t('Go to Translator') : t('Go to Settings')} placement='right'>
-                    <div data-testid='translator-settings-toggle' onClick={() => setShowSettings(!showSettings)}>
-                        {showSettings ? <AiOutlineTranslation size={15} /> : <IoSettingsOutline size={15} />}
-                    </div>
-                </Tooltip>
+                {showSettings ? (
+                    <Tooltip content={t('Go to Main')} placement='right'>
+                        <div data-testid='translator-settings-toggle' onClick={() => setShowSettings(!showSettings)}>
+                            <AiOutlineTranslation size={15} />
+                        </div>
+                    </Tooltip>
+                ) : null}
             </div>
 
             <Modal
