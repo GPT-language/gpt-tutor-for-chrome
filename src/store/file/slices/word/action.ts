@@ -497,10 +497,13 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
     addMessageToHistory: (message: ChatMessage) =>
         set(
             produce((draft: ChatStore) => {
-                // 获取当前会话标题
-                // 当选择新的action时会创建新的saveKey，如果没有选择新的action或者为undefined，则使用当前选择的title来作为saveKey
-                const saveKey = draft.activateAction?.name || draft.currentConversationTitle
-                console.log('currentConversationTitle is', saveKey)
+                // 确定 saveKey 的优先级：activateAction.name > currentConversationKey > editableText
+                let saveKey = draft.activateAction?.name
+                if (!saveKey) {
+                    saveKey = draft.currentConversationKey || draft.editableText || new Date().toISOString()
+                }
+
+                console.log('Using saveKey:', saveKey)
 
                 // 创建新消息
                 const newMessage = {
@@ -512,27 +515,31 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 // 添加新消息到当前会话历史
                 draft.conversationHistory.push(newMessage)
 
-                if (draft.selectedWord) {
+                if (draft.selectedWord && saveKey) {
+                    // 确保必要的数据结构存在
+                    if (!draft.selectedWord.answers) {
+                        draft.selectedWord.answers = {}
+                    }
+                    if (!draft.selectedWord.answers[saveKey]) {
+                        draft.selectedWord.answers[saveKey] = {
+                            text: '',
+                            format: 'text',
+                            conversationMessages: [],
+                            isMultipleConversation: true,
+                        }
+                    }
+
                     // 获取现有的对话记录
-                    const existingMessages = draft.selectedWord.answers?.[saveKey]?.conversationMessages || []
-                    // 如果存在saveKey，则更新saveKey的conversationMessages
-                    if (saveKey) {
-                        // 创建更新后的答案对象，保留现有对话并添加新消息
-                        const updatedAnswers = {
-                            ...draft.selectedWord.answers,
-                            [saveKey]: {
-                                ...(draft.selectedWord.answers?.[saveKey] || {}),
-                                conversationMessages: [...existingMessages, newMessage],
-                            },
-                        }
+                    const existingMessages = draft.selectedWord.answers[saveKey].conversationMessages || []
 
-                        // 更新 selectedWord
-                        draft.selectedWord = {
-                            ...draft.selectedWord,
-                            answers: updatedAnswers,
-                        }
+                    // 更新答案对象
+                    draft.selectedWord.answers[saveKey] = {
+                        ...draft.selectedWord.answers[saveKey],
+                        conversationMessages: [...existingMessages, newMessage],
+                    }
 
-                        // 更新 files 中的 word
+                    // 更新 files 中的 word
+                    if (draft.currentFileId) {
                         const fileIndex = draft.files?.findIndex((f) => f.id === draft.currentFileId)
                         if (fileIndex !== -1 && draft.files[fileIndex].words) {
                             const wordIndex = draft.files[fileIndex].words.findIndex(
@@ -541,24 +548,9 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                             if (wordIndex !== -1) {
                                 draft.files[fileIndex].words[wordIndex] = {
                                     ...draft.files[fileIndex].words[wordIndex],
-                                    answers: updatedAnswers,
+                                    answers: draft.selectedWord.answers,
                                 }
                             }
-                        }
-                    } else {
-                        // 如果saveKey不存在，则使用当前输入的内容来作为saveKey
-                        const saveKey = draft.editableText
-                        const updatedAnswers = {
-                            ...draft.selectedWord.answers,
-                            [saveKey]: {
-                                ...(draft.selectedWord.answers?.[saveKey] || {}),
-                                conversationMessages: [...existingMessages, newMessage],
-                            },
-                        }
-
-                        draft.selectedWord = {
-                            ...draft.selectedWord,
-                            answers: updatedAnswers,
                         }
                     }
                 }
@@ -577,7 +569,7 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
 
     getConversationMessages: () => {
         const state = get()
-        const actionName = state.currentConversationTitle
+        const actionName = state.currentConversationKey
 
         if (state.selectedWord?.answers?.[actionName]?.conversationMessages) {
             return state.selectedWord.answers[actionName].conversationMessages

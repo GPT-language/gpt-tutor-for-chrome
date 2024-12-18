@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { useStyletron } from 'baseui-sd'
+import { Theme, useStyletron } from 'baseui-sd'
 import { StatefulMenu } from 'baseui-sd/menu'
 import { Action } from '../internal-services/db'
 import { Button } from 'baseui-sd/button'
@@ -9,6 +9,8 @@ import { useChatStore } from '@/store/file/store'
 import { LabelSmall } from 'baseui-sd/typography'
 import { IoClose } from 'react-icons/io5'
 import { FaArrowUp } from 'react-icons/fa'
+import { ChatMessage } from '@/store/file/slices/chat/initialState'
+import { formatDate } from '@/common/utils/format'
 
 interface AutocompleteTextareaProps {
     // 1. 增加更多可配置的属性
@@ -47,6 +49,23 @@ const TEXTAREA_STYLES = {
     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
 } as const
 
+// 添加一个生成新对话key的辅助函数
+const generateNewConversationKey = (activateAction?: Action, editableText?: string): string => {
+    const currentDate = formatDate(new Date())
+
+    if (activateAction?.name) {
+        return `${activateAction.name}_${currentDate}`
+    }
+
+    if (editableText) {
+        // 限制长度，避免key太长
+        const truncatedText = editableText.slice(0, 20).trim()
+        return truncatedText ? `${truncatedText}_${currentDate}` : currentDate
+    }
+
+    return currentDate
+}
+
 const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     editableText,
     placeholder = '',
@@ -75,6 +94,12 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         setSelectedGroup,
         settings,
         updateSettings,
+        showConversationMenu,
+        setShowConversationMenu,
+        availableConversations,
+        setAvailableConversations,
+        setCurrentConversationKey,
+        answers,
     } = useChatStore()
     const [searchTerm, setSearchTerm] = useState('')
     const [filteredActions, setFilteredActions] = useState<Action[]>([])
@@ -228,8 +253,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     const handleInput = () => {
         if (editorRef.current) {
             const text = editorRef.current.innerText
-            handleSetEditableText(getTextWithoutMentions(text))
-
             const selection = window.getSelection()
             if (selection && selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0)
@@ -238,32 +261,35 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 preCaretRange.setEnd(range.endContainer, range.endOffset)
                 const caretOffset = preCaretRange.toString().length
 
-                // 检查 @ 符号
+                // 检查@符号
                 const lastAtIndex = text.lastIndexOf('@', caretOffset)
                 if (lastAtIndex !== -1 && caretOffset - lastAtIndex <= 20) {
-                    const searchText = text.slice(lastAtIndex + 1, caretOffset)
-                    setSearchTerm(searchText)
-                    if (!showActionMenu) {
-                        setShowActionMenu(true)
-                        setShowGroupMenu(false)
-                    }
-                } else {
-                    setShowActionMenu(false)
+                    setShowActionMenu(true)
                 }
 
-                // 检查 / 符号
-                const lastSlashIndex = text.lastIndexOf('/', caretOffset)
+                // 检查/符号
+                const lastSlashIndex = text.lastIndexOf('#', caretOffset)
                 if (lastSlashIndex !== -1 && caretOffset - lastSlashIndex <= 20) {
-                    const searchText = text.slice(lastSlashIndex + 1, caretOffset)
-                    setGroupSearchTerm(searchText)
-                    if (!showGroupMenu) {
-                        setShowGroupMenu(true)
-                        setShowActionMenu(false)
-                    }
+                    setShowGroupMenu(true)
+                }
+
+                // 检查 "~" 符号
+                const lastGreaterThanIndex = text.lastIndexOf('~', caretOffset)
+                if (lastGreaterThanIndex !== -1 && caretOffset - lastGreaterThanIndex <= 20) {
+                    const searchText = text.slice(lastGreaterThanIndex + 1, caretOffset)
+                    // 准备对话列表
+                    const conversations = Object.entries(answers || {}).map(([key, value]) => ({
+                        key,
+                        messages: value.conversationMessages || [],
+                    }))
+                    setAvailableConversations(conversations)
+                    setShowConversationMenu(true)
                 } else {
-                    setShowGroupMenu(false)
+                    setShowConversationMenu(false)
                 }
             }
+
+            handleSetEditableText(getTextWithoutMentions(text))
         }
     }
 
@@ -549,6 +575,20 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
             actionTagRef.current.textContent = ''
         }
     }, [activateAction])
+
+    // 处理对话选择
+    const handleConversationSelect = (conversation: { key: string; messages: ChatMessage[] }) => {
+        setCurrentConversationKey(conversation.key)
+        setShowConversationMenu(false)
+
+        // 清理输入框中的 ">" 符号
+        if (editorRef.current) {
+            const text = editorRef.current.innerText
+            const cleanedText = text.replace(/>[^\s]*$/, '').trim()
+            editorRef.current.innerText = cleanedText
+            handleSetEditableText(cleanedText)
+        }
+    }
 
     return (
         <div
@@ -883,6 +923,83 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 </div>
             )}
 
+            {/* 添加对话选择菜单 */}
+            {showConversationMenu && (
+                <div className={css(menuStyles)}>
+                    <StatefulMenu
+                        items={[
+                            // 添加新对话选项
+                            {
+                                label: t('Add New Conversation'),
+                                isNew: true,
+                            },
+                            // 分隔线
+                            { label: '---', disabled: true },
+                            // 现有对话列表
+                            ...availableConversations.map((conv) => ({
+                                label: conv.key,
+                                conversation: conv,
+                            })),
+                        ]}
+                        onItemSelect={({ item }) => {
+                            if (item.isNew) {
+                                // 处理新建对话
+                                const newKey = generateNewConversationKey(activateAction, editableText)
+                                setCurrentConversationKey(newKey)
+                            } else {
+                                // 处理选择现有对话
+                                handleConversationSelect(item.conversation)
+                            }
+                            setShowConversationMenu(false)
+
+                            // 清理输入框中的 "~" 符号
+                            if (editorRef.current) {
+                                const text = editorRef.current.innerText
+                                const cleanedText = text.replace(/~[^\s]*$/, '').trim()
+                                editorRef.current.innerText = cleanedText
+                                handleSetEditableText(cleanedText)
+                            }
+                        }}
+                        overrides={{
+                            List: {
+                                style: {
+                                    backgroundColor: 'white',
+                                },
+                            },
+                            Option: {
+                                props: {
+                                    overrides: {
+                                        ListItem: {
+                                            style: ({
+                                                $theme,
+                                                $isHighlighted,
+                                            }: {
+                                                $theme: Theme
+                                                $isHighlighted: boolean
+                                            }) => ({
+                                                // 为新建对话选项添加特殊样式
+                                                ...(($isHighlighted || $theme) && {}),
+                                                backgroundColor: $isHighlighted ? 'rgba(66, 133, 244, 0.1)' : 'white',
+                                                color: '#476582',
+                                                cursor: 'pointer',
+                                                padding: '12px 16px',
+                                                // 分隔线样式
+                                                borderBottom: ({ label }: { label: string }) =>
+                                                    label === '---' ? '1px solid #eee' : 'none',
+                                                height: ({ label }: { label: string }) =>
+                                                    label === '---' ? '1px' : 'auto',
+                                                margin: ({ label }: { label: string }) =>
+                                                    label === '---' ? '8px 0' : '0',
+                                            }),
+                                        },
+                                    },
+                                },
+                            },
+                        }}
+                    />
+                </div>
+            )}
+
             <div
                 style={{
                     position: 'absolute',
@@ -910,22 +1027,5 @@ const menuStyles = {
     backgroundColor: 'white',
     borderRadius: '8px',
 } as const
-
-const buttonOverrides = {
-    BaseButton: {
-        style: {
-            width: 'auto',
-            fontWeight: 'normal',
-            fontSize: '12px',
-            padding: '4px 8px',
-            cursor: 'pointer',
-        },
-    },
-    StartEnhancer: {
-        style: {
-            marginRight: '6px',
-        },
-    },
-}
 
 export default TextareaWithActions

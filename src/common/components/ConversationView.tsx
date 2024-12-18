@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { Block } from 'baseui-sd/block'
-import { Tab, Tabs } from 'baseui-sd/tabs-motion'
 import { useTranslation } from 'react-i18next'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
 import { formatDate } from '@/common/utils/format'
@@ -32,13 +31,20 @@ const MessageItem: React.FC<{
     })
 
     const userMessageStyles = css({
-        'backgroundColor': '#E3F2FD',
-        'padding': '4px 8px',
-        'borderRadius': '12px',
-        'borderTopRightRadius': '4px',
+        'backgroundColor': '#F8F9FA',
+        'padding': '8px 12px',
+        'borderRadius': '8px',
+        'boxShadow': '0 1px 2px rgba(0,0,0,0.05)',
         'cursor': 'pointer',
+        'transition': 'all 0.2s ease',
+        'margin': '4px 0',
+        'maxWidth': '85%', // 限制最大宽度
+        'width': 'fit-content', // 根据内容自适应宽度
+        'minWidth': '120px',
         ':hover': {
-            backgroundColor: '#D0E8FC',
+            backgroundColor: '#F1F3F5',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
         },
     })
 
@@ -74,12 +80,7 @@ const MessageItem: React.FC<{
                     onClick={onToggle}
                 >
                     <Block flex='1'>
-                        {renderContent(
-                            message.actionName || message.content,
-                            message.format || 'markdown',
-                            message.actionName,
-                            message.messageId
-                        )}
+                        <Block>{message.actionName || message.content}</Block>
                     </Block>
                     <RxChevronDown size={20} className={expandIconStyles} />
                 </Block>
@@ -105,78 +106,52 @@ const MessageItem: React.FC<{
 
 const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) => {
     const { t } = useTranslation()
-    const { answers, setCurrentConversationTitle, selectedWord } = useChatStore()
-    const [activeKey, setActiveKey] = React.useState<string>('')
+    const {
+        answers,
+        selectedWord,
+        currentConversationKey,
+        setCurrentConversationKey, // 添加这个
+    } = useChatStore()
     const [latestExpandedMessageId, setLatestExpandedMessageId] = React.useState<string | null>(null)
-    const previousMessagesLength = React.useRef(0)
+    const previousConversationKey = useRef<string | null>(null)
+    const previousMessagesLength = useRef<number>(0)
 
-    // 获取所有的会话消息
-    const allConversations = useMemo(() => {
-        // 首先使用answers，如果answers为空，则使用selectedWord.answers
-        const conversations = answers || selectedWord?.answers
-        if (!conversations) return []
-        return Object.entries(conversations)
-            .map(([key, value]) => ({
-                key,
-                messages: value.conversationMessages || [],
-            }))
-            .filter((item) => item.messages.length > 0)
-    }, [answers, selectedWord])
-
-    // 当前选中的会话消息
     const currentMessages = useMemo(() => {
-        const conversation = allConversations[parseInt(activeKey)]
-        return conversation ? conversation.messages : []
-    }, [allConversations, activeKey])
+        const conversations = answers || selectedWord?.answers
+        if (!conversations || !currentConversationKey) return []
+        return conversations[currentConversationKey]?.conversationMessages || []
+    }, [answers, selectedWord, currentConversationKey])
 
-    // Tab 样式
-    const MAX_TAB_WIDTH = 100
-    const MIN_TAB_WIDTH = 60
-    const MORE_TAB_WIDTH = 20
-    const ACTION_BUTTONS_WIDTH = 30
-    const tabsOverrides = useMemo(
-        () => ({
-            Root: {
-                style: {
-                    flexGrow: 1,
-                    padding: 0,
-                    margin: 0,
-                },
-            },
-            TabList: {
-                style: {
-                    flexWrap: 'nowrap',
-                    padding: 0,
-                    margin: 0,
-                },
-            },
-            TabBorder: {
-                style: { display: 'none' },
-            },
-            Tab: {
-                style: {
-                    'minWidth': `${MIN_TAB_WIDTH}px`,
-                    'transition': 'all 0.2s ease',
-                    'padding': '6px 12px', // 减小内边距
-                    'fontSize': '12px', // 减小字号
-                    'fontWeight': 400, // 正常字重
-                    'backgroundColor': 'transparent',
-                    ':hover': {
-                        backgroundColor: 'rgba(39, 110, 241, 0.05)',
-                    },
-                },
-            },
-            TabHighlight: {
-                style: {
-                    height: '2px', // 设置下划线高度
-                    backgroundColor: '#276EF1', // 设置下划线颜色
-                },
-            },
-        }),
-        []
-    )
+    // 监听 answers 变化，自动选择最新的对话
+    useEffect(() => {
+        const conversations = answers || selectedWord?.answers
+        if (!conversations) return
+        console.log('conversations', conversations)
+        console.log('currentConversationKey', currentConversationKey)
 
-    // 分组消息的逻辑
+        // 获取所有对话的 key
+        const conversationKeys = Object.keys(conversations)
+        if (conversationKeys.length === 0) return
+
+        // 如果 currentConversationKey 发生变化或不存在，自动选择最新的对话
+        if (currentConversationKey !== previousConversationKey.current) {
+            // 找到最新对话中最新的用户消息
+            const latestMessages = conversations[currentConversationKey]?.conversationMessages || []
+            for (let i = latestMessages.length - 1; i >= 0; i--) {
+                if (
+                    latestMessages[i].role === 'user' &&
+                    i + 1 < latestMessages.length &&
+                    latestMessages[i + 1].role === 'assistant'
+                ) {
+                    setLatestExpandedMessageId(latestMessages[i].messageId)
+                    break
+                }
+            }
+
+            previousConversationKey.current = currentConversationKey
+        }
+    }, [answers, selectedWord, currentConversationKey, setCurrentConversationKey])
+
     const groupedMessages = useMemo(() => {
         const messages = currentMessages
         const groups: { date: string; messages: ChatMessage[] }[] = []
@@ -212,64 +187,24 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) =>
         return groups
     }, [currentMessages])
 
-    // 监听消息变化，检测新消息并自动展开
     useEffect(() => {
-        // 获取当前选中的会话的消息
-        const currentConversation = allConversations[parseInt(activeKey)]
-        const messages = currentConversation?.messages || []
-
-        // 检查是否有新消息
-        if (messages.length > previousMessagesLength.current) {
-            // 找到最后一组用户消息和助手回复
-            for (let i = messages.length - 1; i >= 0; i--) {
-                if (messages[i].role === 'user' && i + 1 < messages.length && messages[i + 1].role === 'assistant') {
-                    setLatestExpandedMessageId(messages[i].messageId)
+        if (currentMessages.length > previousMessagesLength.current) {
+            for (let i = currentMessages.length - 1; i >= 0; i--) {
+                if (
+                    currentMessages[i].role === 'user' &&
+                    i + 1 < currentMessages.length &&
+                    currentMessages[i + 1].role === 'assistant'
+                ) {
+                    setLatestExpandedMessageId(currentMessages[i].messageId)
                     break
                 }
             }
         }
-
-        // 更新消息长度记录
-        previousMessagesLength.current = messages.length
-    }, [allConversations, activeKey])
-
-    // 创建防抖的滚动函数
-    const debouncedScroll = useMemo(
-        () =>
-            debounce((node: HTMLElement) => {
-                node.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest',
-                })
-            }, 100),
-        []
-    )
-
-    // 清理防抖函数
-    useEffect(() => {
-        return () => {
-            debouncedScroll.cancel()
-        }
-    }, [debouncedScroll])
+        previousMessagesLength.current = currentMessages.length
+    }, [currentMessages])
 
     const toggleMessage = (messageId: string) => {
         setLatestExpandedMessageId((prevId) => (prevId === messageId ? null : messageId))
-    }
-
-    // 初始化title和activeKey为空
-    useEffect(() => {
-        setCurrentConversationTitle('')
-
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    const handleTabChange = ({ activeKey }: { activeKey: React.Key }) => {
-        setActiveKey(activeKey as string)
-        const conversation = allConversations[Number(activeKey)]
-        if (conversation) {
-            // 设置当前对话的标题
-            setCurrentConversationTitle(conversation.key)
-        }
     }
 
     return (
@@ -277,38 +212,28 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) =>
             width='100%'
             height='100%'
             $style={{
-                display: allConversations.length === 0 ? 'none' : 'flex',
+                display: !currentMessages.length ? 'none' : 'flex',
                 overflow: 'hidden',
                 backgroundColor: '#FFFFFF',
                 borderRadius: '8px',
                 flexDirection: 'column',
             }}
         >
-            {/* 添加 Tabs */}
             <Block>
-                <Tabs activeKey={activeKey} onChange={handleTabChange} activateOnFocus>
-                    {allConversations.map((conversation, index) => (
-                        <Tab key={index} title={conversation.key} overrides={tabsOverrides}>
-                            <Block>
-                                {groupedMessages.map((group) => (
-                                    <Block key={group.date} marginBottom='24px'>
-                                        {/* 消息列表 */}
-                                        {group.messages.map((message, msgIndex) => (
-                                            <MessageItem
-                                                key={message.messageId}
-                                                message={message}
-                                                nextMessage={group.messages[msgIndex + 1]}
-                                                isExpanded={message.messageId === latestExpandedMessageId}
-                                                onToggle={() => toggleMessage(message.messageId)}
-                                                renderContent={renderContent}
-                                            />
-                                        ))}
-                                    </Block>
-                                ))}
-                            </Block>
-                        </Tab>
-                    ))}
-                </Tabs>
+                {groupedMessages.map((group) => (
+                    <Block key={group.date} marginBottom='24px'>
+                        {group.messages.map((message, msgIndex) => (
+                            <MessageItem
+                                key={message.messageId}
+                                message={message}
+                                nextMessage={group.messages[msgIndex + 1]}
+                                isExpanded={message.messageId === latestExpandedMessageId}
+                                onToggle={() => toggleMessage(message.messageId)}
+                                renderContent={renderContent}
+                            />
+                        ))}
+                    </Block>
+                ))}
             </Block>
         </Block>
     )

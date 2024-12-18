@@ -6,6 +6,9 @@ import Browser from 'webextension-polyfill'
 import { getEngine } from './engines'
 import { IModel } from './engines/interfaces'
 declare const chrome: typeof Browser
+declare global {
+    const GM_info: unknown
+}
 
 export const defaultAPIURL = 'https://api.openai.com'
 export const defaultAPIURLPath = '/v1/chat/completions'
@@ -140,7 +143,7 @@ export async function getAccessTokenWithoutLocalStorage(): Promise<string> {
 }
 
 // In order to let the type system remind you that all keys have been passed to browser.storage.sync.get(keys)
-const settingKeys: Record<keyof ISettings, number> = {
+const settingKeys: Partial<Record<keyof ISettings, number>> = {
     isFirstTimeUse: 1,
     automaticCheckForUpdates: 1,
     apiKeys: 1,
@@ -406,11 +409,10 @@ export function getAssetUrl(asset: string) {
     if (isUserscript()) {
         return asset
     }
-    return new URL(asset, import.meta.url).href
+    return `/assets/${asset}`
 }
 
 export const isUserscript = () => {
-    // eslint-disable-next-line camelcase
     return typeof GM_info !== 'undefined'
 }
 
@@ -474,7 +476,7 @@ export const jsonToActions = async (file: File): Promise<any> => {
         if (jsonData.actions && Array.isArray(jsonData.actions)) {
             return jsonData.actions
         }
-        
+
         // 如果数据本身就是数组，直接返回
         if (Array.isArray(jsonData)) {
             return jsonData
@@ -596,5 +598,5 @@ export async function callBackendAPIWithToken(token: string, method: string, end
 export async function getModels(): Promise<IModel[]> {
     const settings = await getSettings()
     const engine = getEngine(settings.provider)
-    return await engine.listModels(settings.apiKey)
+    return await engine.listModels(settings.apiKeys)
 }

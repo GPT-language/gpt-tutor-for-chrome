@@ -386,7 +386,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [])
     const {
         activateAction,
-        lastUsedAction,
         currentFileId,
         selectedWord,
         deleteSelectedWord,
@@ -793,12 +792,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     // 如果没有设置activateAction，则设置为开放提问
     useEffect(() => {
-        if (!activateAction && !lastUsedAction) {
+        if (!activateAction) {
             setIsOpenToAsk(true)
         } else {
             setIsOpenToAsk(false)
         }
-    }, [activateAction, lastUsedAction])
+    }, [activateAction])
 
     useEffect(() => {
         setTranslatedLines(translatedText.split('\n'))
@@ -1171,9 +1170,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     ? message.content
                                     : translatedText + message.content
 
+                                // 存在以下三种情况
+                                // 1. 当前存在对话，那么直接使用 currentConversationKey
+                                // 2. 当前不存在对话但是激活了 action，那么使用 activateAction?.name
+                                // 3. 当前不存在对话且没有激活 action，那么使用 editableText
                                 const actionName =
-                                    useChatStore.getState().currentConversationTitle ||
-                                    (isOpenToAsk ? question : activateAction?.name || lastUsedAction?.name)
+                                    useChatStore.getState().currentConversationKey ||
+                                    (isOpenToAsk ? editableText : activateAction?.name)
 
                                 // 更新 answers
                                 let newAnswers = {}
