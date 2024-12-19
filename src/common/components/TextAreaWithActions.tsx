@@ -245,21 +245,18 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 preCaretRange.setEnd(range.endContainer, range.endOffset)
                 const caretOffset = preCaretRange.toString().length
 
-                // 检查@符号
-                const lastAtIndex = text.lastIndexOf('@', caretOffset)
-                if (lastAtIndex !== -1 && caretOffset - lastAtIndex <= 20) {
+                // 重置所有菜单状态
+                setShowActionMenu(false)
+                setShowGroupMenu(false)
+                setShowConversationMenu(false)
+
+                // 检查最后输入的字符，只显示对应的菜单
+                const lastChar = text.charAt(caretOffset - 1)
+                if (lastChar === '@') {
                     setShowActionMenu(true)
-                }
-
-                // 检查/符号
-                const lastSlashIndex = text.lastIndexOf('#', caretOffset)
-                if (lastSlashIndex !== -1 && caretOffset - lastSlashIndex <= 20) {
+                } else if (lastChar === '#') {
                     setShowGroupMenu(true)
-                }
-
-                // 检查 "~" 符号
-                const lastGreaterThanIndex = text.lastIndexOf('~', caretOffset)
-                if (lastGreaterThanIndex !== -1 && caretOffset - lastGreaterThanIndex <= 20) {
+                } else if (lastChar === '~') {
                     // 准备对话列表
                     const conversations = Object.entries(answers || {}).map(([key, value]) => ({
                         key,
@@ -267,8 +264,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                     }))
                     setAvailableConversations(conversations)
                     setShowConversationMenu(true)
-                } else {
-                    setShowConversationMenu(false)
                 }
             }
 
@@ -283,10 +278,9 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         ) as Text[]
 
         textNodes.forEach((textNode) => {
-            // 替换文本节点中的 @或者/ 符号及其后面的文本，直到遇到空格或标点
+            // 替换文本节点中的 @或者# 符号和~及其后面的文本，直到遇到空格或标点
             const newText =
-                textNode.textContent?.replace(/@\S+/g, '').replace(/\/\S+/g, '').replace(/@/g, '').replace(/\//g, '') ||
-                ''
+                textNode.textContent?.replace(/@#~S+/g, '').replace(/@/g, '').replace(/#/g, '').replace(/~/g, '') || ''
 
             // 清理可留下的多余空格
             textNode.textContent = newText.replace(/\s+/g, ' ')
@@ -342,69 +336,8 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     const handleGroupSelect = (group: { name: string }) => {
         setSelectedGroup(group.name)
         setGroupSearchTerm('')
-        if (editorRef.current) {
-            const selection = window.getSelection()
-            if (selection && selection.rangeCount > 0) {
-                // 检查是否存在 action tag
-                const existingActionTag = Array.from(editorRef.current.children).find(
-                    (child) => child instanceof HTMLElement && child.hasAttribute('data-action-id')
-                ) as HTMLElement | undefined
-
-                // 检查是否已存在 group tag
-                const existingGroupTag = Array.from(editorRef.current.children).find(
-                    (child) => child instanceof HTMLElement && child.hasAttribute('data-group-name')
-                ) as HTMLElement | undefined
-
-                // 创建新的 group tag
-                const groupTag = document.createElement('span')
-                groupTag.contentEditable = 'false'
-                groupTag.className = css({
-                    backgroundColor: 'rgb(241, 230, 230)',
-                    borderRadius: '3px',
-                    padding: '2px 4px',
-                    margin: '0 2px',
-                    color: '#825447',
-                    fontSize: '0.9em',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    display: 'inline-block',
-                })
-                groupTag.setAttribute('data-group-name', group.name)
-                groupTag.textContent = `/${group.name}`
-
-                if (existingGroupTag) {
-                    // 如果已存在 group tag，直接替换内容
-                    existingGroupTag.setAttribute('data-group-name', group.name)
-                    existingGroupTag.textContent = `/${group.name}`
-                } else {
-                    // 如果存在 action tag，在其前面插入 group tag
-                    if (existingActionTag) {
-                        // 按顺序插入元素：group tag、空格、action tag、剩余文本
-                        editorRef.current.appendChild(groupTag)
-                        editorRef.current.appendChild(document.createTextNode(' '))
-                        editorRef.current.appendChild(existingActionTag)
-                    } else {
-                        // 如果不存在任何 tag，按原来的逻辑处理
-
-                        editorRef.current.appendChild(groupTag)
-                        const space = document.createTextNode(' ')
-                        editorRef.current.appendChild(space)
-                    }
-                }
-
-                // 将光标移动到适当位置
-                const newRange = document.createRange()
-                const lastNode = editorRef.current.lastChild
-                newRange.setStartAfter(lastNode || groupTag)
-                newRange.setEndAfter(lastNode || groupTag)
-                selection.removeAllRanges()
-                selection.addRange(newRange)
-            }
-
-            // 在所有 action tag 处理完成后执行清理
-            cleanupText()
-        }
         setShowGroupMenu(false)
+        cleanupText()
         handleInput()
     }
 
@@ -540,10 +473,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     }
 
     useEffect(() => {
-        console.log('activateAction', activateAction)
-    }, [activateAction])
-
-    useEffect(() => {
         if (!actionTagRef.current) return
 
         if (activateAction) {
@@ -564,13 +493,8 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         setCurrentConversationKey(conversation.key)
         setShowConversationMenu(false)
 
-        // 清理输入框中的 ">" 符号
-        if (editorRef.current) {
-            const text = editorRef.current.innerText
-            const cleanedText = text.replace(/>[^\s]*$/, '').trim()
-            editorRef.current.innerText = cleanedText
-            handleSetEditableText(cleanedText)
-        }
+        // 清理输入框中的 "~"
+        cleanupText()
     }
 
     return (
@@ -643,22 +567,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 data-placeholder={placeholder}
                 data-testid='textarea-with-actions'
             >
-                <span
-                    ref={groupTagRef}
-                    contentEditable={false}
-                    className={css({
-                        backgroundColor: 'rgb(241, 230, 230)',
-                        borderRadius: '3px',
-                        padding: '2px 4px',
-                        margin: '0 2px',
-                        color: '#825447',
-                        fontSize: '0.9em',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        display: 'none', // 默认隐藏
-                    })}
-                    data-group-name={selectedGroup || ''}
-                />
 
                 {/* 预设 action 标签 */}
                 <span
@@ -934,14 +842,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                                 handleConversationSelect(item.conversation)
                             }
                             setShowConversationMenu(false)
-
-                            // 清理输入框中的 "~" 符号
-                            if (editorRef.current) {
-                                const text = editorRef.current.innerText
-                                const cleanedText = text.replace(/~[^\s]*$/, '').trim()
-                                editorRef.current.innerText = cleanedText
-                                handleSetEditableText(cleanedText)
-                            }
                         }}
                         overrides={{
                             List: {
