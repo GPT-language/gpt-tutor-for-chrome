@@ -411,6 +411,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         quoteText,
         setQuoteText,
         settings,
+        showSidebar,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -1503,9 +1504,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                         text={editableText}
                                     />
                                 )}
-                                <div style={{ display: 'flex', flexDirection: 'row', height: '100%' }}>
-                                    <WordListUploader />
-                                </div>
                                 {selectedWord?.text !== '' && (
                                     <div
                                         className={styles.popupCardTranslatedContainer}
@@ -1545,13 +1543,42 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 style={{
                                                     marginTop: '20px',
                                                     width: '100%',
+                                                    display: 'flex',
+                                                    flexDirection: 'row',
+                                                    alignItems: 'flex-start',
+                                                    position: 'relative',
+                                                    paddingBottom: '120px',
+                                                    height: '100%',
                                                 }}
                                             >
+                                                {/* WordList侧边栏 */}
                                                 <div
-                                                    ref={translatedContentRef}
-                                                    className={styles.popupCardTranslatedContentContainer}
+                                                    style={{
+                                                        position: 'fixed',
+                                                        height: '50vh',
+                                                        width: 'auto',
+                                                        left: showSidebar ? '16px' : '-270px', // 根据状态控制位置
+                                                        overflowY: 'auto',
+                                                        paddingRight: '16px',
+                                                        boxSizing: 'border-box',
+                                                        transition: 'left 0.3s ease', // 添加过渡动画
+                                                    }}
                                                 >
-                                                    <div style={{ width: '100%' }}>
+                                                    <WordListUploader />
+                                                </div>
+                                                {/* 主内容区 */}
+                                                <div
+                                                    style={{
+                                                        marginLeft: showSidebar ? '266px' : '0',
+                                                        flex: 1,
+                                                        width: showSidebar ? 'calc(100% - 266px)' : '100%',
+                                                        transition: 'all 0.3s ease',
+                                                    }}
+                                                >
+                                                    <div
+                                                        ref={translatedContentRef}
+                                                        className={styles.popupCardTranslatedContentContainer}
+                                                    >
                                                         <AnswerManager
                                                             isLoading={isLoading}
                                                             isSpeakingTranslatedText={isSpeakingTranslatedText}
@@ -1569,6 +1596,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                         />
                                                     </div>
                                                 </div>
+                                                {/* 底部输入框 */}
                                                 {showFullQuoteText ? null : (
                                                     <div
                                                         style={{
@@ -1589,35 +1617,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                         />
                                                     </div>
                                                 )}
-                                                <Dropzone noClick={true}>
-                                                    {({ getRootProps }) => (
-                                                        <div
-                                                            {...getRootProps()}
-                                                            style={{
-                                                                flex: 1,
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                            }}
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    display: 'flex',
-                                                                    flexDirection: 'row',
-                                                                    alignItems: 'center',
-                                                                    paddingTop: 8,
-                                                                    transition: 'all 0.3s linear',
-                                                                    overflow: 'visible',
-                                                                }}
-                                                            >
-                                                                <div
-                                                                    style={{
-                                                                        marginRight: 'auto',
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </Dropzone>
                                             </div>
                                         )}
                                         {isNotLogin && settings?.provider === 'ChatGPT' && (
