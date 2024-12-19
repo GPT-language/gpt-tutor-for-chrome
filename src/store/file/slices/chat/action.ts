@@ -5,6 +5,7 @@ import { produce } from 'immer'
 import { Action} from '@/common/internal-services/db'
 import { IEngine } from '@/common/engines/interfaces'
 import { ISettings } from '@/common/types'
+import { formatDate } from '@/common/utils/format'
 
 
 export interface TranslateCallbacks {
@@ -44,6 +45,7 @@ export interface ChatAction {
     setShowConversationMenu: (show: boolean) => void
     setAvailableConversations: (conversations: { key: string; messages: ChatMessage[] }[]) => void
     setCurrentConversationKey: (key: string) => void
+    generateNewConversationKey: () => string
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set, get) => ({
@@ -88,4 +90,29 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
     setShowConversationMenu: (show) => set({ showConversationMenu: show }),
     setAvailableConversations: (conversations) => set({ availableConversations: conversations }),
     setCurrentConversationKey: (key) => set({ currentConversationKey: key }),
+    // ... existing code ...
+generateNewConversationKey: () => {
+    // 生成一个包含日期和时间的唯一标识符
+    const now = new Date()
+    const timestamp = now.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }).replace(/[\/\s:]/g, '')  // 移除分隔符
+    
+    if (get().activateAction?.name) {
+        return `${get().activateAction?.name}_${timestamp}`
+    }
+    
+    if (get().editableText) {
+        const truncatedText = get().editableText.slice(0, 20).trim()
+        return truncatedText ? `${truncatedText}_${timestamp}` : timestamp
+    }
+    
+    return timestamp
+}
 })

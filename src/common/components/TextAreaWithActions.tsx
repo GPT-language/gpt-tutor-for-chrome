@@ -10,7 +10,6 @@ import { LabelSmall } from 'baseui-sd/typography'
 import { IoClose } from 'react-icons/io5'
 import { FaArrowUp } from 'react-icons/fa'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
-import { formatDate } from '@/common/utils/format'
 
 interface AutocompleteTextareaProps {
     // 1. 增加更多可配置的属性
@@ -49,22 +48,6 @@ const TEXTAREA_STYLES = {
     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
 } as const
 
-// 添加一个生成新对话key的辅助函数
-const generateNewConversationKey = (activateAction?: Action, editableText?: string): string => {
-    const currentDate = formatDate(new Date())
-
-    if (activateAction?.name) {
-        return `${activateAction.name}_${currentDate}`
-    }
-
-    if (editableText) {
-        // 限制长度，避免key太长
-        const truncatedText = editableText.slice(0, 20).trim()
-        return truncatedText ? `${truncatedText}_${currentDate}` : currentDate
-    }
-
-    return currentDate
-}
 
 const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     editableText,
@@ -99,6 +82,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         availableConversations,
         setAvailableConversations,
         setCurrentConversationKey,
+        generateNewConversationKey,
         answers,
     } = useChatStore()
     const [searchTerm, setSearchTerm] = useState('')
@@ -276,7 +260,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 // 检查 "~" 符号
                 const lastGreaterThanIndex = text.lastIndexOf('~', caretOffset)
                 if (lastGreaterThanIndex !== -1 && caretOffset - lastGreaterThanIndex <= 20) {
-                    const searchText = text.slice(lastGreaterThanIndex + 1, caretOffset)
                     // 准备对话列表
                     const conversations = Object.entries(answers || {}).map(([key, value]) => ({
                         key,
@@ -944,7 +927,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                         onItemSelect={({ item }) => {
                             if (item.isNew) {
                                 // 处理新建对话
-                                const newKey = generateNewConversationKey(activateAction, editableText)
+                                const newKey = generateNewConversationKey()
                                 setCurrentConversationKey(newKey)
                             } else {
                                 // 处理选择现有对话

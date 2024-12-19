@@ -110,7 +110,10 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) =>
         answers,
         selectedWord,
         currentConversationKey,
-        setCurrentConversationKey, // 添加这个
+        setCurrentConversationKey,
+        generateNewConversationKey,
+        activateAction,
+        editableText,
     } = useChatStore()
     const [latestExpandedMessageId, setLatestExpandedMessageId] = React.useState<string | null>(null)
     const previousConversationKey = useRef<string | null>(null)
@@ -122,35 +125,42 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) =>
         return conversations[currentConversationKey]?.conversationMessages || []
     }, [answers, selectedWord, currentConversationKey])
 
-    // 监听 answers 变化，自动选择最新的对话
+    // 监听 answers 变化，处理对话显示逻辑
     useEffect(() => {
         const conversations = answers || selectedWord?.answers
         if (!conversations) return
         console.log('conversations', conversations)
         console.log('currentConversationKey', currentConversationKey)
 
-        // 获取所有对话的 key
-        const conversationKeys = Object.keys(conversations)
-        if (conversationKeys.length === 0) return
+        // 如果没有选择对话或当前选择的对话不存在，生成新的对话 key
+        if (!currentConversationKey || !conversations[currentConversationKey]) {
+            const newKey = generateNewConversationKey(activateAction, editableText)
+            setCurrentConversationKey(newKey)
+            previousConversationKey.current = newKey
+            return
+        }
 
-        // 如果 currentConversationKey 发生变化或不存在，自动选择最新的对话
+        // 处理对话切换的情况
         if (currentConversationKey !== previousConversationKey.current) {
-            // 找到最新对话中最新的用户消息
-            const latestMessages = conversations[currentConversationKey]?.conversationMessages || []
-            for (let i = latestMessages.length - 1; i >= 0; i--) {
-                if (
-                    latestMessages[i].role === 'user' &&
-                    i + 1 < latestMessages.length &&
-                    latestMessages[i + 1].role === 'assistant'
-                ) {
-                    setLatestExpandedMessageId(latestMessages[i].messageId)
+            // 当对话切换时，展开最新的消息
+            const messages = conversations[currentConversationKey]?.conversationMessages || []
+            for (let i = messages.length - 1; i >= 0; i--) {
+                if (messages[i].role === 'user' && i + 1 < messages.length && messages[i + 1].role === 'assistant') {
+                    setLatestExpandedMessageId(messages[i].messageId)
                     break
                 }
             }
-
             previousConversationKey.current = currentConversationKey
         }
-    }, [answers, selectedWord, currentConversationKey, setCurrentConversationKey])
+    }, [
+        answers,
+        selectedWord,
+        currentConversationKey,
+        activateAction,
+        editableText,
+        setCurrentConversationKey,
+        generateNewConversationKey,
+    ])
 
     const groupedMessages = useMemo(() => {
         const messages = currentMessages
