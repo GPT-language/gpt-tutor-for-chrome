@@ -305,28 +305,11 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     }
 
     const splitIntoParagraphsAndSentences = (text: string): string[] => {
-        if (!text) {
-            return []
-        }
-        // 首先按段落分割
-        const paragraphs = text.split('\n').filter(Boolean)
-
-        // 然后对每个段落进行句子分割
-        return paragraphs.flatMap((paragraph) => {
-            // 检查是否为编号列表项
-            if (/^\d+\.\s/.test(paragraph)) {
-                return paragraph // 如果是编号列表项，直接返回整个段落
-            }
-            // 使用正则表达式来分割句子，但避免分割常见的缩写和数字后的句号
-            const sentences = paragraph
-                .split(/(?<=[.!?])\s+(?=[A-Z])/)
-                .map((sentence) => sentence.trim())
-                .filter(Boolean)
-            // todo: 实现其它语言的句
-
-            // 如果段落只有一个句子，直接返回；否则返回分割后的句子
-            return sentences.length === 1 ? paragraph : sentences
-        })
+        // 只按段落分割,保持原有格式
+        return text
+            .split('\n')
+            .filter(Boolean)
+            .map((p) => p.trim())
     }
 
     const handleTextSelection = useCallback(() => {
@@ -368,7 +351,6 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                         <Block
                                             display='flex'
                                             justifyContent='flex-end'
-                                            marginTop='10px'
                                             width='100%'
                                             $style={{ gap: '10px' }}
                                         >
@@ -432,7 +414,6 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                         {currentAiAnswer && (
                                             <Block
                                                 $style={{
-                                                    marginTop: '10px',
                                                     backgroundColor: '#f0f0f0',
                                                     padding: '10px',
                                                 }}
@@ -447,12 +428,20 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                         $style={{
                                             cursor: 'pointer',
                                             display: 'flex',
-                                            alignItems: 'center',
+                                            alignItems: 'flex-start',
                                             justifyContent: 'space-between',
                                             position: 'relative',
+                                            flexWrap: 'wrap',
                                         }}
                                     >
-                                        <Block $style={{ flex: 1 }}>
+                                        <Block
+                                            $style={{
+                                                flex: '1 1 auto',
+                                                minWidth: 0,
+                                                wordWrap: 'break-word',
+                                                overflowWrap: 'break-word',
+                                            }}
+                                        >
                                             {format === 'markdown' ? <Markdown>{paragraph}</Markdown> : paragraph}
                                         </Block>
                                         {hoveredParagraph === index && (
@@ -460,7 +449,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                 display='flex'
                                                 alignItems='center'
                                                 position='relative'
-                                                top='50%'
+                                                marginTop='10px'
                                                 $style={{
                                                     backgroundColor: 'transparent', // 半透明背景
                                                     padding: '0 4px', // 添加一些内边距
