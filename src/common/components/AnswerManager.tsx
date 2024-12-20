@@ -433,9 +433,8 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                         $style={{
                                             cursor: 'pointer',
                                             display: 'flex',
-                                            alignItems: 'flex-start',
+                                            alignItems: 'center',
                                             justifyContent: 'space-between',
-                                            position: 'relative',
                                             flexWrap: 'wrap',
                                         }}
                                     >
@@ -458,6 +457,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                 $style={{
                                                     backgroundColor: 'transparent', // 半透明背景
                                                     padding: '0 4px', // 添加一些内边距
+                                                    marginLeft: '8px',
                                                 }}
                                             >
                                                 <Tooltip content={t('Edit')} placement='bottom'>
