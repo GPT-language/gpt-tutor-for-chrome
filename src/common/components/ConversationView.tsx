@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useCallback } from 'react'
 import { Block } from 'baseui-sd/block'
-import { useTranslation } from 'react-i18next'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
 import { formatDate } from '@/common/utils/format'
 import { useChatStore } from '@/store/file/store'
@@ -165,7 +164,6 @@ const MessageItem: React.FC<{
 }
 
 const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) => {
-    const { t } = useTranslation()
     const {
         answers,
         selectedWord,
@@ -193,7 +191,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) =>
         console.log('currentConversationKey', currentConversationKey)
 
         // 如果没有选择对话或当前选择的对话不存在，生成新的对话 key
-        if (!currentConversationKey || !conversations[currentConversationKey]) {
+        if (!currentConversationKey) {
             const newKey = generateNewConversationKey()
             setCurrentConversationKey(newKey)
             previousConversationKey.current = newKey

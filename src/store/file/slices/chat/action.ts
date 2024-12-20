@@ -105,6 +105,10 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
     // ... existing code ...
 generateNewConversationKey: () => {
     // 生成一个包含日期和时间的唯一标识符
+    // 存在以下三种情况
+    // 1. 当前存在对话，那么直接使用 currentConversationKey
+    // 2. 当前不存在对话但是激活了 action，那么使用 activateAction?.name
+    // 3. 当前不存在对话且没有激活 action，那么使用 editableText
     const now = new Date()
     const timestamp = now.toLocaleString('zh-CN', {
         year: 'numeric',

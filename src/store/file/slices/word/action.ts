@@ -498,11 +498,7 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
         set(
             produce((draft: ChatStore) => {
                 // 确定 saveKey 的优先级：currentConversationKey > activateAction.name > editableText
-                const saveKey =
-                    draft.currentConversationKey ||
-                    draft.activateAction?.name ||
-                    draft.editableText ||
-                    new Date().toISOString()
+                const saveKey = draft.currentConversationKey
 
                 console.log('Using saveKey:', saveKey)
 

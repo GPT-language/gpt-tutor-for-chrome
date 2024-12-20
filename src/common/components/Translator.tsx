@@ -1171,19 +1171,14 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     ? message.content
                                     : translatedText + message.content
 
-                                // 存在以下三种情况
-                                // 1. 当前存在对话，那么直接使用 currentConversationKey
-                                // 2. 当前不存在对话但是激活了 action，那么使用 activateAction?.name
-                                // 3. 当前不存在对话且没有激活 action，那么使用 editableText
-                                const actionName =
-                                    useChatStore.getState().currentConversationKey ||
-                                    (isOpenToAsk ? editableText : activateAction?.name)
+
+                                const saveKey = useChatStore.getState().currentConversationKey
 
                                 // 更新 answers
                                 let newAnswers = {}
 
                                 const conversationMessages: ChatMessage[] = [
-                                    ...(answers[actionName || question]?.conversationMessages || []),
+                                    ...(answers[saveKey || question]?.conversationMessages || []),
                                     {
                                         role: 'user',
                                         content: activateAction?.name || question || '',
@@ -1201,7 +1196,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 ]
                                 newAnswers = {
                                     ...answers,
-                                    [actionName || question]: {
+                                    [saveKey || question]: {
                                         conversationMessages,
                                     },
                                 }
