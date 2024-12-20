@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useCallback } from 'react'
 import { Block } from 'baseui-sd/block'
 import { useTranslation } from 'react-i18next'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
 import { formatDate } from '@/common/utils/format'
 import { useChatStore } from '@/store/file/store'
-import { RxChevronDown } from 'react-icons/rx'
+import { RxChevronDown, RxSpeakerLoud } from 'react-icons/rx'
 import { useStyletron } from 'styletron-react'
-import { debounce } from 'lodash-es'
+import SpeakerMotion from './SpeakerMotion'
+import { shallow } from 'zustand/shallow'
 
 interface ConversationViewProps {
     onCopy?: (text: string) => void
@@ -24,6 +25,40 @@ const MessageItem: React.FC<{
     renderContent: (text: string, format: string, actionName?: string, messageId?: string) => React.ReactNode
 }> = ({ message, nextMessage, isExpanded, onToggle, renderContent }) => {
     const [css] = useStyletron()
+    const { speakingMessageId, isSpeaking, startSpeak, currentConversationKey } = useChatStore(
+        (state) => ({
+            speakingMessageId: state.speakingMessageId,
+            isSpeaking: state.isSpeaking,
+            startSpeak: state.startSpeak,
+            currentConversationKey: state.currentConversationKey,
+        }),
+        shallow
+    )
+
+    const handleSpeak = useCallback(
+        async (text: string, messageId: string) => {
+            if (isSpeaking) {
+                // 如果当前消息正在播放，则停止播放
+                console.log('stopSpeak')
+                await startSpeak({
+                    text: '', // 空文本触发停止
+                })
+            } else {
+                console.log('startSpeak')
+                // 开始新的播放
+                try {
+                    await startSpeak({
+                        text,
+                        messageId,
+                        conversationId: currentConversationKey,
+                    })
+                } catch (error) {
+                    console.error('Error detecting language:', error)
+                }
+            }
+        },
+        [isSpeaking, startSpeak, currentConversationKey]
+    )
 
     // 样式定义
     const messageContainerStyles = css({
@@ -61,6 +96,14 @@ const MessageItem: React.FC<{
         marginLeft: '8px',
     })
 
+    const speakButtonStyles = css({
+        marginLeft: '8px',
+        cursor: 'pointer',
+        backgroundColor: 'transparent',
+        border: 'none',
+        outline: 'none',
+    })
+
     const animatedContentStyles = css({
         transition: 'all 0.3s ease-in-out',
         maxHeight: isExpanded ? '2000px' : '0px',
@@ -82,7 +125,24 @@ const MessageItem: React.FC<{
                     <Block flex='1'>
                         <Block>{message.actionName || message.content}</Block>
                     </Block>
-                    <RxChevronDown size={20} className={expandIconStyles} />
+                    <Block display='flex' alignItems='center'>
+                        {nextMessage?.role === 'assistant' && (
+                            <button
+                                className={speakButtonStyles}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleSpeak(nextMessage.content, message.messageId)
+                                }}
+                            >
+                                {isSpeaking && speakingMessageId === message.messageId ? (
+                                    <SpeakerMotion />
+                                ) : (
+                                    <RxSpeakerLoud size={13} />
+                                )}
+                            </button>
+                        )}
+                        <RxChevronDown size={20} className={expandIconStyles} />
+                    </Block>
                 </Block>
 
                 {nextMessage?.role === 'assistant' && (
@@ -134,7 +194,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) =>
 
         // 如果没有选择对话或当前选择的对话不存在，生成新的对话 key
         if (!currentConversationKey || !conversations[currentConversationKey]) {
-            const newKey = generateNewConversationKey(activateAction, editableText)
+            const newKey = generateNewConversationKey()
             setCurrentConversationKey(newKey)
             previousConversationKey.current = newKey
             return

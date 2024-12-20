@@ -5,8 +5,8 @@ import { produce } from 'immer'
 import { Action} from '@/common/internal-services/db'
 import { IEngine } from '@/common/engines/interfaces'
 import { ISettings } from '@/common/types'
-import { formatDate } from '@/common/utils/format'
-
+import { speak } from '@/common/tts'
+import { detectLang } from '@/common/components/lang/lang'
 
 export interface TranslateCallbacks {
     onBeforeTranslate?: () => void
@@ -46,9 +46,21 @@ export interface ChatAction {
     setAvailableConversations: (conversations: { key: string; messages: ChatMessage[] }[]) => void
     setCurrentConversationKey: (key: string) => void
     generateNewConversationKey: () => string
+    setSpeakingMessageId: (messageId: string | null) => void
+    startSpeak: (params: {
+        text: string
+        messageId?: string
+        conversationId?: string
+        lang?: string
+    }) => Promise<void>
+    stopSpeak: () => void
 }
 
-export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set, get) => ({
+export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set, get) => {
+    // 使用 ref 来存储 stopSpeak 函数
+    let stopSpeakRef: (() => void) | null = null
+
+    return {
     setEditableText: (text) => set({ editableText: text }),
     setConversationId: (id) =>
         set(
@@ -102,7 +114,7 @@ generateNewConversationKey: () => {
         minute: '2-digit',
         second: '2-digit',
         hour12: false
-    }).replace(/[\/\s:]/g, '')  // 移除分隔符
+    }).replace(/\/|\s|:/g, '')  // 移除分隔符
     
     if (get().activateAction?.name) {
         return `${get().activateAction?.name}_${timestamp}`
@@ -115,4 +127,67 @@ generateNewConversationKey: () => {
     
     return timestamp
 }
-})
+,
+        setSpeakingMessageId: (messageId) => set({ speakingMessageId: messageId }),
+        startSpeak: async ({ text, messageId, conversationId }) => {
+            const currentState = get()
+            
+            // 如果当前正在播放，先停止
+            if (currentState.isSpeaking) {
+                stopSpeakRef?.()
+                set({ 
+                    speakingMessageId: null,
+                    isSpeaking: false
+                })
+                return
+            }
+
+            try {
+                // 检测语言
+                
+                const lang = await detectLang(text)
+                console.log('detect lang', lang)
+                // 更新状态为正在播放
+                set({ 
+                    speakingMessageId: messageId || null,
+                    isSpeaking: true
+                })
+
+                // 开始播放
+                const { stopSpeak } = await speak({
+                    text,
+                    messageId,
+                    conversationId,
+                    lang,
+                    onFinish: () => {
+                        set({ 
+                            speakingMessageId: null,
+                            isSpeaking: false
+                        })
+                        stopSpeakRef = null
+                    }
+                })
+
+                // 保存停止函数的引用
+                stopSpeakRef = stopSpeak
+
+            } catch (error) {
+                console.error('Failed to speak:', error)
+                set({ 
+                    speakingMessageId: null,
+                    isSpeaking: false
+                })
+                stopSpeakRef = null
+            }
+        },
+
+        stopSpeak: () => {
+            stopSpeakRef?.()
+            set({ 
+                speakingMessageId: null,
+                isSpeaking: false
+            })
+            stopSpeakRef = null
+        }
+    }
+}

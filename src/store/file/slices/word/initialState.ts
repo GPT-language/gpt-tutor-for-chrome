@@ -23,6 +23,20 @@ const defaultSelectedWord: Content = {
         'translate to Chinese': {
             text: '这是例子',
             format: 'text',
+            conversationMessages: [
+                {
+                    messageId: '1',
+                    content: 'Translate to Chinese',
+                    role: 'user',
+                    createdAt: Date.now(),
+                },
+                {
+                    messageId: '2',
+                    content: '这是例子',
+                    role: 'assistant',
+                    createdAt: Date.now(),
+                },
+            ],
         },
     },
 }

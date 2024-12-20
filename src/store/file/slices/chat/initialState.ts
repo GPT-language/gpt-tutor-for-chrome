@@ -34,6 +34,8 @@ export interface ChatState {
     showConversationMenu: boolean
     availableConversations: { key: string; messages: ChatMessage[] }[]
     currentConversationKey: string
+    speakingMessageId: string | null
+    isSpeaking: boolean
 }
 
 export const initialChatState: ChatState = {
@@ -60,4 +62,6 @@ export const initialChatState: ChatState = {
     showConversationMenu: false,
     availableConversations: [],
     currentConversationKey: '',
+    speakingMessageId: null,
+    isSpeaking: false,
 }

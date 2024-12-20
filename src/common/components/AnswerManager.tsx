@@ -333,10 +333,13 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 key={`p-${index}`}
                                 marginBottom='10px'
                                 position='relative'
+                                // 设置换行
+
                                 onMouseEnter={() => setHoveredParagraph(index)}
                                 onMouseLeave={() => setHoveredParagraph(null)}
                                 $style={{
                                     width: '100%',
+                                    whiteSpace: 'pre-wrap',
                                 }}
                             >
                                 {(editingAction === actionName ||
@@ -351,6 +354,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                         <Block
                                             display='flex'
                                             justifyContent='flex-end'
+                                            marginTop='10px'
                                             width='100%'
                                             $style={{ gap: '10px' }}
                                         >
@@ -414,6 +418,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                         {currentAiAnswer && (
                                             <Block
                                                 $style={{
+                                                    marginTop: '10px',
                                                     backgroundColor: '#f0f0f0',
                                                     padding: '10px',
                                                 }}
@@ -449,7 +454,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                 display='flex'
                                                 alignItems='center'
                                                 position='relative'
-                                                marginTop='10px'
+                                                top='50%'
                                                 $style={{
                                                     backgroundColor: 'transparent', // 半透明背景
                                                     padding: '0 4px', // 添加一些内边距

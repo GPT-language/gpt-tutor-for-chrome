@@ -1471,12 +1471,22 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             backgroundColor: theme.colors.backgroundPrimary,
                             height: showCategory ? 'auto' : '8px',
                             overflow: 'hidden',
-                            transition: 'all 0.3s ease',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            opacity: showCategory ? 1 : 0.6,
+                            transitionDelay: showCategory ? '0.1s' : '0s',
                         }}
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
                     >
-                        <CategorySelector />
+                         <div
+                            style={{
+                                transform: `translateY(${showCategory ? '0' : '-100%'})`,
+                                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                opacity: showCategory ? 1 : 0,
+                            }}
+                        >
+                            <CategorySelector />
+                        </div>
                     </div>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div className={styles.popupCardContentContainer}>
