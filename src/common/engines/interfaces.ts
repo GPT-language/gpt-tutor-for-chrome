@@ -19,7 +19,6 @@ export interface IMessageRequest {
     activateAction?: Action
     messageId?: string
     parentAction?: Action
-    isMultipleConversation?: boolean
     conversationMessages?: Array<{
         role: string
         content: string

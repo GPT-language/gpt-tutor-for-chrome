@@ -19,6 +19,7 @@ export interface ComponentAction {
     initializeSettings: () => void
     updateSettings: (newSettings: Partial<ISettings>) => void
     setShowAuthModal: (isShow: boolean) => void
+    setShowAnkiNote: (isShow: boolean) => void
     setTutorialState: (newState: Partial<ComponentState['tutorialState']>) => void
     startTutorial: () => void
     endTutorial: () => void
@@ -48,4 +49,5 @@ export const component: StateCreator<ComponentState, [['zustand/devtools', never
     })),
     startTutorial: () => set((state) => ({ tutorialState: { ...state.tutorialState, isActive: true } })),
     endTutorial: () => set((state) => ({ tutorialState: { ...state.tutorialState, isActive: false } })),
+    setShowAnkiNote: (isShow) => set({ showAnkiNote: isShow }),
 })

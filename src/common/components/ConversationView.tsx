@@ -1,12 +1,16 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react'
+import React, { useEffect, useMemo, useRef, useCallback, useState } from 'react'
 import { Block } from 'baseui-sd/block'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
 import { formatDate } from '@/common/utils/format'
 import { useChatStore } from '@/store/file/store'
-import { RxChevronDown, RxSpeakerLoud } from 'react-icons/rx'
+import { RxChevronDown, RxSpeakerLoud, RxCopy } from 'react-icons/rx'
 import { useStyletron } from 'styletron-react'
 import SpeakerMotion from './SpeakerMotion'
 import { shallow } from 'zustand/shallow'
+import { useStyles } from './Translator'
+import { useTheme } from '../hooks/useTheme'
+import { isDesktopApp } from '../utils'
+import { AiOutlinePlusSquare } from 'react-icons/ai'
 
 interface ConversationViewProps {
     onCopy?: (text: string) => void
@@ -15,21 +19,37 @@ interface ConversationViewProps {
     renderContent: (text: string, format: string, actionName?: string, messageId?: string) => React.ReactNode
 }
 
-// 定义消息组件
-const MessageItem: React.FC<{
+interface MessageItemProps {
     message: ChatMessage
     nextMessage?: ChatMessage
     isExpanded: boolean
     onToggle: () => void
+    onCopy?: (text: string) => void
     renderContent: (text: string, format: string, actionName?: string, messageId?: string) => React.ReactNode
-}> = ({ message, nextMessage, isExpanded, onToggle, renderContent }) => {
+}
+
+// 定义消息组件
+const MessageItem: React.FC<MessageItemProps> = ({
+    message,
+    nextMessage,
+    isExpanded,
+    onToggle,
+    onCopy,
+    renderContent,
+}) => {
     const [css] = useStyletron()
-    const { speakingMessageId, isSpeaking, startSpeak, currentConversationKey } = useChatStore(
+    const { theme, themeType } = useTheme()
+    const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
+    const [isHover, setIsHover] = useState(false)
+    const { speakingMessageId, isSpeaking, startSpeak, currentConversationKey, addToAnki, selectedWord } = useChatStore(
         (state) => ({
             speakingMessageId: state.speakingMessageId,
             isSpeaking: state.isSpeaking,
             startSpeak: state.startSpeak,
             currentConversationKey: state.currentConversationKey,
+            addToAnki: state.addToAnki,
+            activateAction: state.activateAction,
+            selectedWord: state.selectedWord,
         }),
         shallow
     )
@@ -95,14 +115,6 @@ const MessageItem: React.FC<{
         marginLeft: '8px',
     })
 
-    const speakButtonStyles = css({
-        marginLeft: '8px',
-        cursor: 'pointer',
-        backgroundColor: 'transparent',
-        border: 'none',
-        outline: 'none',
-    })
-
     const animatedContentStyles = css({
         transition: 'all 0.3s ease-in-out',
         maxHeight: isExpanded ? '2000px' : '0px',
@@ -120,25 +132,69 @@ const MessageItem: React.FC<{
                     justifyContent='space-between'
                     className={userMessageStyles}
                     onClick={onToggle}
+                    onMouseEnter={() => setIsHover(true)}
+                    onMouseLeave={() => setIsHover(false)}
                 >
                     <Block flex='1'>
                         <Block>{message.actionName || message.content}</Block>
                     </Block>
                     <Block display='flex' alignItems='center'>
-                        {nextMessage?.role === 'assistant' && (
-                            <button
-                                className={speakButtonStyles}
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleSpeak(nextMessage.content, message.messageId)
-                                }}
-                            >
-                                {isSpeaking && speakingMessageId === message.messageId ? (
-                                    <SpeakerMotion />
-                                ) : (
-                                    <RxSpeakerLoud size={13} />
-                                )}
-                            </button>
+                        {isHover && nextMessage?.role === 'assistant' && (
+                            <>
+                                <button
+                                    className={styles.actionButton}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        marginLeft: '8px',
+                                        border: 'none',
+                                        outline: 'none',
+                                    }}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleSpeak(nextMessage.content, message.messageId)
+                                    }}
+                                >
+                                    {isSpeaking && speakingMessageId === message.messageId ? (
+                                        <SpeakerMotion />
+                                    ) : (
+                                        <RxSpeakerLoud size={13} />
+                                    )}
+                                </button>
+                                <button
+                                    className={styles.actionButton}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        marginLeft: '8px',
+                                        border: 'none',
+                                        outline: 'none',
+                                    }}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onCopy?.(nextMessage.content)
+                                    }}
+                                >
+                                    <RxCopy size={13} />
+                                </button>
+                                <button
+                                    className={styles.actionButton}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        marginLeft: '8px',
+                                        border: 'none',
+                                        outline: 'none',
+                                    }}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        addToAnki?.(
+                                            message.content || 'default',
+                                            selectedWord?.text || message.content,
+                                            nextMessage.content
+                                        )
+                                    }}
+                                >
+                                    <AiOutlinePlusSquare size={13} />
+                                </button>
+                            </>
                         )}
                         <RxChevronDown size={20} className={expandIconStyles} />
                     </Block>
@@ -163,7 +219,7 @@ const MessageItem: React.FC<{
     return null
 }
 
-const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) => {
+const ConversationView: React.FC<ConversationViewProps> = ({ renderContent, onCopy }) => {
     const {
         answers,
         selectedWord,
@@ -297,6 +353,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent }) =>
                                 nextMessage={group.messages[msgIndex + 1]}
                                 isExpanded={message.messageId === latestExpandedMessageId}
                                 onToggle={() => toggleMessage(message.messageId)}
+                                onCopy={onCopy}
                                 renderContent={renderContent}
                             />
                         ))}

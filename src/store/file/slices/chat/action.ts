@@ -41,7 +41,6 @@ export interface ChatAction {
     setTranslatedText: (text: string) => void
     setQuoteText: (text: string) => void
     setIndependentText: (text: string) => void
-    setIsMultipleConversation: (isMultiple: boolean) => void
     setShowConversationMenu: (show: boolean) => void
     setAvailableConversations: (conversations: { key: string; messages: ChatMessage[] }[]) => void
     setCurrentConversationKey: (key: string) => void
@@ -52,6 +51,7 @@ export interface ChatAction {
         messageId?: string
         conversationId?: string
         lang?: string
+        onFinish?: () => void
     }) => Promise<void>
     stopSpeak: () => void
 }
@@ -97,8 +97,6 @@ export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], Ch
     setErrorMessage: (text) => set({ errorMessage: text }),
     setTranslatedText: (text) => set({ translatedText: text }),
 
-    setIsMultipleConversation: (isMultiple) => 
-        set({ isMultipleConversation: isMultiple }),
     setShowConversationMenu: (show) => set({ showConversationMenu: show }),
     setAvailableConversations: (conversations) => set({ availableConversations: conversations }),
     setCurrentConversationKey: (key) => set({ currentConversationKey: key }),
@@ -151,7 +149,16 @@ generateNewConversationKey: () => {
                 
                 const lang = await detectLang(text)
                 console.log('detect lang', lang)
-                // 更新状态为正在播放
+                // 清理text中的markdown相关语法
+                const cleanText = text
+                    .replace(/```[\s\S]*```/g, '') // 清理代码块
+                    .replace(/\*\*(.*?)\*\*/g, '$1') // 清理加粗语法
+                    .replace(/\*(.*?)\*/g, '$1')     // 清理斜体语法
+                    .replace(/~~(.*?)~~/g, '$1')     // 清理删除线语法
+                    .replace(/`(.*?)`/g, '$1')       // 清理行内代码语法
+                    .replace(/\[(.*?)\]\(.*?\)/g, '$1') // 清理链接语法，只保留链接文本
+                    console.log('cleanText', cleanText)
+                    // 更新状态为正在播放
                 set({ 
                     speakingMessageId: messageId || null,
                     isSpeaking: true
@@ -159,7 +166,7 @@ generateNewConversationKey: () => {
 
                 // 开始播放
                 const { stopSpeak } = await speak({
-                    text,
+                    text: cleanText,
                     messageId,
                     conversationId,
                     lang,

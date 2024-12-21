@@ -165,15 +165,15 @@ export async function googleDetectLang(text: string): Promise<LangCode> {
         'pt': 'pt',
         'vi': 'vi',
         'id': 'id',
-        'ar': 'ar',
         'th': 'th',
+        'ar': 'ar',
         'hi': 'hi',
         'mn': 'mn',
         'fa': 'fa',
+        'nl': 'nl',
     }
 
-    const fetcher = getUniversalFetch()
-    const resp = await fetcher(
+    const resp = await fetch(
         `https://translate.google.com/translate_a/single?dt=at&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&${qs.stringify(
             {
                 client: 'gtx',
@@ -298,11 +298,45 @@ export async function localDetectLang(text: string): Promise<LangCode> {
 }
 
 export async function detectLang(text: string): Promise<LangCode> {
-    console.log('detectLang', text)
+    console.log('[DetectLang] 开始检测语言:', text)
     const detectedText = text.trim()
-    const lang = await localDetectLang(detectedText)
-    console.log('detectLang', lang)
-    return lang
+
+    // 1. 首先尝试使用 Google 检测
+    try {
+        const googleResult = await googleDetectLang(detectedText)
+        console.log('[DetectLang] Google 检测结果:', googleResult)
+        if (googleResult) {
+            return googleResult
+        }
+    } catch (error) {
+        console.error('[DetectLang] Google 检测失败:', error)
+    }
+
+    // 2. Google 失败后尝试使用百度检测
+    try {
+        const baiduResult = await baiduDetectLang(detectedText)
+        console.log('[DetectLang] 百度检测结果:', baiduResult)
+        if (baiduResult && baiduResult !== 'en') {
+            return baiduResult
+        }
+    } catch (error) {
+        console.error('[DetectLang] 百度检测失败:', error)
+    }
+
+    // 3. 在线检测都失败后使用本地检测
+    try {
+        const localResult = await localDetectLang(detectedText)
+        console.log('[DetectLang] 本地检测结果:', localResult)
+        if (localResult && localResult !== 'en') {
+            return localResult
+        }
+    } catch (error) {
+        console.error('[DetectLang] 本地检测失败:', error)
+    }
+
+    // 4. 所有检测方法都失败时返回默认值
+    console.log('[DetectLang] 所有检测方法均失败，返回默认值: en')
+    return 'en'
 }
 
 export function getLangConfig(langCode: LangCode): LanguageConfig {

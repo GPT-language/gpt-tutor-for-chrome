@@ -34,7 +34,6 @@ interface BaseTranslateQuery {
     outputLanguageLevel?: string
     userBackground?: string
     useBackgroundInfo?: boolean
-    isMultipleConversation?: boolean
     languageLevelInfo?: boolean
     onMessage: (message: { content: string; role: string; isFullText?: boolean }) => void
     onError: (error: string) => void
@@ -304,14 +303,6 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
     let commandPrompt = ''
     let userBackgroundPrompt = ''
 
-    // 获取多轮对话状态
-    let isMultipleConversation = query.activateAction?.isMultipleConversation
-
-    if (!query.activateAction) {
-        chatStore.setIsMultipleConversation(true)
-        isMultipleConversation = true
-    }
-    console.log('isMultipleConversation', isMultipleConversation)
 
     if (query.context) {
         assistantPrompts.push('context: ' + query.context)
@@ -413,9 +404,11 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
 
     // 2. 添加用户消息
 
+    const content = query.context ? `${query.activateAction?.name}: ${query.context}` : query.text || 'default'
+
     chatStore.addMessageToHistory({
         role: 'user',
-        content: query.activateAction?.name ? `${query.activateAction.name}: ${query.text}` : query.text || 'default',
+        content,
         createdAt: Date.now(),
         messageId: crypto.randomUUID(),
         actionName: query.activateAction?.name,
@@ -431,7 +424,6 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
         assistantPrompts,
         activateAction: query.activateAction,
         parentAction: query.parentAction,
-        isMultipleConversation,
         conversationMessages,
         onMessage: async (message) => {
             if (message.isFullText && !messageAdded) {

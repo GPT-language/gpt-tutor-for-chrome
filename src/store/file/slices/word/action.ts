@@ -12,6 +12,8 @@ import {
 import toast from 'react-hot-toast'
 import { ActionGroups } from './initialState'
 import { ChatMessage } from '../chat/initialState'
+import { addNewNote, isConnected } from '@/common/anki/anki-connect'
+import { t } from 'i18next'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any
@@ -66,6 +68,7 @@ export interface ChatWordAction {
     getConversationMessages: () => ChatMessage[]
     updateMessageContent: (messageId: string, content: string) => void
     updateMessageStatus: (messageId: string, status: 'success' | 'error' | 'pending') => void
+    addToAnki: (deckname: string, front: string, back: string) => Promise<void>
 }
 
 export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], [], ChatWordAction> = (set, get) => ({
@@ -522,7 +525,6 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                             text: '',
                             format: 'text',
                             conversationMessages: [],
-                            isMultipleConversation: true,
                         }
                     }
 
@@ -590,7 +592,6 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                     text: draft.conversationHistory.map((m) => m.content).join('\n'),
                     format: draft.activateAction?.outputRenderingFormat || 'text',
                     conversationMessages: draft.conversationHistory,
-                    isMultipleConversation: true,
                 }
             })
         ),
@@ -699,4 +700,28 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                 }
             })
         ),
+
+    addToAnki: async (deckname: string, front: string, back: string) => {
+        try {
+            const connected = await isConnected()
+
+            if (connected) {
+                // 如果存在file，应该使用file的title
+                const file = get().files.find((f) => f.id === get().currentFileId)
+                if (file) {
+                    await addNewNote(file.name, front, back)
+                } else {
+                    await addNewNote(deckname, front, back)
+                }
+                toast.success(t('Added to review'))
+            } else {
+                set({ showAnkiNote: true })
+                console.debug('Anki Not connected')
+                toast.error(t('Anki Not connected'), { duration: 5000 })
+            }
+        } catch (error) {
+            console.error('Error adding note to Anki:', error)
+            toast.error(`Error: ${error}`)
+        }
+    },
 })

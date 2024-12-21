@@ -21,7 +21,6 @@ export interface Action {
     childrenIds?: number[]
     useBackgroundInfo?: boolean
     useLanguageLevelInfo?: boolean
-    isMultipleConversation?: boolean
 }
 
 export interface ActionGroup {
@@ -48,7 +47,6 @@ export interface Answer {
     messageId?: string
     conversationId?: string
     followUpAnswers?: FollowUpAnswer[]
-    isMultipleConversation?: boolean
     conversationMessages?: ChatMessage[]
 }
 

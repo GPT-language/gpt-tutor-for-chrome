@@ -1,4 +1,4 @@
-import React, { Key, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast, { Toaster } from 'react-hot-toast'
 import { Client as Styletron } from 'styletron-engine-atomic'
@@ -6,11 +6,9 @@ import { Provider as StyletronProvider, useStyletron } from 'styletron-react'
 import { BaseProvider } from 'baseui-sd'
 import { createUseStyles } from 'react-jss'
 import { AiOutlineTranslation } from 'react-icons/ai'
-import { IoSettingsOutline } from 'react-icons/io5'
 import { detectLang, getLangConfig, LangCode } from './lang/lang'
 import { askAI } from '../translate'
-import { RxEraser, RxReload, RxSpeakerLoud } from 'react-icons/rx'
-import { RiSpeakerFill } from 'react-icons/ri'
+import { RxReload } from 'react-icons/rx'
 import { calculateMaxXY, queryPopupCardElement } from '../../browser-extension/content_script/utils'
 import { clsx } from 'clsx'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -18,17 +16,12 @@ import { ErrorFallback } from '../components/ErrorFallback'
 import { defaultAPIURL, isDesktopApp, isTauri } from '../utils'
 import { InnerSettings } from './Settings'
 import { documentPadding } from '../../browser-extension/content_script/consts'
-import Dropzone from 'react-dropzone'
-import { addNewNote, isConnected } from '../anki/anki-connect'
-import SpeakerMotion from '../components/SpeakerMotion'
 import IpLocationNotification from '../components/IpLocationNotification'
 import { HighlightInTextarea } from '../highlight-in-textarea'
-import LRUCache from 'lru-cache'
 import { ISettings, IThemedStyleProps } from '../types'
 import { useTheme } from '../hooks/useTheme'
 import { speak } from '../tts'
 import { Tooltip } from './Tooltip'
-import { useSettings } from '../hooks/useSettings'
 import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
 import { Action, Content } from '../internal-services/db'
@@ -412,6 +405,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setQuoteText,
         settings,
         showSidebar,
+        showAnkiNote,
+        setShowAnkiNote,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -759,7 +754,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
     const [isLoading, setIsLoading] = useState(false)
     const [showYouGlish, setShowYouGlish] = useState(false)
-    const [showAnkiNote, setShowAnkiNote] = useState(false)
     const [isSpeakingEditableText, setIsSpeakingEditableText] = useState(false)
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
@@ -875,24 +869,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [learningLang, actionStr])
 
     const translatedLanguageDirection = useMemo(() => getLangConfig(learningLang[0]).direction, [learningLang])
-
-    const addToAnki = async (deckname: string, front: string, back: string) => {
-        const connected = await isConnected()
-
-        if (connected) {
-            try {
-                await addNewNote(deckname, front, back)
-                toast.success(t('Added to review'))
-            } catch (error) {
-                console.error('Error adding note:', error)
-                toast.error(`Error: ${error}`)
-            }
-        } else {
-            console.debug('Anki Not connected')
-            setShowAnkiNote(true)
-            toast.error('Anki Not connected', { duration: 5000 })
-        }
-    }
 
     // Reposition the popup card to prevent it from extending beyond the screen.
     useEffect(() => {
@@ -1149,7 +1125,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                         outputLanguageLevel: settings?.outputLanguageLevel,
                         userBackground: settings?.userBackground,
                         useBackgroundInfo: activateAction?.useBackgroundInfo,
-                        isMultipleConversation: activateAction?.isMultipleConversation,
                         languageLevelInfo: activateAction?.useLanguageLevelInfo,
                         signal,
                         text,
@@ -1170,7 +1145,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 const newTranslatedText = message.isFullText
                                     ? message.content
                                     : translatedText + message.content
-
 
                                 const saveKey = useChatStore.getState().currentConversationKey
 
@@ -1268,8 +1242,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             showTextParser,
             setAnswers,
             answers,
-            updateWordAnswer,
-            conversationId,
             setAction,
         ]
     )
@@ -1473,7 +1445,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
                     >
-                         <div
+                        <div
                             style={{
                                 transform: `translateY(${showCategory ? '0' : '-100%'})`,
                                 transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -1597,7 +1569,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             finalText={finalText}
                                                             quoteText={quoteText}
                                                             engine={engine}
-                                                            addToAnki={addToAnki}
                                                         />
                                                     </div>
                                                 </div>

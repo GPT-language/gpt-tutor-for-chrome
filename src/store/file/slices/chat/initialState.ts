@@ -30,7 +30,6 @@ export interface ChatState {
     errorMessage: string
     isNotLogin: boolean
     currentConversationId: string
-    isMultipleConversation: boolean
     showConversationMenu: boolean
     availableConversations: { key: string; messages: ChatMessage[] }[]
     currentConversationKey: string
@@ -58,7 +57,6 @@ export const initialChatState: ChatState = {
     errorMessage: '',
     isNotLogin: false,
     currentConversationId: '',
-    isMultipleConversation: false,
     showConversationMenu: false,
     availableConversations: [],
     currentConversationKey: '',

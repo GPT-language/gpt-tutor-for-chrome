@@ -155,15 +155,6 @@ export function ActionForm(props: IActionFormProps) {
             <FormItem required name='commandPrompt' label={t('Command Prompt')} caption={commandPromptCaption}>
                 <Textarea size='compact' />
             </FormItem>
-            <FormItem name='isMultipleConversation'>
-                <CheckBox
-                    label={t('Enable Multiple Conversation') || 'Enable Multiple Conversation'}
-                    labelSmall={
-                        t('Allow continuous conversation with context') || 
-                        'Allow continuous conversation with context'
-                    }
-                />
-            </FormItem>
 
             <FormItem name='useBackgroundInfo'>
                 <CheckBox

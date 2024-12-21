@@ -28,35 +28,24 @@ import { ChatMessage } from '@/store/file/slices/chat/initialState'
 
 interface ITranslationManagerProps {
     isLoading: boolean
-    isSpeakingTranslatedText: boolean
     styles: ReturnType<typeof useStyles>
     showFullQuoteText: boolean
     setShowFullQuoteText: (show: boolean) => void
     forceTranslate: () => void
-    handleTranslatedSpeakAction: (messageId: string, conversationId: string, text: string) => Promise<void>
     messageId: string
     conversationId: string
     finalText: string
     quoteText: string
     engine: IEngine | undefined
-    addToAnki: (deckName: string, front: string, back: string) => void
 }
 
-const MAX_TAB_WIDTH = 70 // 每个标签的最大宽度
-const MORE_TAB_WIDTH = 30 // More 按钮的宽度
-const ACTION_BUTTONS_WIDTH = 40 // 其他操作按钮的宽度
-
 const TranslationManager: React.FC<ITranslationManagerProps> = ({
-    isLoading,
-    isSpeakingTranslatedText,
     styles,
     showFullQuoteText,
     setShowFullQuoteText,
     forceTranslate,
-    handleTranslatedSpeakAction,
     messageId,
     conversationId,
-    addToAnki,
     finalText,
     engine,
 }) => {
@@ -84,7 +73,31 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         }),
         shallow
     )
-    const [isSpeaking, setIsSpeaking] = useState(false)
+    const { isSpeaking, speakingMessageId, startSpeak, stopSpeak } = useChatStore(
+        (state) => ({
+            isSpeaking: state.isSpeaking,
+            speakingMessageId: state.speakingMessageId,
+            startSpeak: state.startSpeak,
+            stopSpeak: state.stopSpeak
+        })
+    )
+
+    const handleCopyMessage = (text: string) => {
+        navigator.clipboard.writeText(text)
+        toast.success(t('Copied to clipboard'))
+    }
+
+    const handleSpeakMessage = async (text: string) => {
+        if (isSpeaking && speakingMessageId === messageId) {
+            stopSpeak()
+        } else {
+            await startSpeak({
+                text,
+                messageId,
+                conversationId
+            })
+        }
+    }
 
     const handleAsk = useCallback(
         (index: number, actionName?: string) => {
@@ -245,7 +258,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             // 添加日志来检查分割前的文本
             console.log('更新前的完整文本:', currentTranslation.text)
 
-            // 使用正确的分隔符分割文本
+            // 使用正确的分隔符分割��本
             const paragraphs = currentTranslation.text?.split('\n').filter((p) => p.trim() !== '') || []
             // console.log('分割后的段落数组:', paragraphs)
             // console.log('要更新的段落索引:', editingParagraph)
@@ -505,18 +518,10 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                         onClick={(e) => {
                                                             e.stopPropagation()
                                                             e.preventDefault()
-                                                            handleTranslatedSpeakAction(
-                                                                messageId,
-                                                                conversationId,
-                                                                paragraph
-                                                            )
+                                                            handleSpeakMessage(paragraph)
                                                         }}
                                                     >
-                                                        {isSpeakingTranslatedText ? (
-                                                            <SpeakerMotion />
-                                                        ) : (
-                                                            <RxSpeakerLoud size={13} />
-                                                        )}
+                                                        {isSpeaking ? <SpeakerMotion /> : <RxSpeakerLoud size={13} />}
                                                     </div>
                                                 </Tooltip>
                                             </Block>
@@ -560,14 +565,14 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             currentAiAnswer,
             hoveredParagraph,
             styles.actionButton,
-            isSpeakingTranslatedText,
+            isSpeaking,
+            handleSpeakMessage,
             handleSaveEditedText,
             setIndependentText,
             handleAskSubmit,
             handleEdit,
             handleAsk,
             handleCopy,
-            handleTranslatedSpeakAction,
             messageId,
             conversationId,
             showFullQuoteText,
@@ -575,22 +580,14 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         ]
     )
 
-    const handleCopyMessage = (text: string) => {
-        navigator.clipboard.writeText(text)
-        toast.success(t('Copied to clipboard'))
-    }
 
-    const handleSpeakMessage = (text: string) => {
-        setIsSpeaking(true)
-        handleTranslatedSpeakAction(messageId, conversationId, text).finally(() => setIsSpeaking(false))
-    }
 
     return (
         <Block data-testid='answer-manager'>
             <ConversationView
                 onCopy={handleCopyMessage}
                 onSpeak={handleSpeakMessage}
-                isSpeaking={isSpeaking}
+                isSpeaking={isSpeaking && speakingMessageId === messageId}
                 renderContent={renderContent}
             />
         </Block>
