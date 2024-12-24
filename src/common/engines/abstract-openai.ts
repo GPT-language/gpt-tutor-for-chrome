@@ -77,7 +77,7 @@ export abstract class AbstractOpenAI extends AbstractEngine {
             }
 
             // 添加历史消息，确保使用正确的conversationMessages
-            if (req.isMultipleConversation && req.conversationMessages && req.conversationMessages.length > 0) {
+            if (req.conversationMessages && req.conversationMessages.length > 0) {
                 // 过滤掉system消息，因为我们已经在上面添加了
                 const nonSystemMessages = req.conversationMessages.filter((msg) => msg.role !== 'system')
                 messages.push(...nonSystemMessages)
