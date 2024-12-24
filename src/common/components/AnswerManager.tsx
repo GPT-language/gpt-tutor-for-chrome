@@ -1,14 +1,11 @@
-import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Block } from 'baseui-sd/block'
 import { Button } from 'baseui-sd/button'
-import { ChevronDown, ChevronUp } from 'baseui-sd/icon'
 import Latex from 'react-latex-next'
 import { Markdown } from './Markdown'
 import { useChatStore } from '@/store/file/store'
 import { Tooltip } from './Tooltip'
-import { RxCopy, RxReload, RxSpeakerLoud } from 'react-icons/rx'
-import { CopyButton } from './CopyButton'
-import { AiOutlinePlusSquare, AiOutlineQuestionCircle } from 'react-icons/ai'
+import { RxCopy, RxSpeakerLoud } from 'react-icons/rx'
 import SpeakerMotion from './SpeakerMotion'
 import { useTranslation } from 'react-i18next'
 import { useStyles } from './Translator'
@@ -20,9 +17,6 @@ import { VscReply } from 'react-icons/vsc'
 import { Textarea } from 'baseui-sd/textarea'
 import TextareaWithActions from './TextAreaWithActions'
 import { shallow } from 'zustand/shallow'
-import { StatefulPopover, PLACEMENT } from 'baseui-sd/popover'
-import { StatefulMenu } from 'baseui-sd/menu'
-import debounce from 'lodash-es/debounce'
 import ConversationView from './ConversationView'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
 
@@ -43,10 +37,8 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     styles,
     showFullQuoteText,
     setShowFullQuoteText,
-    forceTranslate,
     messageId,
     conversationId,
-    finalText,
     engine,
 }) => {
     const [editingAction, setEditingAction] = useState<string | null>(null)
@@ -59,8 +51,11 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         selectedWord,
         updateWordAnswers,
         updateFollowUpAnswer,
-        updateSentenceAnswer,
+        editSentenceAnswer: updateSentenceAnswer,
         updateSelectedWordText,
+        getConversationMessages,
+        updateMessageContent,
+        saveConversationToAnswer,
     } = useChatStore()
     const [hoveredParagraph, setHoveredParagraph] = useState<number | null>(null)
     const { t } = useTranslation()
@@ -73,37 +68,38 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         }),
         shallow
     )
-    const { isSpeaking, speakingMessageId, startSpeak, stopSpeak } = useChatStore(
-        (state) => ({
-            isSpeaking: state.isSpeaking,
-            speakingMessageId: state.speakingMessageId,
-            startSpeak: state.startSpeak,
-            stopSpeak: state.stopSpeak
-        })
-    )
+    const { isSpeaking, speakingMessageId, startSpeak, stopSpeak } = useChatStore((state) => ({
+        isSpeaking: state.isSpeaking,
+        speakingMessageId: state.speakingMessageId,
+        startSpeak: state.startSpeak,
+        stopSpeak: state.stopSpeak,
+    }))
 
     const handleCopyMessage = (text: string) => {
         navigator.clipboard.writeText(text)
         toast.success(t('Copied to clipboard'))
     }
 
-    const handleSpeakMessage = async (text: string) => {
-        if (isSpeaking && speakingMessageId === messageId) {
-            stopSpeak()
-        } else {
-            await startSpeak({
-                text,
-                messageId,
-                conversationId
-            })
-        }
-    }
+    const handleSpeakMessage = useCallback(
+        async (text: string) => {
+            if (isSpeaking && speakingMessageId === messageId) {
+                stopSpeak()
+            } else {
+                await startSpeak({
+                    text,
+                    messageId,
+                    conversationId,
+                })
+            }
+        },
+        [isSpeaking, speakingMessageId, messageId, stopSpeak, startSpeak, conversationId]
+    )
 
     const handleAsk = useCallback(
-        (index: number, actionName?: string) => {
+        (index: number, saveKey?: string) => {
             let existingAnswer
-            if (actionName) {
-                const followUpAnswers = selectedWord?.answers?.[actionName]?.followUpAnswers || []
+            if (saveKey) {
+                const followUpAnswers = selectedWord?.answers?.[saveKey]?.followUpAnswers || []
                 existingAnswer = followUpAnswers.find((followUpAnswer) => followUpAnswer.idx === index)
             } else {
                 existingAnswer = selectedWord?.sentenceAnswers?.find((sentenceAnswer) => sentenceAnswer.idx === index)
@@ -122,7 +118,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     // 完成设置，最后通过一个flag来触发
 
     const handleAskSubmit = useCallback(
-        async (text: string, index: number, actionName?: string) => {
+        async (text: string, index: number, saveKey?: string) => {
             if (!engine) {
                 toast(t('Engine not defined') || 'Engine not defined')
                 return
@@ -131,7 +127,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 toast(t('Please input your question') || 'Please input your question')
                 return
             }
-            console.log('handleAskSubmit', text, index, actionName)
+            console.log('handleAskSubmit', text, index, saveKey)
             const abortController = new AbortController()
             const { selectedWord, currentFileId, activateAction } = useChatStore.getState()
 
@@ -160,14 +156,14 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 })
                             })
 
-                            if (selectedWord && currentFileId && actionName) {
+                            if (selectedWord && currentFileId && saveKey) {
                                 try {
                                     await updateFollowUpAnswer(
                                         currentFileId,
                                         selectedWord.idx,
                                         index,
                                         finalAnswer,
-                                        actionName
+                                        saveKey
                                     )
                                     console.log('Follow-up answer updated successfully')
                                 } catch (error) {
@@ -213,17 +209,17 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         },
         [t]
     )
-    const handleEdit = useCallback((paragraphIndex: number, text: string, actionName?: string) => {
-        setEditingAction(actionName || null)
+    const handleEdit = useCallback((paragraphIndex: number, text: string, saveKey?: string) => {
+        setEditingAction(saveKey || null)
 
         setEditingParagraph(paragraphIndex)
         setEditedText(text)
     }, [])
 
     const handleSaveEditedText = useCallback(
-        async (actionName?: string) => {
+        async (messageId: string, saveKey?: string) => {
             console.log('开始保存编辑文本:', {
-                actionName,
+                saveKey,
                 editingParagraph,
                 editedText,
                 answers,
@@ -231,16 +227,8 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 currentFileId,
             })
 
-            // 如果actionName为undefined，则为直接编辑selectedWord的text
-            if (!actionName) {
-                console.log('直接编辑selectedWord的text', editedText)
-                if (editedText) {
-                    updateSelectedWordText(editedText)
-                    setEditingParagraph(null)
-                    toast.success(t('Edit saved successfully'))
-                } else {
-                    toast.error(t('EditedText is empty'))
-                }
+            if (!saveKey) {
+                console.error('There is no saveKey')
                 return
             }
 
@@ -249,17 +237,23 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 return
             }
 
-            const currentTranslation = answers[actionName]
+            // 获取conversationMessages 中对应 messageId 的消息内容
+            const currentTranslation = answers[saveKey]
             if (!currentTranslation) {
-                console.error('未找到对应的translation:', actionName)
+                console.error('未找到对应的translation:', saveKey)
                 return
             }
+            const messageContent = currentTranslation.conversationMessages?.find((message: ChatMessage) => {
+                if (message.messageId === messageId) {
+                    return message
+                }
+            })
 
             // 添加日志来检查分割前的文本
-            console.log('更新前的完整文本:', currentTranslation.text)
+            // console.log('更新前的完整文本:', messageContent?.content)
 
             // 使用正确的分隔符分割��本
-            const paragraphs = currentTranslation.text?.split('\n').filter((p) => p.trim() !== '') || []
+            const paragraphs = messageContent?.content.split('\n').filter((p) => p.trim() !== '') || []
             // console.log('分割后的段落数组:', paragraphs)
             // console.log('要更新的段落索引:', editingParagraph)
             // console.log('更新前的段落内容:', paragraphs[editingParagraph])
@@ -272,18 +266,32 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             const updatedText = paragraphs.join('\n')
             // console.log('更新后的完整文本:', updatedText)
 
+            // 找到对话记录中需要更新的message
+
+            // 更新 conversationMessages 中对应 messageId 的消息内容
+            const updatedMessages =
+                currentTranslation.conversationMessages?.map((message: ChatMessage) => {
+                    if (message.messageId === messageId) {
+                        return {
+                            ...message,
+                            content: updatedText,
+                        }
+                    }
+                    return message
+                }) || []
+
             const updatedAnswers = {
                 ...answers,
-                [actionName]: {
+                [saveKey]: {
                     ...currentTranslation,
-                    text: updatedText,
+                    conversationMessages: updatedMessages,
                 },
             }
 
             if (selectedWord && currentFileId) {
                 try {
                     await updateWordAnswers(updatedAnswers)
-                    console.log('成功更新answers:', updatedAnswers[actionName].text)
+                    console.log('成功更新answers:', updatedAnswers[saveKey].text)
                     setAnswers(updatedAnswers)
                     toast.success(t('Edit saved successfully'))
                 } catch (error) {
@@ -298,17 +306,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             setEditingParagraph(null)
             setEditedText('')
         },
-        [
-            editingParagraph,
-            answers,
-            editedText,
-            selectedWord,
-            currentFileId,
-            updateSelectedWordText,
-            updateWordAnswers,
-            setAnswers,
-            t,
-        ]
+        [editingParagraph, editedText, answers, selectedWord, currentFileId, updateWordAnswers, setAnswers, t]
     )
 
     const handleCancel = () => {
@@ -336,12 +334,12 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     }, [askingParagraph, setIndependentText])
 
     const renderContent = useMemo(
-        () => (text: string, format: string, actionName?: string) => {
+        () => (text: string, format: string, messageId: string, saveKey: string) => {
             const paragraphs = splitIntoParagraphsAndSentences(text)
             const content = (
                 <>
                     {paragraphs.map((paragraph, index) =>
-                        paragraph.trim() === '' && editingAction !== actionName ? null : (
+                        paragraph.trim() === '' && editingAction !== saveKey ? null : (
                             <Block
                                 key={`p-${index}`}
                                 marginBottom='10px'
@@ -355,8 +353,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                     whiteSpace: 'pre-wrap',
                                 }}
                             >
-                                {(editingAction === actionName ||
-                                    (editingAction === null && actionName === undefined)) &&
+                                {(editingAction === saveKey || (editingAction === null && saveKey === undefined)) &&
                                 editingParagraph === index ? (
                                     <Block $style={{ width: '95%', margin: '10px' }}>
                                         <Textarea
@@ -372,7 +369,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                             $style={{ gap: '10px' }}
                                         >
                                             <Button
-                                                onClick={() => handleSaveEditedText(actionName)}
+                                                onClick={() => handleSaveEditedText(messageId, saveKey)}
                                                 kind='primary'
                                                 size='mini'
                                             >
@@ -396,7 +393,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                             onChange={(value: string) => {
                                                 setIndependentText(value)
                                             }}
-                                            onSubmit={() => handleAskSubmit(paragraph, index, actionName)}
+                                            onSubmit={() => handleAskSubmit(paragraph, index, saveKey)}
                                             placeholder={t('Input your question') || 'Input your question'}
                                             minHeight='80px'
                                             showSubmitButton={false}
@@ -416,7 +413,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                             <Button
                                                 kind='primary'
                                                 size='mini'
-                                                onClick={() => handleAskSubmit(paragraph, index, actionName)}
+                                                onClick={() => handleAskSubmit(paragraph, index, saveKey)}
                                             >
                                                 {t('Submit')}
                                             </Button>
@@ -480,7 +477,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                         onClick={(e) => {
                                                             e.stopPropagation()
                                                             e.preventDefault()
-                                                            handleEdit(index, paragraph, actionName)
+                                                            handleEdit(index, paragraph, saveKey)
                                                         }}
                                                     >
                                                         <CiEdit size={13} />
@@ -493,7 +490,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                         onClick={(e) => {
                                                             e.stopPropagation()
                                                             e.preventDefault()
-                                                            handleAsk(index, actionName)
+                                                            handleAsk(index, saveKey)
                                                         }}
                                                     >
                                                         <VscReply size={13} />
@@ -556,31 +553,27 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         },
         [
             editingAction,
-            handleTextSelection,
             editingParagraph,
             editedText,
             t,
             askingParagraph,
+            handleTextSelection,
             independentText,
             currentAiAnswer,
             hoveredParagraph,
             styles.actionButton,
             isSpeaking,
-            handleSpeakMessage,
             handleSaveEditedText,
             setIndependentText,
             handleAskSubmit,
             handleEdit,
             handleAsk,
             handleCopy,
-            messageId,
-            conversationId,
+            handleSpeakMessage,
             showFullQuoteText,
             setShowFullQuoteText,
         ]
     )
-
-
 
     return (
         <Block data-testid='answer-manager'>

@@ -16,7 +16,7 @@ interface ConversationViewProps {
     onCopy?: (text: string) => void
     onSpeak?: (text: string) => void
     isSpeaking?: boolean
-    renderContent: (text: string, format: string, actionName?: string, messageId?: string) => React.ReactNode
+    renderContent: (text: string, format: string, messageId: string, actionName: string) => React.ReactNode
 }
 
 interface MessageItemProps {
@@ -25,7 +25,7 @@ interface MessageItemProps {
     isExpanded: boolean
     onToggle: () => void
     onCopy?: (text: string) => void
-    renderContent: (text: string, format: string, actionName?: string, messageId?: string) => React.ReactNode
+    renderContent: (text: string, format: string, messageId: string, actionName: string) => React.ReactNode
 }
 
 // 定义消息组件
@@ -206,8 +206,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
                             {renderContent(
                                 nextMessage.content,
                                 nextMessage.format || 'markdown',
-                                nextMessage.actionName,
-                                nextMessage.messageId
+                                nextMessage.messageId,
+                                currentConversationKey
                             )}
                         </Block>
                     </div>

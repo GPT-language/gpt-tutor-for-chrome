@@ -404,7 +404,10 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
 
     // 2. 添加用户消息
 
-    const content = query.context ? `${query.activateAction?.name}: ${query.context}` : query.text || 'default'
+    const content =
+        query.context && query.activateAction?.name
+            ? `${query.activateAction?.name}: ${query.context}`
+            : query.text || 'default'
 
     chatStore.addMessageToHistory({
         role: 'user',
