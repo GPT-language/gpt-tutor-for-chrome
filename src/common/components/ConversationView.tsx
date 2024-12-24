@@ -139,65 +139,65 @@ const MessageItem: React.FC<MessageItemProps> = ({
                         <Block>{message.actionName || message.content}</Block>
                     </Block>
                     <Block display='flex' alignItems='center'>
-                        {isHover && nextMessage?.role === 'assistant' && (
-                            <>
-                                <button
-                                    className={styles.actionButton}
-                                    style={{
-                                        backgroundColor: 'transparent',
-                                        marginLeft: '8px',
-                                        border: 'none',
-                                        outline: 'none',
-                                    }}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleSpeak(nextMessage.content, message.messageId)
-                                    }}
-                                >
-                                    {isSpeaking && speakingMessageId === message.messageId ? (
-                                        <SpeakerMotion />
-                                    ) : (
-                                        <RxSpeakerLoud size={13} />
-                                    )}
-                                </button>
-                                <button
-                                    className={styles.actionButton}
-                                    style={{
-                                        backgroundColor: 'transparent',
-                                        marginLeft: '8px',
-                                        border: 'none',
-                                        outline: 'none',
-                                    }}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        onCopy?.(nextMessage.content)
-                                    }}
-                                >
-                                    <RxCopy size={13} />
-                                </button>
-                                <button
-                                    className={styles.actionButton}
-                                    style={{
-                                        backgroundColor: 'transparent',
-                                        marginLeft: '8px',
-                                        border: 'none',
-                                        outline: 'none',
-                                    }}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        addToAnki?.(
-                                            message.content || 'default',
-                                            selectedWord?.text || message.content,
-                                            nextMessage.content
-                                        )
-                                    }}
-                                >
-                                    <AiOutlinePlusSquare size={13} />
-                                </button>
-                            </>
-                        )}
                         <RxChevronDown size={20} className={expandIconStyles} />
                     </Block>
+                    {isHover && nextMessage?.role === 'assistant' && (
+                        <>
+                            <button
+                                className={styles.actionButton}
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    marginLeft: '8px',
+                                    border: 'none',
+                                    outline: 'none',
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleSpeak(nextMessage.content, message.messageId)
+                                }}
+                            >
+                                {isSpeaking && speakingMessageId === message.messageId ? (
+                                    <SpeakerMotion />
+                                ) : (
+                                    <RxSpeakerLoud size={13} />
+                                )}
+                            </button>
+                            <button
+                                className={styles.actionButton}
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    marginLeft: '8px',
+                                    border: 'none',
+                                    outline: 'none',
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onCopy?.(nextMessage.content)
+                                }}
+                            >
+                                <RxCopy size={13} />
+                            </button>
+                            <button
+                                className={styles.actionButton}
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    marginLeft: '8px',
+                                    border: 'none',
+                                    outline: 'none',
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    addToAnki?.(
+                                        message.content || 'default',
+                                        selectedWord?.text || message.content,
+                                        nextMessage.content
+                                    )
+                                }}
+                            >
+                                <AiOutlinePlusSquare size={13} />
+                            </button>
+                        </>
+                    )}
                 </Block>
 
                 {nextMessage?.role === 'assistant' && (
