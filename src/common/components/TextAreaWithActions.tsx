@@ -48,7 +48,6 @@ const TEXTAREA_STYLES = {
     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
 } as const
 
-
 const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     editableText,
     placeholder = '',
@@ -178,9 +177,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 (child) => child instanceof HTMLElement && child.hasAttribute('data-group-name')
             ) as HTMLElement | undefined
 
-            // 清空当前内容
-            editorRef.current.innerHTML = ''
-
             // 按顺序重新插入元素：group tag、空格、action tag、新文本
             if (existingGroupTag) {
                 editorRef.current.appendChild(existingGroupTag)
@@ -192,19 +188,8 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 editorRef.current.appendChild(document.createTextNode(' '))
             }
 
-            // 添加新的文本内容
-            editorRef.current.appendChild(document.createTextNode(editableText || ''))
-
             // 触发 onChange 回调
             onChange(editableText)
-
-            // 将光标移到文本末尾
-            const selection = window.getSelection()
-            const range = document.createRange()
-            range.selectNodeContents(editorRef.current)
-            range.collapse(false)
-            selection?.removeAllRanges()
-            selection?.addRange(range)
         }, 300) //
 
         // 清理定时器
@@ -267,7 +252,10 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 }
             }
 
-            handleSetEditableText(getTextWithoutMentions(text))
+            // 只在非输入法编辑状态下更新文本
+            if (!isComposing) {
+                handleSetEditableText(getTextWithoutMentions(text))
+            }
         }
     }
 
@@ -313,13 +301,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                         // 插入空格
                         const space = document.createTextNode(' ')
                         editorRef.current.appendChild(space)
-
-                        // 将光标移动到标签后面
-                        const newRange = document.createRange()
-                        newRange.setStartAfter(space)
-                        newRange.setEndAfter(space)
-                        selection.removeAllRanges()
-                        selection.addRange(newRange)
                     }
                 }
             }
@@ -567,7 +548,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 data-placeholder={placeholder}
                 data-testid='textarea-with-actions'
             >
-
                 {/* 预设 action 标签 */}
                 <span
                     ref={actionTagRef}
