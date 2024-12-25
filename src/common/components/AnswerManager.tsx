@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { Block } from 'baseui-sd/block'
 import { Button } from 'baseui-sd/button'
 import Latex from 'react-latex-next'
@@ -9,7 +9,7 @@ import { RxCopy, RxSpeakerLoud } from 'react-icons/rx'
 import SpeakerMotion from './SpeakerMotion'
 import { useTranslation } from 'react-i18next'
 import { useStyles } from './Translator'
-import { askAI } from '../translate'
+import { askAIWithoutHistory } from '../translate'
 import { IEngine } from '../engines/interfaces'
 import toast from 'react-hot-toast'
 import { CiEdit } from 'react-icons/ci'
@@ -44,6 +44,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     const [editingAction, setEditingAction] = useState<string | null>(null)
     const [editingParagraph, setEditingParagraph] = useState<number | null>(null)
     const [editedText, setEditedText] = useState('')
+    const editorRef = useRef<HTMLDivElement>(null)
     const {
         answers,
         currentFileId,
@@ -52,14 +53,11 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         updateWordAnswers,
         updateFollowUpAnswer,
         editSentenceAnswer: updateSentenceAnswer,
-        updateSelectedWordText,
-        getConversationMessages,
-        updateMessageContent,
-        saveConversationToAnswer,
     } = useChatStore()
     const [hoveredParagraph, setHoveredParagraph] = useState<number | null>(null)
     const { t } = useTranslation()
     const [askingParagraph, setAskingParagraph] = useState<number | null>(null)
+    const [selectedText, setSelectedText] = useState<string>('')
     const [currentAiAnswer, setCurrentAiAnswer] = useState<string>('')
     const { independentText, setIndependentText } = useChatStore(
         (state) => ({
@@ -132,7 +130,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             const { selectedWord, currentFileId, activateAction } = useChatStore.getState()
 
             try {
-                await askAI(
+                await askAIWithoutHistory(
                     {
                         activateAction,
                         text: independentText,
@@ -169,13 +167,6 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 } catch (error) {
                                     console.error('Failed to update follow-up answer:', error)
                                 }
-                            } else if (selectedWord && currentFileId) {
-                                try {
-                                    await updateSentenceAnswer(currentFileId, selectedWord.idx, index, finalAnswer)
-                                    console.log('Sentence answer updated successfully')
-                                } catch (error) {
-                                    console.error('Failed to update sentence answer:', error)
-                                }
                             }
                         },
                         onError: (error) => {
@@ -195,7 +186,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 // 显示错误提示
             }
         },
-        [engine, independentText, t, updateFollowUpAnswer, updateSentenceAnswer]
+        [engine, independentText, t, updateFollowUpAnswer]
     )
 
     const handleCopy = useCallback(
@@ -252,7 +243,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             // 添加日志来检查分割前的文本
             // console.log('更新前的完整文本:', messageContent?.content)
 
-            // 使用正确的分隔符分割��本
+            // 使用正确的分隔符分割本
             const paragraphs = messageContent?.content.split('\n').filter((p) => p.trim() !== '') || []
             // console.log('分割后的段落数组:', paragraphs)
             // console.log('要更新的段落索引:', editingParagraph)
@@ -329,9 +320,10 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         console.log('window.getSelection()', window.getSelection()?.toString().trim())
         const selectedText = window.getSelection()?.toString().trim()
         if (selectedText) {
-            setIndependentText(selectedText)
+            setSelectedText(selectedText)
+            editorRef.current.appendChild(document.createTextNode(selectedText))
         }
-    }, [askingParagraph, setIndependentText])
+    }, [askingParagraph])
 
     const renderContent = useMemo(
         () => (text: string, format: string, messageId: string, saveKey: string) => {
@@ -390,11 +382,12 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                         </Block>
                                         <TextareaWithActions
                                             editableText={independentText}
+                                            selectedText={selectedText}
+                                            editorRef={editorRef}
                                             onChange={(value: string) => {
                                                 setIndependentText(value)
                                             }}
                                             onSubmit={() => handleAskSubmit(paragraph, index, saveKey)}
-                                            placeholder={t('Input your question') || 'Input your question'}
                                             minHeight='80px'
                                             showSubmitButton={false}
                                             showClearButton={false}
@@ -431,6 +424,11 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                     marginTop: '10px',
                                                     backgroundColor: '#f0f0f0',
                                                     padding: '10px',
+                                                    width: '100%', // 确保块级元素占满容器宽度
+                                                    overflowWrap: 'break-word', // 允许长单词断行
+                                                    wordWrap: 'break-word', // 兼容性支持
+                                                    whiteSpace: 'pre-wrap', // 保留换行符并自动换行
+                                                    maxWidth: '100%', // 限制最大宽度
                                                 }}
                                             >
                                                 <Markdown>{currentAiAnswer}</Markdown>
@@ -559,6 +557,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             askingParagraph,
             handleTextSelection,
             independentText,
+            selectedText,
             currentAiAnswer,
             hoveredParagraph,
             styles.actionButton,

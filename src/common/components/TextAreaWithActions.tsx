@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react'
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Theme, useStyletron } from 'baseui-sd'
 import { StatefulMenu } from 'baseui-sd/menu'
 import { Action } from '../internal-services/db'
@@ -10,10 +10,13 @@ import { LabelSmall } from 'baseui-sd/typography'
 import { IoClose } from 'react-icons/io5'
 import { FaArrowUp } from 'react-icons/fa'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
+import { log } from 'console'
 
 interface AutocompleteTextareaProps {
     // 1. 增加更多可配置的属性
     editableText: string
+    editorRef: React.RefObject<HTMLDivElement>
+    selectedText?: string
     placeholder?: string // 占位符文本
     minHeight?: string // 最小高度
     maxHeight?: string // 最大高度
@@ -36,7 +39,6 @@ interface AutocompleteTextareaProps {
 // 3. 提取默认值
 const DEFAULT_MIN_HEIGHT = '40px'
 const DEFAULT_BG_COLOR = '#f5f5f5'
-const DEFAULT_PADDING = '8px'
 
 // 1. 提取样式常量
 const TEXTAREA_STYLES = {
@@ -50,6 +52,8 @@ const TEXTAREA_STYLES = {
 
 const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     editableText,
+    selectedText,
+    editorRef,
     placeholder = '',
     minHeight = DEFAULT_MIN_HEIGHT,
     maxHeight,
@@ -86,7 +90,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     } = useChatStore()
     const [searchTerm, setSearchTerm] = useState('')
     const [filteredActions, setFilteredActions] = useState<Action[]>([])
-    const editorRef = useRef<HTMLDivElement>(null)
     const actionMenuRef = useRef<HTMLElement>(null)
     const groupMenuRef = useRef<HTMLElement>(null)
     const { t } = useTranslation()
@@ -95,6 +98,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     const [isComposing, setIsComposing] = useState(false) // 添加输入法编辑状态
     const learningLang = settings.defaultLearningLanguage
     const userLang = settings.defaultUserLanguage
+    const [composingText, setComposingText] = useState<string>('') // 新增：存储输入法编辑中的文本
 
     const handleHideInputTip = () => {
         updateSettings({
@@ -124,25 +128,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         return availableGroups.filter((group) => group.name.toLowerCase().includes(groupSearchTerm.toLowerCase()))
     }, [availableGroups, groupSearchTerm])
 
-    const handleSetEditableText = async (text: string) => {
-        // 去除首尾空格
-        const trimmedText = text.trim()
-
-        // 如果去除空格后的文本与当前 editableText 相同，则不任何操作
-        if (trimmedText === editableText?.trim()) {
-            return
-        }
-
-        // 如果text以@开头，为选择动作而不是输入文本，不修改editableText
-        if (trimmedText.startsWith('@') || trimmedText.startsWith('/')) {
-            console.log('Choose action')
-            return
-        }
-
-        // 设置新的editableText，保留原始的空格
-        onChange(text)
-    }
-
     const handleClear = () => {
         if (editorRef.current) {
             editorRef.current.innerHTML = ''
@@ -158,47 +143,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     }
 
     useEffect(() => {
-        // 如果正在使用输入法输入，不触发防抖更新
-        if (isComposing) {
-            return
-        }
-
-        // 创建防抖定时器
-        const debounceTimer = setTimeout(() => {
-            if (!editorRef.current) return
-            console.log('Updating text with debounce:', editableText)
-
-            // 保存现有的 tags
-            const existingActionTag = Array.from(editorRef.current.children).find(
-                (child) => child instanceof HTMLElement && child.hasAttribute('data-action-id')
-            ) as HTMLElement | undefined
-
-            const existingGroupTag = Array.from(editorRef.current.children).find(
-                (child) => child instanceof HTMLElement && child.hasAttribute('data-group-name')
-            ) as HTMLElement | undefined
-
-            // 按顺序重新插入元素：group tag、空格、action tag、新文本
-            if (existingGroupTag) {
-                editorRef.current.appendChild(existingGroupTag)
-                editorRef.current.appendChild(document.createTextNode(' '))
-            }
-
-            if (existingActionTag) {
-                editorRef.current.appendChild(existingActionTag)
-                editorRef.current.appendChild(document.createTextNode(' '))
-            }
-
-            // 触发 onChange 回调
-            onChange(editableText)
-        }, 300) //
-
-        // 清理定时器
-        return () => {
-            clearTimeout(debounceTimer)
-        }
-    }, [editableText, onChange, isComposing])
-
-    useEffect(() => {
         if (searchTerm) {
             const filtered = selectedActions.filter((action) => action.name.includes(searchTerm))
             setFilteredActions(filtered)
@@ -207,63 +151,84 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         }
     }, [searchTerm, selectedActions])
 
-    const getTextWithoutMentions = (text: string) => {
-        if (editorRef.current) {
-            // 获取纯文本内容，忽略 action tags
-            const textNodes = Array.from(editorRef.current.childNodes)
-                .filter((node) => node.nodeType === Node.TEXT_NODE)
-                .map((node) => node.textContent)
-                .join('')
-            return textNodes.trim()
+    const handleInput = useCallback(() => {
+        if (!editorRef.current) return
+
+        const getTextWithoutMentions = (text: string) => {
+            if (editorRef.current) {
+                const textNodes = Array.from(editorRef.current.childNodes)
+                    .filter((node) => node.nodeType === Node.TEXT_NODE)
+                    .map((node) => node.textContent)
+                    .join('')
+                return textNodes.trim()
+            }
+            return text.trim()
         }
-        return text.trim()
-    }
 
-    const handleInput = () => {
-        if (editorRef.current) {
-            const text = editorRef.current.innerText
-            const selection = window.getSelection()
-            if (selection && selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0)
-                const preCaretRange = range.cloneRange()
-                preCaretRange.selectNodeContents(editorRef.current)
-                preCaretRange.setEnd(range.endContainer, range.endOffset)
-                const caretOffset = preCaretRange.toString().length
+        const handleSetEditableText = async (text: string) => {
+            const trimmedText = text.trim()
 
-                // 重置所有菜单状态
-                setShowActionMenu(false)
-                setShowGroupMenu(false)
-                setShowConversationMenu(false)
-
-                // 检查最后输入的字符，只显示对应的菜单
-                const lastChar = text.charAt(caretOffset - 1)
-                if (lastChar === '@') {
-                    setShowActionMenu(true)
-                } else if (lastChar === '#') {
-                    setShowGroupMenu(true)
-                } else if (lastChar === '~') {
-                    // 准备对话列表
-                    const conversations = Object.entries(answers || {}).map(([key, value]) => ({
-                        key,
-                        messages: value.conversationMessages || [],
-                    }))
-                    setAvailableConversations(conversations)
-                    setShowConversationMenu(true)
-                }
+            // 如果去除空格后的文本与当前 editableText 相同，则不进行任何操作
+            if (trimmedText === editableText?.trim()) {
+                return
             }
 
-            // 只在非输入法编辑状态下更新文本
-            if (!isComposing) {
-                handleSetEditableText(getTextWithoutMentions(text))
+            // 如果text以@开头，为选择动作而不是输入文本，不修改editableText
+            if (trimmedText.startsWith('@') || trimmedText.startsWith('/')) {
+                console.log('Choose action')
+                return
+            }
+
+            // 在输入法编辑过程中，保存当前文本状态但不触发onChange
+            if (isComposing) {
+                setComposingText(text)
+            } else {
+                // 非输入法编辑状态，正常更新文本
+                onChange(text)
             }
         }
-    }
+
+        const text = editorRef.current.innerText
+        handleSetEditableText(getTextWithoutMentions(text))
+        const selection = window.getSelection()
+
+        if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0)
+            const preCaretRange = range.cloneRange()
+            preCaretRange.selectNodeContents(editorRef.current)
+            preCaretRange.setEnd(range.endContainer, range.endOffset)
+            const caretOffset = preCaretRange.toString().length
+
+            // 重置所有菜单状态
+            setShowActionMenu(false)
+            setShowGroupMenu(false)
+            setShowConversationMenu(false)
+
+            // 检查最后输入的字符，只显示对应的菜单
+            const lastChar = text.charAt(caretOffset - 1)
+            if (lastChar === '@') {
+                setShowActionMenu(true)
+            } else if (lastChar === '#') {
+                setShowGroupMenu(true)
+            } else if (lastChar === '~') {
+                // 准备对话列表
+                const conversations = Object.entries(answers || {}).map(([key, value]) => ({
+                    key,
+                    messages: value.conversationMessages || [],
+                }))
+                setAvailableConversations(conversations)
+                setShowConversationMenu(true)
+            }
+        }
+    }, [editorRef, editableText, isComposing, onChange, setShowConversationMenu, answers, setAvailableConversations])
 
     const cleanupText = () => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const textNodes = Array.from(editorRef.current!.childNodes).filter(
+        if (!editorRef.current) return
+
+        const textNodes = Array.from(editorRef.current.childNodes).filter(
             (node) => node.nodeType === Node.TEXT_NODE
         ) as Text[]
+
 
         textNodes.forEach((textNode) => {
             // 替换文本节点中的 @或者# 符号和~及其后面的文本，直到遇到空格或标点
@@ -291,8 +256,8 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                     existingActionTag.setAttribute('data-action-id', action.id?.toString() || '')
                     existingActionTag.textContent = `@${action.name}`
                 } else {
-                    // 如果不存在，创建新的 action tag
-                    if (actionTagRef.current) {
+                    // 如果不存���，创建新的 action tag
+                    if (actionTagRef.current && actionTagRef.current.textContent) {
                         // 使用预设的 actionTag
                         actionTagRef.current.style.display = 'inline-block'
                         actionTagRef.current.setAttribute('data-action-id', action.id?.toString() || '')
@@ -301,11 +266,18 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                         // 插入空格
                         const space = document.createTextNode(' ')
                         editorRef.current.appendChild(space)
+
+                        // 将光标移动到标签后面
+                        const newRange = document.createRange()
+                        newRange.setStartAfter(space)
+                        newRange.setEndAfter(space)
+                        selection.removeAllRanges()
+                        selection.addRange(newRange)
                     }
                 }
             }
 
-            // 在所有 action tag 处理完成后执行清理
+            // 在所有 action tag 处理完成后执行理
             cleanupText()
         }
         setShowActionMenu(false)
@@ -358,55 +330,12 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 e.preventDefault()
                 groupMenuRef.current.focus()
             }
-        } else if (e.key === 'Backspace') {
-            const selection = window.getSelection()
-            if (selection && selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0)
-                const startContainer = range.startContainer
-
-                // 处理文本节点的情
-                if (startContainer.nodeType === Node.TEXT_NODE) {
-                    const textBeforeCursor = startContainer.textContent?.substring(0, range.startOffset) || ''
-                    const isFirstPosition = textBeforeCursor === ' ' || textBeforeCursor === ''
-
-                    const previousSibling = startContainer.previousSibling
-                    if (
-                        isFirstPosition &&
-                        previousSibling instanceof HTMLElement &&
-                        previousSibling.hasAttribute('data-action-id')
-                    ) {
-                        e.preventDefault()
-                        // 不删除元素，而是隐藏并重置状态
-                        previousSibling.style.display = 'none'
-                        previousSibling.setAttribute('data-action-id', '')
-                        previousSibling.textContent = ''
-                        setAction(undefined)
-                        handleInput()
-                        return
-                    }
-                }
-
-                // 处理空文本节点的情况
-                if (
-                    startContainer.nodeType === Node.TEXT_NODE &&
-                    (!startContainer.textContent || startContainer.textContent.trim() === '')
-                ) {
-                    const previousSibling = startContainer.previousSibling
-                    if (previousSibling instanceof HTMLElement && previousSibling.hasAttribute('data-action-id')) {
-                        e.preventDefault()
-                        // 同样是隐藏而不是删除
-                        previousSibling.style.display = 'none'
-                        previousSibling.setAttribute('data-action-id', '')
-                        previousSibling.textContent = ''
-                        setAction(undefined)
-                        handleInput()
-                        return
-                    }
-                }
-            }
         }
     }
 
+    useEffect(() => {
+        console.log('activateAction', activateAction)
+    }, [activateAction])
     // 2. 修改文本框样式配置
     const textareaStyles = {
         ...TEXTAREA_STYLES,
@@ -446,11 +375,19 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     const handleCompositionStart = () => {
         console.log('Composition start')
         setIsComposing(true)
+        if (editorRef.current) {
+            setComposingText(editorRef.current.innerText)
+        }
     }
 
     const handleCompositionEnd = () => {
         console.log('Composition end')
         setIsComposing(false)
+        // 输入法结束时，使用最终的文本内容更新
+        if (editorRef.current) {
+            const finalText = editorRef.current.innerText
+            onChange(finalText)
+        }
     }
 
     useEffect(() => {
@@ -469,6 +406,13 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         }
     }, [activateAction])
 
+    useEffect(() => {
+        if (!actionTagRef.current) return
+
+        console.log('actionTagRef show', actionTagRef.current.style.display)
+        console.log('textContent', actionTagRef.current.textContent)
+    }, [activateAction])
+
     // 处理对话选择
     const handleConversationSelect = (conversation: { key: string; messages: ChatMessage[] }) => {
         setCurrentConversationKey(conversation.key)
@@ -477,6 +421,35 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         // 清理输入框中的 "~"
         cleanupText()
     }
+
+    // 添加 MutationObserver 监听 DOM 变化
+    useEffect(() => {
+        if (!editorRef.current) return
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    // 检查是否还存在 actionTag
+                    const hasActionTag = Array.from(editorRef.current?.children || []).some(
+                        (child) => child === actionTagRef.current
+                    )
+
+                    // 如果 actionTag 被删除但 activateAction 仍然存在
+                    if (!hasActionTag && activateAction) {
+                        console.log('set action undefined when mutation', activateAction)
+                        setAction(undefined)
+                    }
+                }
+            })
+        })
+
+        observer.observe(editorRef.current, {
+            childList: true,
+            subtree: true,
+        })
+
+        return () => observer.disconnect()
+    }, [editorRef, activateAction, setAction])
 
     return (
         <div
@@ -806,7 +779,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                             },
                             // 分隔线
                             { label: '---', disabled: true },
-                            // 现有对话列表
+                            // 现有对话列���
                             ...availableConversations.map((conv) => ({
                                 label: conv.key,
                                 conversation: conv,

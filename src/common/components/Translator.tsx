@@ -412,7 +412,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
 
     const [answerFlag, forceTranslate] = useReducer((x: number) => x + 1, 0)
 
-    const editorRef = useRef<HTMLTextAreaElement>(null)
+    const editorRef = useRef<HTMLDivElement>(null)
     const highlightRef = useRef<HighlightInTextarea | null>(null)
     const { t, i18n } = useTranslation()
     const [finalText, setFinalText] = useState('')
@@ -437,28 +437,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             ;(i18n as any).changeLanguage(settings?.i18n)
         }
     }, [i18n, settings?.i18n])
-
-    const [autoFocus, setAutoFocus] = useState(false)
-
-    useEffect(() => {
-        if (highlightRef.current) {
-            if (props.autoFocus) {
-                setAutoFocus(false)
-                setTimeout(() => {
-                    setAutoFocus(true)
-                }, 500)
-            }
-            return
-        }
-        const editor = editorRef.current
-        if (!editor) {
-            return undefined
-        }
-        highlightRef.current = new HighlightInTextarea(editor, { highlight: '' })
-        if (props.autoFocus) {
-            editor.focus()
-        }
-    }, [props.autoFocus])
 
     useEffect(() => {
         const editor = editorRef.current
@@ -1558,12 +1536,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                     >
                                                         <AnswerManager
                                                             isLoading={isLoading}
-                                                            isSpeakingTranslatedText={isSpeakingTranslatedText}
                                                             styles={styles}
                                                             showFullQuoteText={showFullQuoteText}
                                                             setShowFullQuoteText={setShowFullQuoteText}
                                                             forceTranslate={forceTranslate}
-                                                            handleTranslatedSpeakAction={handleTranslatedSpeakAction}
                                                             messageId={messageId}
                                                             conversationId={conversationId}
                                                             finalText={finalText}
@@ -1589,6 +1565,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                         <TextareaWithActions
                                                             editableText={editableText}
                                                             onChange={setEditableText}
+                                                            editorRef={editorRef}
                                                             onSubmit={handleSubmit}
                                                         />
                                                     </div>

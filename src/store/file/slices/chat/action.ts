@@ -54,6 +54,7 @@ export interface ChatAction {
         onFinish?: () => void
     }) => Promise<void>
     stopSpeak: () => void
+    setAskingAnswer: (answer: string) => void
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set, get) => {

@@ -303,7 +303,6 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
     let commandPrompt = ''
     let userBackgroundPrompt = ''
 
-
     if (query.context) {
         assistantPrompts.push('context: ' + query.context)
     }
@@ -439,6 +438,133 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
                     createdAt: date,
                     messageId: messageId,
                 })
+                messageAdded = true
+
+                currentMessage = ''
+            } else {
+                // 流式响应，累积消息内容
+                currentMessage += message.content
+            }
+
+            query.onMessage(message)
+        },
+        onFinished: (reason) => {
+            query.onFinished(reason)
+        },
+        onError: (error) => {
+            query.onError(error)
+        },
+        onStatusCode: (statusCode) => {
+            query.onStatusCode?.(statusCode)
+        },
+    })
+}
+
+export async function askAIWithoutHistory(query: TranslateQuery, engine: IEngine | undefined, isOpenToAsk?: boolean) {
+    const chatStore = useChatStore.getState()
+    let messageAdded = false
+    let currentMessage = ''
+    const assistantPrompts: string[] = []
+    // 将所有 assistantPrompts 合并为一条系统消息
+
+    if (!engine) {
+        console.error('Translation engine is undefined')
+        query.onError('Translation engine is undefined')
+        return
+    }
+
+    let rolePrompt = ''
+    let commandPrompt = ''
+    let userBackgroundPrompt = ''
+
+    if (query.context) {
+        assistantPrompts.push('context: ' + query.context)
+    }
+    if (query.context && !query.text) {
+        query.text = query.context
+    }
+    if (query.userLang) {
+        assistantPrompts.push('Please always respond in ' + query.userLang)
+    }
+    if (query.useBackgroundInfo && query.userBackground) {
+        userBackgroundPrompt += query.userBackground
+    }
+    if (query.languageLevelInfo && query.inputLanguageLevel) {
+        let languageLevelText = ''
+
+        switch (query.inputLanguageLevel) {
+            case 'Level0':
+                languageLevelText =
+                    'I have no knowledge of this language. Please start with basic knowledge, such as letters and simple greetings. For example, "Hello" (你好) is a greeting.'
+                break
+            case 'Level1':
+                languageLevelText =
+                    'I know some basic vocabulary. Please explain it in simple sentences, like explaining to a five-year-old. For example, "Hello" (你好) is a greeting.'
+                break
+            case 'Level2':
+                languageLevelText =
+                    'I can understand some basic expressions. For example, "Good morning" (早上好) is a common greeting. It is used when you meet someone in the morning.'
+                break
+            case 'Level3':
+                languageLevelText =
+                    'I can understand most phrases and expressions. For instance, "How are you?" (你好吗?) is a common way to ask someone about their well-being.'
+                break
+            case 'Level4':
+                languageLevelText = 'I can understand advanced expressions, so no adjustments are needed.'
+                break
+            default:
+                languageLevelText = 'Invalid language level.'
+                break
+        }
+
+        userBackgroundPrompt += `Language level: ${languageLevelText}. `
+    }
+
+    userBackgroundPrompt = userBackgroundPrompt.trim()
+    if (userBackgroundPrompt) {
+        assistantPrompts.push(userBackgroundPrompt)
+    }
+
+    const learningLangCode = query.learningLang ?? 'en'
+    const userLangCode = query.userLang ?? 'zh-Hans'
+    const learningLangName = lang.getLangName(learningLangCode)
+    const userLangName = lang.getLangName(userLangCode)
+    const toChinese = chineseLangCodes.indexOf(userLangCode) >= 0
+    const userLangConfig = getLangConfig(userLangCode)
+    const learningLangConfig = getLangConfig(learningLangCode)
+    rolePrompt = userLangConfig.rolePrompt
+
+    // 设置替换${text}和其它值
+    rolePrompt = (query.activateAction?.rolePrompt ?? '')
+        .replace('${sourceLang}', learningLangName)
+        .replace('${targetLang}', userLangName)
+        .replace('${text}', query.text ?? '')
+    commandPrompt = (query.activateAction?.commandPrompt ?? '')
+        .replace('${sourceLang}', learningLangName)
+        .replace('${targetLang}', userLangName)
+        .replace('${text}', query.text ?? query.context ?? '')
+    if (query.activateAction?.outputRenderingFormat) {
+        commandPrompt += `. Format: ${query.activateAction.outputRenderingFormat}`
+    }
+    if (!commandPrompt.trim() && query.text) {
+        if (query.context) {
+            commandPrompt = 'Context: ' + query.context + '\n' + query.text
+        } else {
+            commandPrompt = query.text
+        }
+    }
+
+
+    await engine?.sendMessage({
+        signal: query.signal,
+        rolePrompt,
+        commandPrompt,
+        assistantPrompts,
+        activateAction: query.activateAction,
+        parentAction: query.parentAction,
+        onMessage: async (message) => {
+            if (message.isFullText && !messageAdded) {
+                // 只在收到完整消息时保存到历史记录
                 messageAdded = true
 
                 currentMessage = ''

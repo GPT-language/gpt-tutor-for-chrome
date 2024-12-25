@@ -62,11 +62,11 @@ export interface ChatWordAction {
         currentDate: Date
     ) => Promise<{ fileId: number; wordIdx: number }>
     clearConversationHistory: (saveKey: string) => void
-    saveConversationToAnswer: (saveKey: string) => Promise<void>
+    saveConversationToAnswer: (saveKey: string) => void
     loadConversationFromAnswer: (saveKey: string) => void
     addMessageToHistory: (message: ChatMessage) => void
     getConversationMessages: () => ChatMessage[]
-    updateMessageContent: (messageId: string, content: string) => Promise<void>
+    updateMessageContent: (messageId: string, content: string) => void
     updateMessageStatus: (messageId: string, status: 'success' | 'error' | 'pending') => void
     addToAnki: (deckname: string, front: string, back: string) => Promise<void>
 }
@@ -567,100 +567,32 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
     setCurrentConversationId: (id: string) => set({ currentConversationId: id }),
 
     getConversationMessages: () => {
-        try {
-            const state = get()
-            const actionName = state.currentConversationKey
+        const state = get()
+        const saveKey = state.currentConversationKey
 
-            if (!actionName) {
-                throw new Error('No active conversation')
-            }
+        if (state.selectedWord?.answers?.[saveKey]?.conversationMessages) {
+            return state.selectedWord.answers[saveKey].conversationMessages
+        }
 
-            // 获取消息并确保它们是按 user-assistant 对组织的
-            let messages: ChatMessage[] = []
-            if (state.selectedWord?.answers?.[actionName]?.conversationMessages) {
-                messages = state.selectedWord.answers[actionName].conversationMessages
-            } else {
-                messages = state.conversationHistory
-            }
+        return []
+    },
 
-            // 验证消息对的完整性
-            const validatedMessages: ChatMessage[] = []
-            for (let i = 0; i < messages.length; i++) {
-                const currentMessage = messages[i]
-                validatedMessages.push(currentMessage)
+    saveConversationToAnswer: (saveKey: string) =>
+        set(
+            produce((draft: ChatStore) => {
+                const { selectedWord } = draft
+                if (!selectedWord || !saveKey) return
 
-                if (currentMessage.role === 'user' && i + 1 < messages.length) {
-                    const nextMessage = messages[i + 1]
-                    if (nextMessage.role === 'assistant') {
-                        validatedMessages.push(nextMessage)
-                        i++ // 跳过下一条消息
-                    }
+                if (!selectedWord.answers) {
+                    selectedWord.answers = {}
                 }
-            }
 
-            return validatedMessages
-        } catch (error) {
-            console.error('Failed to get conversation messages:', error)
-            toast.error(t('Failed to load conversation'))
-            return []
-        }
-    },
-
-    saveConversationToAnswer: async (actionName: string) => {
-        try {
-            set(
-                produce((draft: ChatStore) => {
-                    const { selectedWord, conversationHistory, currentFileId } = draft
-                    if (!selectedWord || !actionName) {
-                        throw new Error('Missing required data')
-                    }
-
-                    // 确保必要的数据结构存在
-                    if (!selectedWord.answers) {
-                        selectedWord.answers = {}
-                    }
-
-                    // 按照 user-assistant 对重新组织消息
-                    const organizedMessages: ChatMessage[] = []
-                    for (let i = 0; i < conversationHistory.length; i++) {
-                        const currentMessage = conversationHistory[i]
-                        organizedMessages.push(currentMessage)
-
-                        // 如果是 user 消息，确保下一条是对应的 assistant 消息
-                        if (currentMessage.role === 'user' && i + 1 < conversationHistory.length) {
-                            const nextMessage = conversationHistory[i + 1]
-                            if (nextMessage.role === 'assistant') {
-                                organizedMessages.push(nextMessage)
-                                i++ // 跳过下一条消息，因为已经处理过了
-                            }
-                        }
-                    }
-
-                    // 更新 selectedWord 中的对话记录
-                    selectedWord.answers[actionName] = {
-                        ...(selectedWord.answers[actionName] || {}),
-                        conversationMessages: organizedMessages,
-                    }
-
-                    // 同步更新到 files 中的 word
-                    if (currentFileId) {
-                        const fileIndex = draft.files.findIndex((f) => f.id === currentFileId)
-                        if (fileIndex !== -1) {
-                            const wordIndex = draft.files[fileIndex].words.findIndex((w) => w.idx === selectedWord.idx)
-                            if (wordIndex !== -1) {
-                                draft.files[fileIndex].words[wordIndex] = selectedWord
-                            }
-                        }
-                    }
-                })
-            )
-            toast.success(t('Conversation saved successfully'))
-        } catch (error) {
-            console.error('Failed to save conversation:', error)
-            toast.error(t('Failed to save conversation'))
-            throw error
-        }
-    },
+                selectedWord.answers[saveKey] = {
+                    ...(selectedWord.answers[saveKey] || {}),
+                    conversationMessages: draft.conversationHistory,
+                }
+            })
+        ),
 
     loadConversationFromAnswer: (saveKey: string) =>
         set(
@@ -697,81 +629,12 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
             })
         ),
 
-    updateMessageContent: async (messageId: string, content: string) => {
-        try {
-            set(
-                produce((draft: ChatStore) => {
-                    // 获取当前会话上下文
-                    const { selectedWord, currentConversationKey } = draft
-                    if (!selectedWord || !currentConversationKey) {
-                        throw new Error('Missing conversation context')
-                    }
-
-                    // 更新 conversationHistory 中的消息
-                    let messageUpdated = false
-                    for (let i = 0; i < draft.conversationHistory.length; i++) {
-                        if (draft.conversationHistory[i].role === 'user') {
-                            const nextMessage = draft.conversationHistory[i + 1]
-                            if (
-                                nextMessage &&
-                                nextMessage.role === 'assistant' &&
-                                nextMessage.messageId === messageId
-                            ) {
-                                draft.conversationHistory[i + 1].content = content
-                                messageUpdated = true
-                                break
-                            }
-                        }
-                    }
-
-                    if (!messageUpdated) {
-                        throw new Error('Message not found in conversation history')
-                    }
-
-                    // 同步更新 selectedWord 中的消息
-                    if (selectedWord.answers?.[currentConversationKey]?.conversationMessages) {
-                        const messages = selectedWord.answers[currentConversationKey].conversationMessages
-                        messageUpdated = false
-
-                        for (let i = 0; i < messages.length; i++) {
-                            if (messages[i].role === 'user') {
-                                const nextMessage = messages[i + 1]
-                                if (
-                                    nextMessage &&
-                                    nextMessage.role === 'assistant' &&
-                                    nextMessage.messageId === messageId
-                                ) {
-                                    messages[i + 1].content = content
-                                    messageUpdated = true
-                                    break
-                                }
-                            }
-                        }
-
-                        if (!messageUpdated) {
-                            throw new Error('Message not found in word answers')
-                        }
-                    }
-
-                    // 同步更新到 files 中的 word
-                    if (draft.currentFileId) {
-                        const fileIndex = draft.files.findIndex((f) => f.id === draft.currentFileId)
-                        if (fileIndex !== -1) {
-                            const wordIndex = draft.files[fileIndex].words.findIndex((w) => w.idx === selectedWord.idx)
-                            if (wordIndex !== -1) {
-                                draft.files[fileIndex].words[wordIndex] = selectedWord
-                            }
-                        }
-                    }
-                })
-            )
-            toast.success(t('Message updated successfully'))
-        } catch (error) {
-            console.error('Failed to update message content:', error)
-            toast.error(t('Failed to update message'))
-            throw error
-        }
-    },
+    updateMessageContent: (messageId: string, content: string) =>
+        set((state) => ({
+            conversationHistory: state.conversationHistory.map((msg) =>
+                msg.messageId === messageId ? { ...msg, content } : msg
+            ),
+        })),
 
     updateMessageStatus: (messageId: string, status: 'success' | 'error' | 'pending') =>
         set((state) => ({
