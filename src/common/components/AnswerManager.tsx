@@ -140,18 +140,20 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 return
                             }
 
-                            setCurrentAiAnswer((prevAnswer) => {
-                                return prevAnswer + message.content
+                            setCurrentAiAnswer((currentAiAnswer) => {
+                                if (message.isFullText) {
+                                    return message.content
+                                }
+                                const newCurrentAiAnswer = message.isFullText
+                                    ? message.content
+                                    : currentAiAnswer + message.content
+                                return newCurrentAiAnswer
                             })
                         },
                         onFinished: async () => {
-                            const finalAnswer = await new Promise<string>((resolve) => {
-                                setCurrentAiAnswer((prevAnswer) => {
-                                    const separator = prevAnswer ? '\n\n---\n\n' : ''
-                                    const finalAnswer = prevAnswer + separator
-                                    resolve(finalAnswer)
-                                    return finalAnswer
-                                })
+                            setCurrentAiAnswer((currentAiAnswer) => {
+                                const result = currentAiAnswer + '\n\n---\n\n'
+                                return result
                             })
 
                             if (selectedWord && currentFileId && saveKey) {
@@ -307,11 +309,37 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     }
 
     const splitIntoParagraphsAndSentences = (text: string): string[] => {
-        // 只按段落分割,保持原有格式
-        return text
-            .split('\n')
-            .filter(Boolean)
-            .map((p) => p.trim())
+        if (!text) return []
+
+        const paragraphs = text.split('\n').filter(Boolean)
+
+        return paragraphs.flatMap((paragraph) => {
+            // 处理特殊格式
+            if (/^[•\-\d]+[\.\)]\s/.test(paragraph)) return paragraph // 处理列表项
+            if (/^```/.test(paragraph)) return paragraph // 处理代码块
+            if (/^\s*[#>]/.test(paragraph)) return paragraph // 处理标题和引用
+
+            // 多语言句子分割
+            const sentencePatterns = {
+                // 英文句子
+                en: /(?<=[.!?])\s+(?=[A-Z])/,
+                // 中文句子 (以句号、问号、感叹号、分号等结尾)
+                zh: /(?<=[。！？；])/,
+                // 可以继续添加其他语言的规则
+            }
+
+            // 检测语言（简单判断，可以根据需要使用更复杂的语言检测）
+            const hasChineseChars = /[\u4e00-\u9fa5]/.test(paragraph)
+            const pattern = hasChineseChars ? sentencePatterns.zh : sentencePatterns.en
+
+            const sentences = paragraph
+                .split(pattern)
+                .map((s) => s.trim())
+                .filter(Boolean)
+
+            // 如果分割后只有一个句子，返回原段落
+            return sentences.length === 1 ? paragraph : sentences
+        })
     }
 
     const handleTextSelection = useCallback(() => {
@@ -321,12 +349,12 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         const selectedText = window.getSelection()?.toString().trim()
         if (selectedText) {
             setSelectedText(selectedText)
-            editorRef.current.appendChild(document.createTextNode(selectedText))
+            editorRef.current?.appendChild(document.createTextNode(selectedText))
         }
     }, [askingParagraph])
 
     const renderContent = useMemo(
-        () => (text: string, format: string, messageId: string, saveKey: string) => {
+        () => (text: string, format: string, messageId?: string, saveKey?: string) => {
             const paragraphs = splitIntoParagraphsAndSentences(text)
             const content = (
                 <>
@@ -346,7 +374,8 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 }}
                             >
                                 {(editingAction === saveKey || (editingAction === null && saveKey === undefined)) &&
-                                editingParagraph === index ? (
+                                editingParagraph === index &&
+                                messageId ? (
                                     <Block $style={{ width: '95%', margin: '10px' }}>
                                         <Textarea
                                             value={editedText}
@@ -573,6 +602,10 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             setShowFullQuoteText,
         ]
     )
+
+    if (showFullQuoteText && selectedWord?.text) {
+        return <Block>{renderContent(selectedWord.text, 'markdown')}</Block>
+    }
 
     return (
         <Block data-testid='answer-manager'>
