@@ -2,7 +2,7 @@
 import { StateCreator } from 'zustand'
 import { ChatMessage, ChatState } from './initialState'
 import { produce } from 'immer'
-import { Action} from '@/common/internal-services/db'
+import { Action, Content, SavedFile} from '@/common/internal-services/db'
 import { IEngine } from '@/common/engines/interfaces'
 import { ISettings } from '@/common/types'
 import { speak } from '@/common/tts'
@@ -54,7 +54,7 @@ export interface ChatAction {
         onFinish?: () => void
     }) => Promise<void>
     stopSpeak: () => void
-    setAskingAnswer: (answer: string) => void
+    deleteMessage: (messageId: string, conversationKey: string) => void
 }
 
 export const chat: StateCreator<ChatState, [['zustand/devtools', never]], [], ChatAction> = (set, get) => {
@@ -200,6 +200,67 @@ generateNewConversationKey: () => {
                 isSpeaking: false
             })
             stopSpeakRef = null
-        }
+        },
+
+        deleteMessage: (messageId: string, conversationKey: string) => 
+            set(
+                produce((draft) => {
+                    console.log('删除前的 conversationHistory:', draft.answers[conversationKey].conversationMessages)
+                    // 从 conversationHistory 中删除消息
+                    // 找到要删除的消息的索引
+                    const messageIndex = draft.answers[conversationKey].conversationMessages.findIndex(
+                        (msg: ChatMessage) => msg.messageId === messageId
+            )
+            
+            if (messageIndex !== -1) {
+                // 删除当前消息和下一条消息（如果存在且是 assistant 消息）
+                if (
+                    messageIndex + 1 < draft.answers[conversationKey].conversationMessages.length && 
+                    draft.answers[conversationKey].conversationMessages[messageIndex + 1].role === 'assistant'
+                ) {
+                    // 删除两条消息
+                    draft.answers[conversationKey].conversationMessages.splice(messageIndex, 2)
+                } else {
+                    // 只删除当前消息
+                    draft.answers[conversationKey].conversationMessages.splice(messageIndex, 1)
+                }
+            }
+    
+                    // 如果存在 selectedWord，也从其中删除消息
+                    if (draft.selectedWord?.answers?.[conversationKey]) {
+                        const messages = draft.selectedWord.answers[conversationKey].conversationMessages || []
+                        const msgIndex = messages.findIndex((msg: ChatMessage) => msg.messageId === messageId)
+                        
+                        if (msgIndex !== -1) {
+                            if (
+                                msgIndex + 1 < messages.length && 
+                                messages[msgIndex + 1].role === 'assistant'
+                            ) {
+                                messages.splice(msgIndex, 2)
+                            } else {
+                                messages.splice(msgIndex, 1)
+                            }
+                            
+                            draft.selectedWord.answers[conversationKey].conversationMessages = messages
+                        }
+                    }
+    
+                    // 更新 files 中的 word
+                    if (draft.currentFileId && draft.selectedWord) {
+                        const fileIndex = draft.files.findIndex((f: SavedFile) => f.id === draft.currentFileId)
+                        if (fileIndex !== -1) {
+                            const wordIndex = draft.files[fileIndex].words.findIndex(
+                                (w: Content) => w.idx === draft.selectedWord?.idx
+                            )
+                            if (wordIndex !== -1) {
+                                draft.files[fileIndex].words[wordIndex] = draft.selectedWord
+                            }
+                        }
+                    }
+
+                    console.log('删除后的 conversationHistory:', draft.conversationHistory)
+                    console.log('删除后的 selectedWord:', draft.selectedWord?.answers?.[conversationKey])
+                })
+            ),
     }
 }

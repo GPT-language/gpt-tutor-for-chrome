@@ -10,8 +10,9 @@ import { shallow } from 'zustand/shallow'
 import { useStyles } from './Translator'
 import { useTheme } from '../hooks/useTheme'
 import { isDesktopApp } from '../utils'
-import { AiOutlinePlusSquare } from 'react-icons/ai'
-
+import { AiOutlinePlusSquare, AiOutlineDelete } from 'react-icons/ai'
+import { StatefulTooltip } from 'baseui-sd/tooltip'
+import { useTranslation } from 'react-i18next'
 interface ConversationViewProps {
     onCopy?: (text: string) => void
     onSpeak?: (text: string) => void
@@ -41,7 +42,16 @@ const MessageItem: React.FC<MessageItemProps> = ({
     const { theme, themeType } = useTheme()
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
     const [isHover, setIsHover] = useState(false)
-    const { speakingMessageId, isSpeaking, startSpeak, currentConversationKey, addToAnki, selectedWord } = useChatStore(
+    const { t } = useTranslation()
+    const {
+        speakingMessageId,
+        isSpeaking,
+        startSpeak,
+        currentConversationKey,
+        addToAnki,
+        selectedWord,
+        deleteMessage,
+    } = useChatStore(
         (state) => ({
             speakingMessageId: state.speakingMessageId,
             isSpeaking: state.isSpeaking,
@@ -50,6 +60,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             addToAnki: state.addToAnki,
             activateAction: state.activateAction,
             selectedWord: state.selectedWord,
+            deleteMessage: state.deleteMessage,
         }),
         shallow
     )
@@ -177,25 +188,44 @@ const MessageItem: React.FC<MessageItemProps> = ({
                             >
                                 <RxCopy size={13} />
                             </button>
-                            <button
-                                className={styles.actionButton}
-                                style={{
-                                    backgroundColor: 'transparent',
-                                    marginLeft: '8px',
-                                    border: 'none',
-                                    outline: 'none',
-                                }}
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    addToAnki?.(
-                                        message.content || 'default',
-                                        selectedWord?.text || message.content,
-                                        nextMessage.content
-                                    )
-                                }}
-                            >
-                                <AiOutlinePlusSquare size={13} />
-                            </button>
+                            <StatefulTooltip content={t('Add to Anki')} placement='bottom'>
+                                <button
+                                    className={styles.actionButton}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        marginLeft: '8px',
+                                        border: 'none',
+                                        outline: 'none',
+                                    }}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        addToAnki?.(
+                                            message.content || 'default',
+                                            selectedWord?.text || message.content,
+                                            nextMessage.content
+                                        )
+                                    }}
+                                >
+                                    <AiOutlinePlusSquare size={13} />
+                                </button>
+                            </StatefulTooltip>
+                            <StatefulTooltip content={t('Delete message')} placement='bottom'>
+                                <button
+                                    className={styles.actionButton}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        marginLeft: '8px',
+                                        border: 'none',
+                                        outline: 'none',
+                                    }}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        deleteMessage?.(message.messageId, currentConversationKey)
+                                    }}
+                                >
+                                    <AiOutlineDelete size={13} />
+                                </button>
+                            </StatefulTooltip>
                         </>
                     )}
                 </Block>
@@ -228,16 +258,21 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent, onCo
         generateNewConversationKey,
         activateAction,
         editableText,
-    } = useChatStore()
+    } = useChatStore(
+        (state) => ({
+            answers: state.answers,
+            selectedWord: state.selectedWord,
+            currentConversationKey: state.currentConversationKey,
+            setCurrentConversationKey: state.setCurrentConversationKey,
+            generateNewConversationKey: state.generateNewConversationKey,
+            activateAction: state.activateAction,
+            editableText: state.editableText,
+        }),
+        shallow // 使用 shallow 比较确保状态更新时组件会重新渲染
+    )
     const [latestExpandedMessageId, setLatestExpandedMessageId] = React.useState<string | null>(null)
     const previousConversationKey = useRef<string | null>(null)
     const previousMessagesLength = useRef<number>(0)
-
-    const currentMessages = useMemo(() => {
-        const conversations = answers || selectedWord?.answers
-        if (!conversations || !currentConversationKey) return []
-        return conversations[currentConversationKey]?.conversationMessages || []
-    }, [answers, selectedWord, currentConversationKey])
 
     // 监听 answers 变化，处理对话显示逻辑
     useEffect(() => {
@@ -275,6 +310,12 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent, onCo
         setCurrentConversationKey,
         generateNewConversationKey,
     ])
+
+    const currentMessages = useMemo(() => {
+        const conversations = answers || selectedWord?.answers
+        if (!conversations || !currentConversationKey) return []
+        return conversations[currentConversationKey]?.conversationMessages || []
+    }, [answers, selectedWord?.answers, currentConversationKey])
 
     const groupedMessages = useMemo(() => {
         const messages = currentMessages

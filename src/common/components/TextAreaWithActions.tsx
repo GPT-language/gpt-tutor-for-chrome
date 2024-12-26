@@ -212,10 +212,15 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 setShowGroupMenu(true)
             } else if (lastChar === '~') {
                 // 准备对话列表
-                const conversations = Object.entries(answers || {}).map(([key, value]) => ({
-                    key,
-                    messages: value.conversationMessages || [],
-                }))
+                const conversations = Object.entries(answers || {})
+                    .filter(([_, value]) => {
+                        // 检查是否有消息且消息数组不为空
+                        return value.conversationMessages && value.conversationMessages.length > 0
+                    })
+                    .map(([key, value]) => ({
+                        key,
+                        messages: value.conversationMessages || [],
+                    }))
                 setAvailableConversations(conversations)
                 setShowConversationMenu(true)
             }
@@ -228,7 +233,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
         const textNodes = Array.from(editorRef.current.childNodes).filter(
             (node) => node.nodeType === Node.TEXT_NODE
         ) as Text[]
-
 
         textNodes.forEach((textNode) => {
             // 替换文本节点中的 @或者# 符号和~及其后面的文本，直到遇到空格或标点
