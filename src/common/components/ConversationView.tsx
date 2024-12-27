@@ -13,6 +13,8 @@ import { isDesktopApp } from '../utils'
 import { AiOutlinePlusSquare, AiOutlineDelete } from 'react-icons/ai'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
 import { useTranslation } from 'react-i18next'
+import { useAutoExpand } from '../hooks/useAutoExpand'
+import { Markdown } from './Markdown'
 interface ConversationViewProps {
     onCopy?: (text: string) => void
     onSpeak?: (text: string) => void
@@ -24,19 +26,19 @@ interface MessageItemProps {
     message: ChatMessage
     nextMessage?: ChatMessage
     isExpanded: boolean
-    onToggle: () => void
+    setIsExpanded: (messageId: string) => void
     onCopy?: (text: string) => void
-    renderContent: (text: string, format: string, messageId: string, actionName: string) => React.ReactNode
+    renderContent?: (text: string, format: string, messageId: string, actionName: string) => React.ReactNode
 }
 
 // 定义消息组件
-const MessageItem: React.FC<MessageItemProps> = ({
+export const MessageItem: React.FC<MessageItemProps> = ({
     message,
     nextMessage,
-    isExpanded,
-    onToggle,
     onCopy,
     renderContent,
+    isExpanded,
+    setIsExpanded,
 }) => {
     const [css] = useStyletron()
     const { theme, themeType } = useTheme()
@@ -44,6 +46,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
     const [isHover, setIsHover] = useState(false)
     const { t } = useTranslation()
     const {
+        answers,
         speakingMessageId,
         isSpeaking,
         startSpeak,
@@ -53,6 +56,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
         deleteMessage,
     } = useChatStore(
         (state) => ({
+            answers: state.answers,
             speakingMessageId: state.speakingMessageId,
             isSpeaking: state.isSpeaking,
             startSpeak: state.startSpeak,
@@ -142,7 +146,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                     alignItems='center'
                     justifyContent='space-between'
                     className={userMessageStyles}
-                    onClick={onToggle}
+                    onClick={() => setIsExpanded(message.messageId)}
                     onMouseEnter={() => setIsHover(true)}
                     onMouseLeave={() => setIsHover(false)}
                 >
@@ -233,11 +237,15 @@ const MessageItem: React.FC<MessageItemProps> = ({
                 {nextMessage?.role === 'assistant' && (
                     <div className={animatedContentStyles}>
                         <Block className={assistantMessageStyles}>
-                            {renderContent(
-                                nextMessage.content,
-                                nextMessage.format || 'markdown',
-                                nextMessage.messageId,
-                                currentConversationKey
+                            {renderContent ? (
+                                renderContent(
+                                    nextMessage.content,
+                                    nextMessage.format || 'markdown',
+                                    nextMessage.messageId,
+                                    currentConversationKey
+                                )
+                            ) : (
+                                <Markdown>{nextMessage.content}</Markdown>
                             )}
                         </Block>
                     </div>
@@ -270,9 +278,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent, onCo
         }),
         shallow // 使用 shallow 比较确保状态更新时组件会重新渲染
     )
-    const [latestExpandedMessageId, setLatestExpandedMessageId] = React.useState<string | null>(null)
     const previousConversationKey = useRef<string | null>(null)
-    const previousMessagesLength = useRef<number>(0)
 
     // 监听 answers 变化，处理对话显示逻辑
     useEffect(() => {
@@ -287,19 +293,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent, onCo
             setCurrentConversationKey(newKey)
             previousConversationKey.current = newKey
             return
-        }
-
-        // 处理对话切换的情况
-        if (currentConversationKey !== previousConversationKey.current) {
-            // 当对话切换时，展开最新的消息
-            const messages = conversations[currentConversationKey]?.conversationMessages || []
-            for (let i = messages.length - 1; i >= 0; i--) {
-                if (messages[i].role === 'user' && i + 1 < messages.length && messages[i + 1].role === 'assistant') {
-                    setLatestExpandedMessageId(messages[i].messageId)
-                    break
-                }
-            }
-            previousConversationKey.current = currentConversationKey
         }
     }, [
         answers,
@@ -352,25 +345,11 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent, onCo
         return groups
     }, [currentMessages])
 
-    useEffect(() => {
-        if (currentMessages.length > previousMessagesLength.current) {
-            for (let i = currentMessages.length - 1; i >= 0; i--) {
-                if (
-                    currentMessages[i].role === 'user' &&
-                    i + 1 < currentMessages.length &&
-                    currentMessages[i + 1].role === 'assistant'
-                ) {
-                    setLatestExpandedMessageId(currentMessages[i].messageId)
-                    break
-                }
-            }
-        }
-        previousMessagesLength.current = currentMessages.length
-    }, [currentMessages])
-
-    const toggleMessage = (messageId: string) => {
-        setLatestExpandedMessageId((prevId) => (prevId === messageId ? null : messageId))
-    }
+    const { isExpanded, handleExpand } = useAutoExpand({
+        messages: currentMessages,
+        source: 'main',
+        currentConversationKey,
+    })
 
     return (
         <Block
@@ -392,10 +371,10 @@ const ConversationView: React.FC<ConversationViewProps> = ({ renderContent, onCo
                                 key={message.messageId}
                                 message={message}
                                 nextMessage={group.messages[msgIndex + 1]}
-                                isExpanded={message.messageId === latestExpandedMessageId}
-                                onToggle={() => toggleMessage(message.messageId)}
                                 onCopy={onCopy}
                                 renderContent={renderContent}
+                                isExpanded={isExpanded(message.messageId)}
+                                setIsExpanded={handleExpand}
                             />
                         ))}
                     </Block>

@@ -31,7 +31,7 @@ export interface ActionGroup {
     price: number
     version: string
     actions: Action[]
-  }
+}
 
 export interface FollowUpAnswer {
     idx: number
@@ -39,6 +39,7 @@ export interface FollowUpAnswer {
     text: string
     createdAt: Date
     updatedAt: Date
+    conversationMessages?: ChatMessage[]
 }
 
 export interface Answer {

@@ -1167,15 +1167,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                         },
                         onError: (error) => {
                             setActionStr('Error')
-                            if (settings?.provider === 'OneAPI' && error && typeof error === 'object') {
-                                setIsNotLogin(true)
-                                setErrorMessage(
-                                    t('余额不足或者时间到期，请在one-api中进行充值和设置') ||
-                                        '余额不足或者时间到期，请在one-api中进行充值和设置'
-                                )
-                            } else {
-                                setErrorMessage(error.toString())
-                            }
+                            setErrorMessage(error.toString())
                         },
                     },
                     engine,

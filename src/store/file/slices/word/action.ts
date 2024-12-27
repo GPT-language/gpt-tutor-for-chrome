@@ -65,6 +65,7 @@ export interface ChatWordAction {
     saveConversationToAnswer: (saveKey: string) => void
     loadConversationFromAnswer: (saveKey: string) => void
     addMessageToHistory: (message: ChatMessage) => void
+    addFollowUpMessageToHistory: (message: ChatMessage, followUpIndex: number) => void
     getConversationMessages: () => ChatMessage[]
     updateMessageContent: (messageId: string, content: string) => void
     updateMessageStatus: (messageId: string, status: 'success' | 'error' | 'pending') => void
@@ -535,6 +536,80 @@ export const chatWord: StateCreator<ChatStore, [['zustand/devtools', never]], []
                     draft.selectedWord.answers[saveKey] = {
                         ...draft.selectedWord.answers[saveKey],
                         conversationMessages: [...existingMessages, newMessage],
+                    }
+
+                    // 更新 files 中的 word
+                    if (draft.currentFileId) {
+                        const fileIndex = draft.files?.findIndex((f) => f.id === draft.currentFileId)
+                        if (fileIndex !== -1 && draft.files[fileIndex].words) {
+                            const wordIndex = draft.files[fileIndex].words.findIndex(
+                                (w) => w.idx === draft.selectedWord?.idx
+                            )
+                            if (wordIndex !== -1) {
+                                draft.files[fileIndex].words[wordIndex] = {
+                                    ...draft.files[fileIndex].words[wordIndex],
+                                    answers: draft.selectedWord.answers,
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+        ),
+
+    addFollowUpMessageToHistory: (message: ChatMessage, followUpIndex: number) =>
+        set(
+            produce((draft: ChatStore) => {
+                const saveKey = draft.currentConversationKey
+
+                // 创建新消息
+                const newMessage = {
+                    ...message,
+                    createdAt: message.createdAt || Date.now(),
+                    messageId: message.messageId || crypto.randomUUID(),
+                }
+
+                if (draft.selectedWord && saveKey) {
+                    // 确保必要的数据结构存在
+                    if (!draft.selectedWord.answers) {
+                        draft.selectedWord.answers = {}
+                    }
+                    if (!draft.selectedWord.answers[saveKey]) {
+                        draft.selectedWord.answers[saveKey] = {
+                            text: '',
+                            format: 'markdown',
+                            followUpAnswers: [],
+                        }
+                    }
+                    if (!draft.selectedWord.answers[saveKey].followUpAnswers) {
+                        draft.selectedWord.answers[saveKey].followUpAnswers = []
+                    }
+
+                    // 查找或创建对应的 followUpAnswer
+                    const followUpAnswerIndex = draft.selectedWord.answers[saveKey].followUpAnswers.findIndex(
+                        (a) => a.idx === followUpIndex
+                    )
+
+                    if (followUpAnswerIndex !== -1) {
+                        // 如果存在，更新现有的 followUpAnswer
+                        const existingMessages =
+                            draft.selectedWord.answers[saveKey].followUpAnswers[followUpAnswerIndex]
+                                .conversationMessages || []
+                        draft.selectedWord.answers[saveKey].followUpAnswers[followUpAnswerIndex] = {
+                            ...draft.selectedWord.answers[saveKey].followUpAnswers[followUpAnswerIndex],
+                            conversationMessages: [...existingMessages, newMessage],
+                            updatedAt: new Date(),
+                        }
+                    } else {
+                        // 如果不存在，创建新的 followUpAnswer
+                        draft.selectedWord.answers[saveKey].followUpAnswers.push({
+                            idx: followUpIndex,
+                            text: '',
+                            question: '',
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                            conversationMessages: [newMessage],
+                        })
                     }
 
                     // 更新 files 中的 word

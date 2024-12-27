@@ -17,8 +17,10 @@ import { VscReply } from 'react-icons/vsc'
 import { Textarea } from 'baseui-sd/textarea'
 import TextareaWithActions from './TextAreaWithActions'
 import { shallow } from 'zustand/shallow'
-import ConversationView from './ConversationView'
+import ConversationView, { MessageItem } from './ConversationView'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
+import { formatDate } from '../utils/format'
+import { useAutoExpand } from '../hooks/useAutoExpand'
 
 interface ITranslationManagerProps {
     isLoading: boolean
@@ -45,15 +47,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     const [editingParagraph, setEditingParagraph] = useState<number | null>(null)
     const [editedText, setEditedText] = useState('')
     const editorRef = useRef<HTMLDivElement>(null)
-    const {
-        answers,
-        currentFileId,
-        setAnswers,
-        selectedWord,
-        updateWordAnswers,
-        updateFollowUpAnswer,
-        editSentenceAnswer: updateSentenceAnswer,
-    } = useChatStore()
+    const { answers, currentFileId, setAnswers, selectedWord, updateWordAnswers } = useChatStore()
     const [hoveredParagraph, setHoveredParagraph] = useState<number | null>(null)
     const { t } = useTranslation()
     const [askingParagraph, setAskingParagraph] = useState<number | null>(null)
@@ -66,11 +60,20 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         }),
         shallow
     )
-    const { isSpeaking, speakingMessageId, startSpeak, stopSpeak } = useChatStore((state) => ({
+    const {
+        isSpeaking,
+        speakingMessageId,
+        startSpeak,
+        stopSpeak,
+        currentConversationKey,
+        addFollowUpMessageToHistory,
+    } = useChatStore((state) => ({
         isSpeaking: state.isSpeaking,
         speakingMessageId: state.speakingMessageId,
         startSpeak: state.startSpeak,
         stopSpeak: state.stopSpeak,
+        currentConversationKey: state.currentConversationKey,
+        addFollowUpMessageToHistory: state.addFollowUpMessageToHistory,
     }))
 
     const handleCopyMessage = (text: string) => {
@@ -94,29 +97,18 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     )
 
     const handleAsk = useCallback(
-        (index: number, saveKey?: string) => {
-            let existingAnswer
-            if (saveKey) {
-                const followUpAnswers = selectedWord?.answers?.[saveKey]?.followUpAnswers || []
-                existingAnswer = followUpAnswers.find((followUpAnswer) => followUpAnswer.idx === index)
-            } else {
-                existingAnswer = selectedWord?.sentenceAnswers?.find((sentenceAnswer) => sentenceAnswer.idx === index)
-            }
-            if (existingAnswer) {
-                setCurrentAiAnswer(existingAnswer.text)
-            } else {
-                setCurrentAiAnswer('')
-            }
+        (index: number) => {
             setAskingParagraph(index)
             setIndependentText('')
         },
-        [selectedWord?.answers, selectedWord?.sentenceAnswers, setIndependentText]
+        [setIndependentText]
     )
 
     // 完成设置，最后通过一个flag来触发
 
     const handleAskSubmit = useCallback(
         async (text: string, index: number, saveKey?: string) => {
+            let messageAdded = false
             if (!engine) {
                 toast(t('Engine not defined') || 'Engine not defined')
                 return
@@ -125,9 +117,16 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 toast(t('Please input your question') || 'Please input your question')
                 return
             }
-            console.log('handleAskSubmit', text, index, saveKey)
+            console.log('handleAskSubmit', text, index, saveKey, independentText)
             const abortController = new AbortController()
-            const { selectedWord, currentFileId, activateAction } = useChatStore.getState()
+            const { activateAction } = useChatStore.getState()
+            const userMessage = {
+                role: 'user',
+                content: activateAction?.name || independentText || '',
+                createdAt: Date.now(),
+                messageId: crypto.randomUUID(),
+            }
+            addFollowUpMessageToHistory(userMessage, index)
 
             try {
                 await askAIWithoutHistory(
@@ -147,29 +146,89 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 const newCurrentAiAnswer = message.isFullText
                                     ? message.content
                                     : currentAiAnswer + message.content
+                                const saveKey = useChatStore.getState().currentConversationKey
+                                const date = Date.now()
+
+                                // 更新 answers
+                                let newFollowUpAnswers = {}
+
+                                const conversationMessages: ChatMessage[] = [
+                                    ...(answers[saveKey || independentText]?.conversationMessages || []),
+                                    userMessage,
+                                    {
+                                        role: 'assistant',
+                                        content: newCurrentAiAnswer,
+                                        createdAt: date,
+                                        messageId: messageId,
+                                        format: activateAction?.outputRenderingFormat || 'markdown',
+                                    },
+                                ]
+                                newFollowUpAnswers = {
+                                    ...answers,
+                                    [saveKey || independentText]: {
+                                        ...answers[saveKey || independentText],
+                                        followUpAnswers: answers[saveKey || independentText]?.followUpAnswers?.map(answer => {
+                                            // 找到对应索引的 followUpAnswer 并更新
+                                            if (answer.idx === index) {
+                                                return {
+                                                    ...answer,
+                                                    text: currentAiAnswer,
+                                                    updatedAt: new Date(),
+                                                    // 将新消息添加到现有的 conversationMessages 中
+                                                    conversationMessages: [
+                                                        ...(answer.conversationMessages || []),
+                                                        userMessage,
+                                                        {
+                                                            role: 'assistant',
+                                                            content: newCurrentAiAnswer,
+                                                            createdAt: date,
+                                                            messageId: messageId,
+                                                            format: activateAction?.outputRenderingFormat || 'markdown',
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                            return answer
+                                        }) || [
+                                            // 如果没有找到对应的 followUpAnswer，创建新的
+                                            {
+                                                idx: index,
+                                                question: independentText,
+                                                text: currentAiAnswer,
+                                                createdAt: new Date(),
+                                                updatedAt: new Date(),
+                                                conversationMessages: [userMessage, {
+                                                    role: 'assistant',
+                                                    content: newCurrentAiAnswer,
+                                                    createdAt: date,
+                                                    messageId: messageId,
+                                                    format: activateAction?.outputRenderingFormat || 'markdown',
+                                                }]
+                                            }
+                                        ]
+                                    }
+                                }
+
+                                setAnswers(newFollowUpAnswers)
+
                                 return newCurrentAiAnswer
                             })
                         },
                         onFinished: async () => {
                             setCurrentAiAnswer((currentAiAnswer) => {
+                                const assistantMessage = {
+                                    role: 'assistant',
+                                    content: currentAiAnswer,
+                                    createdAt: Date.now(),
+                                    messageId: messageId,
+                                }
+                                if (!messageAdded) {
+                                    addFollowUpMessageToHistory(assistantMessage, index)
+                                    messageAdded = true
+                                }
                                 const result = currentAiAnswer + '\n\n---\n\n'
                                 return result
                             })
-
-                            if (selectedWord && currentFileId && saveKey) {
-                                try {
-                                    await updateFollowUpAnswer(
-                                        currentFileId,
-                                        selectedWord.idx,
-                                        index,
-                                        finalAnswer,
-                                        saveKey
-                                    )
-                                    console.log('Follow-up answer updated successfully')
-                                } catch (error) {
-                                    console.error('Failed to update follow-up answer:', error)
-                                }
-                            }
                         },
                         onError: (error) => {
                             setCurrentAiAnswer((prevAnswer) => {
@@ -188,7 +247,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 // 显示错误提示
             }
         },
-        [engine, independentText, t, updateFollowUpAnswer]
+        [addFollowUpMessageToHistory, answers, engine, independentText, messageId, setAnswers, t]
     )
 
     const handleCopy = useCallback(
@@ -315,11 +374,11 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
 
         return paragraphs.flatMap((paragraph) => {
             // 处理特殊格式
-            if (/^[•\-\d]+[\.\)]\s/.test(paragraph)) return paragraph // 处理列表项
+            if (/^[•\-\d]+[.)]\s/.test(paragraph)) return paragraph // 处理列表项
             if (/^```/.test(paragraph)) return paragraph // 处理代码块
             if (/^\s*[#>]/.test(paragraph)) return paragraph // 处理标题和引用
 
-            // 多语言句子分割
+            // 多语言���子分割
             const sentencePatterns = {
                 // 英文句子
                 en: /(?<=[.!?])\s+(?=[A-Z])/,
@@ -352,6 +411,59 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             editorRef.current?.appendChild(document.createTextNode(selectedText))
         }
     }, [askingParagraph])
+
+    const currentFollowUpMessages = useMemo(() => {
+        const conversations = answers || selectedWord?.answers
+        if (!conversations || !currentConversationKey) return []
+
+        // 获取当前 followUpAnswer 的 conversationMessages
+        const currentFollowUp = conversations[currentConversationKey]?.followUpAnswers?.find(
+            (answer) => answer.idx === askingParagraph
+        )
+
+        return currentFollowUp?.conversationMessages || []
+    }, [answers, selectedWord?.answers, currentConversationKey, askingParagraph])
+
+    const groupedMessages = useMemo(() => {
+        const messages = currentFollowUpMessages
+        const groups: { date: string; messages: ChatMessage[] }[] = []
+        let currentDate = ''
+        let currentGroup: ChatMessage[] = []
+
+        messages?.forEach((message) => {
+            const messageDate = formatDate(message.createdAt)
+
+            if (message.role === 'system') return
+
+            if (messageDate !== currentDate) {
+                if (currentGroup.length > 0) {
+                    groups.push({
+                        date: currentDate,
+                        messages: [...currentGroup],
+                    })
+                }
+                currentDate = messageDate
+                currentGroup = [{ ...message }]
+            } else {
+                currentGroup.push({ ...message })
+            }
+        })
+
+        if (currentGroup.length > 0) {
+            groups.push({
+                date: currentDate,
+                messages: [...currentGroup],
+            })
+        }
+
+        return groups
+    }, [currentFollowUpMessages])
+
+    const { expandedMessages, handleExpand, isExpanded } = useAutoExpand({
+        messages: currentFollowUpMessages,
+        source: 'followup',
+        currentConversationKey,
+    })
 
     const renderContent = useMemo(
         () => (text: string, format: string, messageId?: string, saveKey?: string) => {
@@ -447,22 +559,20 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                 {t('Cancel')}
                                             </Button>
                                         </Block>
-                                        {currentAiAnswer && (
-                                            <Block
-                                                $style={{
-                                                    marginTop: '10px',
-                                                    backgroundColor: '#f0f0f0',
-                                                    padding: '10px',
-                                                    width: '100%', // 确保块级元素占满容器宽度
-                                                    overflowWrap: 'break-word', // 允许长单词断行
-                                                    wordWrap: 'break-word', // 兼容性支持
-                                                    whiteSpace: 'pre-wrap', // 保留换行符并自动换行
-                                                    maxWidth: '100%', // 限制最大宽度
-                                                }}
-                                            >
-                                                <Markdown>{currentAiAnswer}</Markdown>
+                                        {groupedMessages.map((group) => (
+                                            <Block key={group.date} marginBottom='24px'>
+                                                {group.messages.map((message, msgIndex) => (
+                                                    <MessageItem
+                                                        key={message.messageId}
+                                                        message={message}
+                                                        nextMessage={group.messages[msgIndex + 1]}
+                                                        onCopy={handleCopyMessage}
+                                                        isExpanded={isExpanded(message.messageId)}
+                                                        setIsExpanded={handleExpand}
+                                                    />
+                                                ))}
                                             </Block>
-                                        )}
+                                        ))}
                                     </>
                                 ) : (
                                     <Block
@@ -517,7 +627,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                         onClick={(e) => {
                                                             e.stopPropagation()
                                                             e.preventDefault()
-                                                            handleAsk(index, saveKey)
+                                                            handleAsk(index)
                                                         }}
                                                     >
                                                         <VscReply size={13} />
@@ -587,13 +697,16 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             handleTextSelection,
             independentText,
             selectedText,
-            currentAiAnswer,
+            groupedMessages,
             hoveredParagraph,
             styles.actionButton,
             isSpeaking,
             handleSaveEditedText,
             setIndependentText,
             handleAskSubmit,
+            handleCopyMessage,
+            isExpanded,
+            handleExpand,
             handleEdit,
             handleAsk,
             handleCopy,
