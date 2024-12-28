@@ -1788,7 +1788,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             {showYouGlish && (
                 <div>
                     <YouGlishComponent
-                        query={finalText}
+                        query={selectedWord?.text || editableText || finalText}
                         triggerYouGlish={showYouGlish}
                         language={LANG_CONFIGS[youglishLang]?.nameEn || 'English'}
                         accent={LANG_CONFIGS[youglishLang]?.accent || 'us'}
