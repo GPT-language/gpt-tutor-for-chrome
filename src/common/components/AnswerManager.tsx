@@ -76,10 +76,13 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         addFollowUpMessageToHistory: state.addFollowUpMessageToHistory,
     }))
 
-    const handleCopyMessage = (text: string) => {
-        navigator.clipboard.writeText(text)
-        toast.success(t('Copied to clipboard'))
-    }
+    const handleCopyMessage = useCallback(
+        (text: string) => {
+            navigator.clipboard.writeText(text)
+            toast.success(t('Copied to clipboard'))
+        },
+        [t]
+    )
 
     const handleSpeakMessage = useCallback(
         async (text: string) => {
@@ -107,7 +110,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
     // 完成设置，最后通过一个flag来触发
 
     const handleAskSubmit = useCallback(
-        async (text: string, index: number, saveKey?: string) => {
+        async (text: string, index: number, saveKey?: string, quickActionText?: string) => {
             let messageAdded = false
             if (!engine) {
                 toast(t('Engine not defined') || 'Engine not defined')
@@ -117,12 +120,15 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 toast(t('Please input your question') || 'Please input your question')
                 return
             }
+            if (!saveKey) {
+                saveKey = currentConversationKey
+            }
             console.log('handleAskSubmit', text, index, saveKey, independentText)
             const abortController = new AbortController()
             const { activateAction } = useChatStore.getState()
             const userMessage = {
                 role: 'user',
-                content: activateAction?.name || independentText || '',
+                content: activateAction?.name || quickActionText || independentText || '',
                 createdAt: Date.now(),
                 messageId: crypto.randomUUID(),
             }
@@ -132,7 +138,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                 await askAIWithoutHistory(
                     {
                         activateAction,
-                        text: independentText,
+                        text: quickActionText || independentText,
                         context: text,
                         onMessage: async (message) => {
                             if (!message.content) {
@@ -146,67 +152,67 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                 const newCurrentAiAnswer = message.isFullText
                                     ? message.content
                                     : currentAiAnswer + message.content
-                                const saveKey = useChatStore.getState().currentConversationKey
-                                const date = Date.now()
 
                                 // 更新 answers
-                                let newFollowUpAnswers = {}
-
-                                const conversationMessages: ChatMessage[] = [
-                                    ...(answers[saveKey || independentText]?.conversationMessages || []),
-                                    userMessage,
-                                    {
-                                        role: 'assistant',
-                                        content: newCurrentAiAnswer,
-                                        createdAt: date,
-                                        messageId: messageId,
-                                        format: activateAction?.outputRenderingFormat || 'markdown',
-                                    },
-                                ]
-                                newFollowUpAnswers = {
+                                const newFollowUpAnswers = {
                                     ...answers,
-                                    [saveKey || independentText]: {
-                                        ...answers[saveKey || independentText],
-                                        followUpAnswers: answers[saveKey || independentText]?.followUpAnswers?.map(answer => {
-                                            // 找到对应索引的 followUpAnswer 并更新
-                                            if (answer.idx === index) {
-                                                return {
-                                                    ...answer,
-                                                    text: currentAiAnswer,
-                                                    updatedAt: new Date(),
-                                                    // 将新消息添加到现有的 conversationMessages 中
-                                                    conversationMessages: [
-                                                        ...(answer.conversationMessages || []),
-                                                        userMessage,
-                                                        {
-                                                            role: 'assistant',
-                                                            content: newCurrentAiAnswer,
-                                                            createdAt: date,
-                                                            messageId: messageId,
-                                                            format: activateAction?.outputRenderingFormat || 'markdown',
+                                    [currentConversationKey]: {
+                                        ...answers[currentConversationKey],
+                                        followUpAnswers: (() => {
+                                            const currentAnswers = answers[currentConversationKey]?.followUpAnswers || []
+                                            const existingAnswerIndex = currentAnswers.findIndex((a) => a.idx === index)
+
+                                            if (existingAnswerIndex !== -1) {
+                                                // 更新现有的 followUpAnswer
+                                                return currentAnswers.map((answer) => {
+                                                    if (answer.idx === index) {
+                                                        return {
+                                                            ...answer,
+                                                            text: currentAiAnswer,
+                                                            updatedAt: new Date(),
+                                                            conversationMessages: [
+                                                                ...(answer.conversationMessages || []),
+                                                                userMessage,
+                                                                {
+                                                                    role: 'assistant',
+                                                                    content: currentAiAnswer,
+                                                                    createdAt: Date.now(),
+                                                                    messageId: messageId,
+                                                                    format:
+                                                                        activateAction?.outputRenderingFormat ||
+                                                                        'markdown',
+                                                                },
+                                                            ],
                                                         }
-                                                    ]
-                                                }
+                                                    }
+                                                    return answer
+                                                })
+                                            } else {
+                                                // 添加新的 followUpAnswer
+                                                return [
+                                                    ...currentAnswers,
+                                                    {
+                                                        idx: index,
+                                                        question: independentText,
+                                                        text: currentAiAnswer,
+                                                        createdAt: new Date(),
+                                                        updatedAt: new Date(),
+                                                        conversationMessages: [
+                                                            userMessage,
+                                                            {
+                                                                role: 'assistant',
+                                                                content: currentAiAnswer,
+                                                                createdAt: Date.now(),
+                                                                messageId: messageId,
+                                                                format:
+                                                                    activateAction?.outputRenderingFormat || 'markdown',
+                                                            },
+                                                        ],
+                                                    },
+                                                ]
                                             }
-                                            return answer
-                                        }) || [
-                                            // 如果没有找到对应的 followUpAnswer，创建新的
-                                            {
-                                                idx: index,
-                                                question: independentText,
-                                                text: currentAiAnswer,
-                                                createdAt: new Date(),
-                                                updatedAt: new Date(),
-                                                conversationMessages: [userMessage, {
-                                                    role: 'assistant',
-                                                    content: newCurrentAiAnswer,
-                                                    createdAt: date,
-                                                    messageId: messageId,
-                                                    format: activateAction?.outputRenderingFormat || 'markdown',
-                                                }]
-                                            }
-                                        ]
-                                    }
+                                        })(),
+                                    },
                                 }
 
                                 setAnswers(newFollowUpAnswers)
@@ -226,8 +232,11 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                     addFollowUpMessageToHistory(assistantMessage, index)
                                     messageAdded = true
                                 }
-                                const result = currentAiAnswer + '\n\n---\n\n'
-                                return result
+                                // 在完成后将 currentAiAnswer 重置为空字符串，为下一次对话做准备
+                                setTimeout(() => {
+                                    setCurrentAiAnswer('')
+                                }, 0)
+                                return currentAiAnswer
                             })
                         },
                         onError: (error) => {
@@ -378,7 +387,7 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             if (/^```/.test(paragraph)) return paragraph // 处理代码块
             if (/^\s*[#>]/.test(paragraph)) return paragraph // 处理标题和引用
 
-            // 多语言���子分割
+            // 多语言子分割
             const sentencePatterns = {
                 // 英文句子
                 en: /(?<=[.!?])\s+(?=[A-Z])/,
@@ -408,13 +417,13 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         const selectedText = window.getSelection()?.toString().trim()
         if (selectedText) {
             setSelectedText(selectedText)
-            editorRef.current?.appendChild(document.createTextNode(selectedText))
+            setIndependentText(selectedText)
         }
-    }, [askingParagraph])
+    }, [askingParagraph, setIndependentText])
 
     const currentFollowUpMessages = useMemo(() => {
         const conversations = answers || selectedWord?.answers
-        if (!conversations || !currentConversationKey) return []
+        if (!conversations) return []
 
         // 获取当前 followUpAnswer 的 conversationMessages
         const currentFollowUp = conversations[currentConversationKey]?.followUpAnswers?.find(
@@ -459,11 +468,23 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
         return groups
     }, [currentFollowUpMessages])
 
-    const { expandedMessages, handleExpand, isExpanded } = useAutoExpand({
+    const { handleExpand, isExpanded } = useAutoExpand({
         messages: currentFollowUpMessages,
         source: 'followup',
         currentConversationKey,
     })
+
+    const handleExplainWord = useCallback(
+        (paragraph: string, index: number, saveKey: string | undefined) => {
+            if (!selectedText && !independentText) return
+
+            const quickActionText =
+                t(`Please explain the word in the above context`) + ':' + selectedText || independentText
+            console.log('handleExplainWord', paragraph, index, saveKey, quickActionText)
+            handleAskSubmit(paragraph, index, saveKey, quickActionText)
+        },
+        [selectedText, independentText, t, handleAskSubmit]
+    )
 
     const renderContent = useMemo(
         () => (text: string, format: string, messageId?: string, saveKey?: string) => {
@@ -529,9 +550,12 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                                 setIndependentText(value)
                                             }}
                                             onSubmit={() => handleAskSubmit(paragraph, index, saveKey)}
+                                            onExplainWord={() => handleExplainWord(paragraph, index, saveKey)}
+                                            independentText={independentText}
                                             minHeight='80px'
                                             showSubmitButton={false}
                                             showClearButton={false}
+                                            onSpeak={() => handleSpeakMessage(independentText)}
                                         />
                                         <Block
                                             display='flex'
@@ -704,13 +728,14 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
             handleSaveEditedText,
             setIndependentText,
             handleAskSubmit,
+            handleExplainWord,
+            handleSpeakMessage,
             handleCopyMessage,
             isExpanded,
             handleExpand,
             handleEdit,
             handleAsk,
             handleCopy,
-            handleSpeakMessage,
             showFullQuoteText,
             setShowFullQuoteText,
         ]
