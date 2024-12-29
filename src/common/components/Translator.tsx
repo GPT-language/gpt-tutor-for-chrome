@@ -50,6 +50,10 @@ import QuotePreview from './QuotePreview'
 import { Notification, KIND } from 'baseui-sd/notification'
 import { StyledLink } from 'baseui-sd/link'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
+import css from 'react-syntax-highlighter/dist/esm/languages/hljs/css'
+import { IoClose } from 'react-icons/io5'
+import { LabelSmall } from 'baseui-sd/typography'
+import { IoIosInformationCircle } from 'react-icons/io'
 /* import { useClerkUser } from '@/hooks/useClerkUser'
 import { AuthModal } from './AuthModal' */
 
@@ -409,6 +413,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowAnkiNote,
         currentConversationKey,
         setCurrentConversationKey,
+        updateSettings,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
@@ -432,7 +437,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             ;(i18n as any).changeLanguage(settings?.i18n)
         }
     }, [i18n, settings?.i18n])
-
 
     const handleShowFullText = () => {
         if (showFullQuoteText) {
@@ -521,6 +525,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [displayedActions, setDisplayedActions] = useState<Action[]>([])
     const [hiddenActions, setHiddenActions] = useState<Action[]>([])
     const [displayedActionsMaxCount, setDisplayedActionsMaxCount] = useState(6)
+
+    const handleHideEmptyActionsTip = () => {
+        updateSettings({
+            ...settings,
+            hideEmptyActionsTip: true,
+        })
+    }
 
     useEffect(() => {
         refreshActions()
@@ -804,9 +815,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     /*     const { isSignedIn } = useClerkUser()
 
     const showAuthModal = useChatStore((state) => state.showAuthModal) */
-    const { editableText, setEditableText } = useChatStore(
+    const { editableText, actions, setEditableText } = useChatStore(
         (state) => ({
             editableText: state.editableText,
+            actions: state.actions,
             setEditableText: state.setEditableText,
         }),
         shallow
@@ -1524,6 +1536,126 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 >
                                                     <WordListUploader />
                                                 </div>
+                                                {/* 空功能提示 */}
+                                                {actions.length === 0 && !settings.hideEmptyActionsTip && (
+                                                    <LabelSmall
+                                                        marginTop='8px'
+                                                        color='#825447'
+                                                        display='flex'
+                                                        alignItems='flex-start'
+                                                        $style={{
+                                                            gap: '8px',
+                                                            backgroundColor: 'rgb(241, 230, 230)',
+                                                            padding: '12px',
+                                                            borderRadius: '8px',
+                                                            fontSize: '13px',
+                                                            lineHeight: '1.5',
+                                                            position: 'relative',
+                                                        }}
+                                                    >
+                                                        <IoIosInformationCircle
+                                                            size={18}
+                                                            style={{
+                                                                flexShrink: 0,
+                                                                marginTop: '2px',
+                                                                color: '#825447',
+                                                            }}
+                                                        />
+                                                        <div
+                                                            style={{
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                gap: '8px',
+                                                                flex: 1,
+                                                            }}
+                                                        >
+                                                            <span>{t('There are no available actions')}</span>
+                                                            <div
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    gap: '8px',
+                                                                    flexWrap: 'wrap',
+                                                                }}
+                                                            >
+                                                                <a
+                                                                    href={`${
+                                                                        import.meta.env.DEV
+                                                                            ? 'http://localhost:3000'
+                                                                            : 'https://gpt-tutor-website-with-stripe.vercel.app'
+                                                                    }/actionStore?targetLang=${learningLang}&lang=${userLang}`}
+                                                                    target='_blank'
+                                                                    rel='noreferrer'
+                                                                    className={css({
+                                                                        'color': '#825447',
+                                                                        'textDecoration': 'none',
+                                                                        'fontSize': '12px',
+                                                                        'padding': '6px 12px',
+                                                                        'borderRadius': '4px',
+                                                                        'backgroundColor': 'rgba(130, 84, 71, 0.1)',
+                                                                        'display': 'flex',
+                                                                        'alignItems': 'center',
+                                                                        'gap': '4px',
+                                                                        'transition': 'all 0.2s ease',
+                                                                        ':hover': {
+                                                                            backgroundColor: 'rgba(130, 84, 71, 0.2)',
+                                                                            transform: 'translateY(-1px)',
+                                                                        },
+                                                                    })}
+                                                                >
+                                                                    {t('Go to the action store')}
+                                                                </a>
+                                                                <a
+                                                                    href='#'
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault()
+                                                                        useChatStore
+                                                                            .getState()
+                                                                            .setShowActionManager(true)
+                                                                    }}
+                                                                    className={css({
+                                                                        'color': '#825447',
+                                                                        'textDecoration': 'none',
+                                                                        'fontSize': '12px',
+                                                                        'padding': '6px 12px',
+                                                                        'borderRadius': '4px',
+                                                                        'backgroundColor': 'rgba(130, 84, 71, 0.1)',
+                                                                        'display': 'flex',
+                                                                        'alignItems': 'center',
+                                                                        'gap': '4px',
+                                                                        'transition': 'all 0.2s ease',
+                                                                        ':hover': {
+                                                                            backgroundColor: 'rgba(130, 84, 71, 0.2)',
+                                                                            transform: 'translateY(-1px)',
+                                                                        },
+                                                                    })}
+                                                                >
+                                                                    {t('Create a new action')}
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div
+                                                            onClick={handleHideEmptyActionsTip}
+                                                            className={css({
+                                                                'position': 'absolute',
+                                                                'right': '8px',
+                                                                'top': '8px',
+                                                                'cursor': 'pointer',
+                                                                'padding': '4px',
+                                                                'display': 'flex',
+                                                                'alignItems': 'center',
+                                                                'justifyContent': 'center',
+                                                                'color': '#825447',
+                                                                'transition': 'all 0.2s ease',
+                                                                'borderRadius': '50%',
+                                                                ':hover': {
+                                                                    backgroundColor: 'rgba(130, 84, 71, 0.1)',
+                                                                },
+                                                            })}
+                                                        >
+                                                            <IoClose size={14} />
+                                                        </div>
+                                                    </LabelSmall>
+                                                )}
                                                 {/* 主内容区 */}
                                                 <div
                                                     style={{
@@ -1559,7 +1691,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             bottom: 0,
                                                             left: 0,
                                                             right: 0,
-/*                                                             zIndex: 999, */
+                                                            /*                                                             zIndex: 999, */
                                                             background: theme.colors.backgroundPrimary,
                                                             borderTop: `1px solid ${theme.colors.borderOpaque}`,
                                                             boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',

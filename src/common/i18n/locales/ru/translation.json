@@ -169,7 +169,18 @@
   "The Language You are Using": "Ваш язык",
   "You can set multiple group names": "Вы можете установить несколько имен групп",
   "Enter a group, then press Enter": "Введите группу, затем нажмите Enter",
-  "Finish": "Завершить эту тему и добавить к обзору"
+  "Finish": "Завершить эту тему и добавить к обзору",
+  "Here you can switch between different function categories.": "Здесь вы можете переключаться между различными категориями функций.",
+  "Click here to see more options and manage your settings.": "Нажмите здесь, чтобы увидеть больше опций и управлять настройками.",
+  "This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.": "Здесь вы можете задать свой вопрос. Введите @ для выбора действия, ~ для выбора разговора, / для выбора группы действий и нажмите Enter для отправки.",
+  "This is the answer area where you can view AI responses and manage them.": "Это область ответов, где вы можете просматривать и управлять ответами ИИ.",
+  "Here you can find various actions to interact with the answer, such as speaking, copying, and adding to Anki for review.": "Здесь вы найдете различные действия для взаимодействия с ответом, такие как озвучивание, копирование и добавление в Anki для повторения.",
+  "Click this button to add the current answer to your Anki deck for later review and memorization.": "Нажмите эту кнопку, чтобы добавить текущий ответ в вашу колоду Anki для последующего повторения и запоминания.",
+  "Back": "Назад",
+  "Close": "Закрыть",
+  "Got it": "Понятно",
+  "Next": "Далее",
+  "Skip": "Пропустить"
 }
 
 

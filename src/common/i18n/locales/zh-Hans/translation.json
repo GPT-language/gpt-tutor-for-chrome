@@ -262,5 +262,15 @@
   "Tell GPT-Tutor what you need and prefer, and it will adjust according to these information.": "告诉GPT-Tutor您的需求和偏好，它将根据这些信息进行调整。",
   "Clear input and selected function": "清除输入和选中功能",
   "Mark as learned": "标记为已掌握",
-  "Please explain the word in the above context": "请解释上下文中的单词"
+  "Please explain the word in the above context": "请解释上下文中的单词",
+  "Here you can switch between different function categories.": "在这里您可以切换不同的功能类别。",
+  "Click here to see more options and manage your settings.": "点击这里查看更多选项并管理您的设置。",
+  "This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.": "这里是您可以提问的地方。输入 @ 选择功能、~ 选择对话、/ 选择功能组，按 Enter 提交。",
+  "This is the answer area where you can view AI responses and manage them.": "这是答案区域，您可以在这里查看 AI 回应并管理它们。",
+  "Here you can find various actions to interact with the answer, such as speaking, copying, and adding to Anki for review.": "在这里您可以找到与答案互动的各种操作，如朗读、复制和添加到 Anki 复习。",
+  "Click this button to add the current answer to your Anki deck for later review and memorization.": "点击此按钮将当前答案添加到您的 Anki 牌组中以供日后复习和记忆。",
+  "Back": "返回",
+  "Close": "关闭",
+  "Got it": "明白了",
+  "Skip": "跳过"
 }

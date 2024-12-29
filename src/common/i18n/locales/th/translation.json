@@ -168,5 +168,16 @@
   "Determine which groups this action belongs to": "ตั้งค่ากลุ่มที่เกี่ยวข้องกับการดำเนินการนี้",
   "You can set multiple group names": "คุณสามารถตั้งค่ากลุ่มหลายชื่อ",
   "Enter a group, then press Enter": "ป้อนกลุ่มแล้วกด Enter",
-  "disable collecting statistics": "ปิดใช้งานการสถิติการเก็บรวบรวม"
+  "disable collecting statistics": "ปิดใช้งานการสถิติการเก็บรวบรวม",
+  "Here you can switch between different function categories.": "ที่นี่คุณสามารถสลับระหว่างหมวดหมู่ฟังก์ชันต่างๆ",
+  "Click here to see more options and manage your settings.": "คลิกที่นี่เพื่อดูตัวเลือกเพิ่มเติมและจัดการการตั้งค่าของคุณ",
+  "This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.": "ที่นี่คุณสามารถถามคำถามของคุณ พิมพ์ @ เพื่อเลือกการกระทำ, ~ เพื่อเลือกการสนทนา, / เพื่อเลือกกลุ่มการกระทำ และกด Enter เพื่อส่ง",
+  "This is the answer area where you can view AI responses and manage them.": "นี่คือพื้นที่คำตอบที่คุณสามารถดูการตอบสนองของ AI และจัดการได้",
+  "Here you can find various actions to interact with the answer, such as speaking, copying, and adding to Anki for review.": "ที่นี่คุณสามารถพบการกระทำต่างๆ เพื่อโต้ตอบกับคำตอบ เช่น การพูด การคัดลอก และการเพิ่มลงใน Anki สำหรับการทบทวน",
+  "Click this button to add the current answer to your Anki deck for later review and memorization.": "คลิกปุ่มนี้เพื่อเพิ่มคำตอบปัจจุบันลงในชุด Anki ของคุณสำหรับการทบทวนและจดจำในภายหลัง",
+  "Back": "ย้อนกลับ",
+  "Close": "ปิด",
+  "Got it": "เข้าใจแล้ว",
+  "Next": "ถัดไป",
+  "Skip": "ข้าม"
 }

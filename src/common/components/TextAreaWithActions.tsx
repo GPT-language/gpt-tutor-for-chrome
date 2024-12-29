@@ -3,11 +3,8 @@ import { Theme, useStyletron } from 'baseui-sd'
 import { StatefulMenu } from 'baseui-sd/menu'
 import { Action } from '../internal-services/db'
 import { Button } from 'baseui-sd/button'
-import { IoIosRocket, IoIosInformationCircle } from 'react-icons/io'
 import { useTranslation } from 'react-i18next'
 import { useChatStore } from '@/store/file/store'
-import { LabelSmall } from 'baseui-sd/typography'
-import { IoClose } from 'react-icons/io5'
 import { FaArrowUp } from 'react-icons/fa'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
 import QuickActionBar from './QuickActionBar'
@@ -81,6 +78,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     const [showGroupMenu, setShowGroupMenu] = useState(false)
     const [groupSearchTerm, setGroupSearchTerm] = useState('')
     const {
+        actions,
         selectedActions,
         activateAction,
         setEditableText,
@@ -106,23 +104,8 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     const actionTagRef = useRef<HTMLSpanElement>(null)
     const groupTagRef = useRef<HTMLSpanElement>(null)
     const [isComposing, setIsComposing] = useState(false) // 添加输入法编辑状态
-    const learningLang = settings.defaultLearningLanguage
-    const userLang = settings.defaultUserLanguage
     const [composingText, setComposingText] = useState<string>('') // 新增：存储输入法编辑中的文本
 
-    const handleHideInputTip = () => {
-        updateSettings({
-            ...settings,
-            hideInputTip: true,
-        })
-    }
-
-    const handleHideEmptyActionsTip = () => {
-        updateSettings({
-            ...settings,
-            hideEmptyActionsTip: true,
-        })
-    }
 
     // 获取所有可用的 groups
     const availableGroups = useMemo(() => {
@@ -486,47 +469,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 onSubmit={handleSubmit}
             />
 
-            {!settings.hideInputTip && (
-                <LabelSmall
-                    marginBottom='4px'
-                    color='gray'
-                    display='flex'
-                    alignItems='center'
-                    $style={{
-                        gap: '4px',
-                        position: 'relative',
-                        paddingRight: '24px',
-                        marginBottom: '18px',
-                    }}
-                >
-                    <IoIosRocket size={14} />
-                    {t('Input @ to select an action, input / to select an action group, and input Enter to submit')}
-                    <div
-                        onClick={handleHideInputTip}
-                        className={css({
-                            'position': 'absolute',
-                            'right': '0',
-                            'top': '50%',
-                            'transform': 'translateY(-50%)',
-                            'cursor': 'pointer',
-                            'padding': '4px',
-                            'display': 'flex',
-                            'alignItems': 'center',
-                            'justifyContent': 'center',
-                            'color': 'gray',
-                            'transition': 'all 0.2s ease',
-                            'borderRadius': '50%',
-                            ':hover': {
-                                backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                                color: 'darkgray',
-                            },
-                        })}
-                    >
-                        <IoClose size={14} />
-                    </div>
-                </LabelSmall>
-            )}
-
             <div
                 ref={editorRef}
                 contentEditable={!disabled}
@@ -596,124 +538,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                         },
                     }}
                 />
-            )}
-
-            {selectedActions.length === 0 && !settings.hideEmptyActionsTip && (
-                <LabelSmall
-                    marginTop='8px'
-                    color='#825447'
-                    display='flex'
-                    alignItems='flex-start'
-                    $style={{
-                        gap: '8px',
-                        backgroundColor: 'rgb(241, 230, 230)',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        lineHeight: '1.5',
-                        position: 'relative',
-                    }}
-                >
-                    <IoIosInformationCircle
-                        size={18}
-                        style={{
-                            flexShrink: 0,
-                            marginTop: '2px',
-                            color: '#825447',
-                        }}
-                    />
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '8px',
-                            flex: 1,
-                        }}
-                    >
-                        <span>{t('There are no available actions')}</span>
-                        <div
-                            style={{
-                                display: 'flex',
-                                gap: '8px',
-                                flexWrap: 'wrap',
-                            }}
-                        >
-                            <a
-                                href={`${
-                                    import.meta.env.DEV
-                                        ? 'http://localhost:3000'
-                                        : 'https://gpt-tutor-website-with-stripe.vercel.app'
-                                }/actionStore?targetLang=${learningLang}&lang=${userLang}`}
-                                target='_blank'
-                                rel='noreferrer'
-                                className={css({
-                                    'color': '#825447',
-                                    'textDecoration': 'none',
-                                    'fontSize': '12px',
-                                    'padding': '6px 12px',
-                                    'borderRadius': '4px',
-                                    'backgroundColor': 'rgba(130, 84, 71, 0.1)',
-                                    'display': 'flex',
-                                    'alignItems': 'center',
-                                    'gap': '4px',
-                                    'transition': 'all 0.2s ease',
-                                    ':hover': {
-                                        backgroundColor: 'rgba(130, 84, 71, 0.2)',
-                                        transform: 'translateY(-1px)',
-                                    },
-                                })}
-                            >
-                                {t('Go to the action store')}
-                            </a>
-                            <a
-                                href='#'
-                                onClick={(e) => {
-                                    e.preventDefault()
-                                    useChatStore.getState().setShowActionManager(true)
-                                }}
-                                className={css({
-                                    'color': '#825447',
-                                    'textDecoration': 'none',
-                                    'fontSize': '12px',
-                                    'padding': '6px 12px',
-                                    'borderRadius': '4px',
-                                    'backgroundColor': 'rgba(130, 84, 71, 0.1)',
-                                    'display': 'flex',
-                                    'alignItems': 'center',
-                                    'gap': '4px',
-                                    'transition': 'all 0.2s ease',
-                                    ':hover': {
-                                        backgroundColor: 'rgba(130, 84, 71, 0.2)',
-                                        transform: 'translateY(-1px)',
-                                    },
-                                })}
-                            >
-                                {t('Create a new action')}
-                            </a>
-                        </div>
-                    </div>
-                    <div
-                        onClick={handleHideEmptyActionsTip}
-                        className={css({
-                            'position': 'absolute',
-                            'right': '8px',
-                            'top': '8px',
-                            'cursor': 'pointer',
-                            'padding': '4px',
-                            'display': 'flex',
-                            'alignItems': 'center',
-                            'justifyContent': 'center',
-                            'color': '#825447',
-                            'transition': 'all 0.2s ease',
-                            'borderRadius': '50%',
-                            ':hover': {
-                                backgroundColor: 'rgba(130, 84, 71, 0.1)',
-                            },
-                        })}
-                    >
-                        <IoClose size={14} />
-                    </div>
-                </LabelSmall>
             )}
 
             {showActionMenu && selectedActions.length > 0 && filteredActions.length > 0 && (

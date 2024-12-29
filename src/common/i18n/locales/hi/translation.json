@@ -168,5 +168,16 @@
   "Determine which groups this action belongs to": "निर्धारित करें कि यह क्रिया किन समूहों से संबंधित है",
   "You can set multiple group names": "आप एक से अधिक समूह नाम सेट सकते हैं",
   "Enter a group, then press Enter": "एक समूह दर्ज करें और दबाएं",
-  "Finish": "इस विषय को समाप्त करें और समीक्षा में जोड़ें"
+  "Finish": "इस विषय को समाप्त करें और समीक्षा में जोड़ें",
+  "Here you can switch between different function categories.": "यहाँ आप विभिन्न कार्य श्रेणियों के बीच स्विच कर सकते हैं।",
+  "Click here to see more options and manage your settings.": "अधिक विकल्प देखने और अपनी सेटिंग्स प्रबंधित करने के लिए यहाँ क्लिक करें।",
+  "This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.": "यहाँ आप अपना प्रश्न पूछ सकते हैं। कार्य चुनने के लिए @ टाइप करें, वार्तालाप चुनने के लिए ~, कार्य समूह चुनने के लिए /, और सबमिट करने के लिए एंटर दबाएं।",
+  "This is the answer area where you can view AI responses and manage them.": "यह उत्तर क्षेत्र है जहाँ आप AI प्रतिक्रियाएं देख और प्रबंधित कर सकते हैं।",
+  "Here you can find various actions to interact with the answer, such as speaking, copying, and adding to Anki for review.": "यहाँ आप उत्तर के साथ इंटरैक्ट करने के लिए विभिन्न कार्य पा सकते हैं, जैसे बोलना, कॉपी करना, और समीक्षा के लिए Anki में जोड़ना।",
+  "Click this button to add the current answer to your Anki deck for later review and memorization.": "बाद में समीक्षा और याद रखने के लिए वर्तमान उत्तर को अपने Anki डेक में जोड़ने के लिए इस बटन पर क्लिक करें।",
+  "Back": "वापस",
+  "Close": "बंद करें",
+  "Got it": "समझ गया",
+  "Next": "अगला",
+  "Skip": "छोड़ें"
 }

@@ -17,7 +17,7 @@ const AppTutorial = () => {
         },
         {
             target: '[data-testid="more-button"]',
-            content: t('Click here to see more options and manage your actions.'),
+            content: t('Click here to see more options and manage your settings.'),
             placement: 'bottom-end' as Placement,
         },
         {
@@ -38,9 +38,16 @@ const AppTutorial = () => {
             placement: 'bottom' as Placement,
         },
         {
+            target: '[data-testid="quick-action-bar"]',
+            content: t(
+                'This quick action bar provides convenient access to frequently used features like text-to-speech, Youglish, and your favorite actions.'
+            ),
+            placement: 'bottom' as Placement,
+        },
+        {
             target: '[data-testid="textarea-with-actions"]',
             content: t(
-                'This is where you can ask your question. Type @ to select a action, / to select a action group, and press Enter to submit.'
+                'This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.'
             ),
             placement: 'top' as Placement,
         },
@@ -63,11 +70,6 @@ const AppTutorial = () => {
             ),
             placement: 'bottom' as Placement,
         },
-        {
-            target: '[data-testid="translator-settings-toggle"]',
-            content: t('Click this button to toggle between the settings page and the main page.'),
-            placement: 'bottom' as Placement,
-        },
     ])
 
     const checkTargets = () => {
@@ -75,6 +77,7 @@ const AppTutorial = () => {
             categoryTabs: document.querySelector('[data-testid="category-tabs"]'),
             moreButton: document.querySelector('[data-testid="more-button"]'),
             sidebarToggle: document.querySelector('[data-testid="sidebar-toggle"]'),
+            quickActionBar: document.querySelector('[data-testid="quick-action-bar"]'),
             textareaWithActions: document.querySelector('[data-testid="textarea-with-actions"]'),
             answerManager: document.querySelector('[data-testid="answer-manager"]'),
             answerActions: document.querySelector('[data-testid="answer-actions"]'),
@@ -149,7 +152,7 @@ const AppTutorial = () => {
         console.log('[Tutorial] Not showing tutorial:', {
             isReady,
             hasCompletedTutorial,
-            showSettings
+            showSettings,
         })
         return null
     }
