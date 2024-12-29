@@ -10,7 +10,7 @@ import { LabelSmall } from 'baseui-sd/typography'
 import { IoClose } from 'react-icons/io5'
 import { FaArrowUp } from 'react-icons/fa'
 import { ChatMessage } from '@/store/file/slices/chat/initialState'
-import { log } from 'console'
+import QuickActionBar from './QuickActionBar'
 
 interface AutocompleteTextareaProps {
     // 1. 增加更多可配置的属性
@@ -34,6 +34,11 @@ interface AutocompleteTextareaProps {
     onClear?: () => void // 清空回调
     onFocus?: () => void // 获得焦点回调
     onBlur?: () => void // 失去焦点回调
+    onSpeak?: () => void
+    onYouglish?: () => void
+    isSpeaking?: boolean
+    onExplainWord?: () => void
+    independentText?: string
 }
 
 // 3. 提取默认值
@@ -65,6 +70,11 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
     onClear,
     onFocus,
     onBlur,
+    onSpeak,
+    onYouglish,
+    isSpeaking,
+    onExplainWord,
+    independentText,
 }) => {
     const [css] = useStyletron()
     const [showActionMenu, setShowActionMenu] = useState(false)
@@ -229,7 +239,6 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
             (node) => node.nodeType === Node.TEXT_NODE
         ) as Text[]
 
-
         textNodes.forEach((textNode) => {
             // 替换文本节点中的 @或者# 符号和~及其后面的文本，直到遇到空格或标点
             const newText =
@@ -256,7 +265,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                     existingActionTag.setAttribute('data-action-id', action.id?.toString() || '')
                     existingActionTag.textContent = `@${action.name}`
                 } else {
-                    // 如果不存���，创建新的 action tag
+                    // 如果不存在，创建新的 action tag
                     if (actionTagRef.current && actionTagRef.current.textContent) {
                         // 使用预设的 actionTag
                         actionTagRef.current.style.display = 'inline-block'
@@ -399,7 +408,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
             actionTagRef.current.setAttribute('data-action-id', activateAction.id?.toString() || '')
             actionTagRef.current.textContent = `@${activateAction.name}`
         } else {
-            // 当没有激活的 action 时，隐藏并清空相关属性
+            // 当没有激活的 action 时���隐藏并清空相关属性
             actionTagRef.current.style.display = 'none'
             actionTagRef.current.setAttribute('data-action-id', '')
             actionTagRef.current.textContent = ''
@@ -467,6 +476,16 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                 backgroundColor: 'white',
             })}
         >
+            <QuickActionBar
+                onSpeak={onSpeak}
+                onYouglish={onYouglish}
+                onExplainWord={onExplainWord}
+                independentText={independentText}
+                isSpeaking={isSpeaking}
+                disabled={disabled}
+                onSubmit={handleSubmit}
+            />
+
             {!settings.hideInputTip && (
                 <LabelSmall
                     marginBottom='4px'
@@ -779,7 +798,7 @@ const TextareaWithActions: React.FC<AutocompleteTextareaProps> = ({
                             },
                             // 分隔线
                             { label: '---', disabled: true },
-                            // 现有对话列���
+                            // 现有对话列表
                             ...availableConversations.map((conv) => ({
                                 label: conv.key,
                                 conversation: conv,
@@ -856,7 +875,7 @@ const menuStyles = {
     right: '0',
     bottom: '100%',
     marginBottom: '4px',
-    zIndex: 1000,
+    zIndex: 100,
     overflowY: 'auto',
     maxHeight: '200px',
     boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',

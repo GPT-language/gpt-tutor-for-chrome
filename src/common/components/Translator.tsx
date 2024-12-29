@@ -407,28 +407,23 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         showSidebar,
         showAnkiNote,
         setShowAnkiNote,
+        currentConversationKey,
+        setCurrentConversationKey,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
     const [answerFlag, forceTranslate] = useReducer((x: number) => x + 1, 0)
 
     const editorRef = useRef<HTMLDivElement>(null)
-    const highlightRef = useRef<HighlightInTextarea | null>(null)
     const { t, i18n } = useTranslation()
     const [finalText, setFinalText] = useState('')
     const quoteTextRef = useRef('')
     const [showFullQuoteText, setShowFullQuoteText] = useState(false)
-
+    const [youglishQuery, setYouglishQuery] = useState('')
     // 更新 quoteText 时同时更新 ref
     useEffect(() => {
         quoteTextRef.current = quoteText
     }, [quoteText])
-
-    /*     useEffect(() => {
-        if (selectedWord) {
-            setQuoteText(selectedWord.text)
-        }
-    }, [selectedWord, setQuoteText]) */
 
     useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -437,6 +432,21 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             ;(i18n as any).changeLanguage(settings?.i18n)
         }
     }, [i18n, settings?.i18n])
+
+
+    const handleShowFullText = () => {
+        if (showFullQuoteText) {
+            setShowFullQuoteText(false)
+            if (currentConversationKey === 'FullText') {
+                setCurrentConversationKey('')
+            }
+        } else {
+            setShowFullQuoteText(true)
+            if (currentConversationKey !== 'FullText') {
+                setCurrentConversationKey('FullText')
+            }
+        }
+    }
 
     useEffect(() => {
         const editor = editorRef.current
@@ -1272,7 +1282,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             translatedStopSpeakRef.current()
         }
     }, [])
-    const handleEditSpeakAction = async () => {
+    const handleEditSpeakAction = async (text?: string) => {
         if (isSpeakingEditableText) {
             editableStopSpeakRef.current()
             setIsSpeakingEditableText(false)
@@ -1281,19 +1291,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setIsSpeakingEditableText(true)
         const lang = await detectLang(quoteText || editableText || finalText)
         const { stopSpeak } = await speak({
-            text: quoteText || editableText || finalText,
+            text: text || quoteText || editableText || finalText,
             lang: lang,
             onFinish: () => setIsSpeakingEditableText(false),
         })
         editableStopSpeakRef.current = stopSpeak
     }
 
-    const handleYouglishSpeakAction = async () => {
+    const handleYouglishSpeakAction = async (text?: string) => {
         if (!showYouGlish) {
             setShowYouGlish(true)
         } else {
             setShowYouGlish(false)
         }
+        setYouglishQuery(text || quoteText || editableText || finalText)
     }
 
     const handleTranslatedSpeakAction = async (messageId?: string, conversationId?: string, text?: string) => {
@@ -1440,13 +1451,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 {selectedWord?.text && !showFullQuoteText && (
                                     <QuotePreview
                                         showFullText={showFullQuoteText}
-                                        toggleFullText={() => setShowFullQuoteText(!showFullQuoteText)}
+                                        toggleFullText={handleShowFullText}
                                         onClose={() => {
                                             deleteSelectedWord()
                                         }}
                                         previewLength={200}
-                                        onSpeak={handleEditSpeakAction}
-                                        onYouglish={handleYouglishSpeakAction}
+                                        onSpeak={() => handleEditSpeakAction(selectedWord?.text)}
+                                        onYouglish={() => handleYouglishSpeakAction(selectedWord?.text)}
                                         isSpeaking={isSpeakingEditableText}
                                         text={editableText}
                                     />
@@ -1548,7 +1559,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             bottom: 0,
                                                             left: 0,
                                                             right: 0,
-                                                            zIndex: 999,
+/*                                                             zIndex: 999, */
                                                             background: theme.colors.backgroundPrimary,
                                                             borderTop: `1px solid ${theme.colors.borderOpaque}`,
                                                             boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
@@ -1559,6 +1570,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                             onChange={setEditableText}
                                                             editorRef={editorRef}
                                                             onSubmit={handleSubmit}
+                                                            onSpeak={() => handleEditSpeakAction(editableText)}
+                                                            onYouglish={() => handleYouglishSpeakAction(editableText)}
+                                                            isSpeaking={isSpeakingEditableText}
                                                         />
                                                     </div>
                                                 )}
@@ -1788,7 +1802,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             {showYouGlish && (
                 <div>
                     <YouGlishComponent
-                        query={selectedWord?.text || editableText || finalText}
+                        query={youglishQuery}
                         triggerYouGlish={showYouGlish}
                         language={LANG_CONFIGS[youglishLang]?.nameEn || 'English'}
                         accent={LANG_CONFIGS[youglishLang]?.accent || 'us'}

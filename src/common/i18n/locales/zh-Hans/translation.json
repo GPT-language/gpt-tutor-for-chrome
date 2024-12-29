@@ -93,7 +93,7 @@
   "Description": "描述",
   "Placeholders": "占位符",
   "Role Prompt": "角色提示词",
-  "Role prompt indicates what role the action represents.": "角色提示词指示了该功能代表的角色。",
+  "Role prompt indicates what role the action represents.": "角色提示词指该功能代表的角色。",
   "Role prompt example: You are a translator.": "角色提示词示例：你是一位翻译专家。",
   "Command Prompt": "命令提示词",
   "Command prompt indicates what command should be issued to the role represented by the action when the action is executed.": "命令提示词指示了当执行该功能时，应向该功能所代表的角色发出什么命令。",
@@ -191,7 +191,7 @@
   "Added to review": "已添加到复习",
   "Failed to add to review": "添加到复习失败,请稍后重试",
   "Use a better model to get more accurate results":"使用更好的模型来获取更准确的结果",
-  "There are a large number of native speakers on Reddit, where you can get quick and accurate answers": "Reddit 上有大量的母语口语者，你可以在这快速获取准确的答案",
+  "There are a large number of native speakers on Reddit, where you can get quick and accurate answers": "Reddit 上有量的母语口语者，你可以在这快速获取准确的答案",
   "Adjust your prompt in the actionManager to get more accurate results":"在功能管理器中调整提示词来获取更准确的结果",
   "Join our learning group to get help":"加入我们的学习群组来获取帮助",
   "Any question to this answer?":"对该回答有疑问？",
@@ -232,6 +232,7 @@
   "Grammar": "语法",
   "Store": "商店",
   "Actions": "功能",
+  "Settings": "设置",
   "Select a Action Group": "选择一个功能群组",
   "Built-in Actions": "内置功能",
   "Prompt Engineering": "提示词工程",
@@ -260,5 +261,6 @@
   "Select the AI you want to use": "选择您想使用的AI",
   "Tell GPT-Tutor what you need and prefer, and it will adjust according to these information.": "告诉GPT-Tutor您的需求和偏好，它将根据这些信息进行调整。",
   "Clear input and selected function": "清除输入和选中功能",
-  "Mark as learned": "标记为已掌握"
+  "Mark as learned": "标记为已掌握",
+  "Please explain the word in the above context": "请解释上下文中的单词"
 }

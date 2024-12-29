@@ -374,7 +374,7 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
     }
     if (!commandPrompt.trim() && query.text) {
         if (query.context) {
-            commandPrompt = 'Context: ' + query.context + '\n' + query.text
+            commandPrompt = query.text
         } else {
             commandPrompt = query.text
         }
@@ -553,7 +553,6 @@ export async function askAIWithoutHistory(query: TranslateQuery, engine: IEngine
             commandPrompt = query.text
         }
     }
-
 
     await engine?.sendMessage({
         signal: query.signal,

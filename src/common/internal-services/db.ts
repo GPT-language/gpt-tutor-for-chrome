@@ -21,6 +21,7 @@ export interface Action {
     childrenIds?: number[]
     useBackgroundInfo?: boolean
     useLanguageLevelInfo?: boolean
+    isFrequentlyUsed?: boolean
 }
 
 export interface ActionGroup {

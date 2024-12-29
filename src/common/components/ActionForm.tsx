@@ -15,6 +15,7 @@ import GroupSelect from './GroupSelect'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
 import { useChatStore } from '@/store/file/store'
 import { CheckBox } from './CheckBox'
+import { IconPicker } from './IconPicker'
 
 const useStyles = createUseStyles({
     placeholder: (props: IThemedStyleProps) => ({
@@ -149,6 +150,9 @@ export function ActionForm(props: IActionFormProps) {
                     }}
                 />
             </FormItem>
+            <FormItem required name='icon' label={t('Icon')}>
+                <IconPicker />
+            </FormItem>
             <FormItem name='rolePrompt' label={t('Role Prompt')} caption={rolePromptCaption}>
                 <Textarea size='compact' />
             </FormItem>
@@ -176,12 +180,20 @@ export function ActionForm(props: IActionFormProps) {
                 />
             </FormItem>
 
+            <FormItem name='isFrequentlyUsed'>
+                <CheckBox
+                    label={t('Frequently Used') || 'Frequently Used'}
+                    labelSmall={t('Show this action in quick access bar') || 'Show this action in quick access bar'}
+                />
+            </FormItem>
+
             <FormItem name='model' label={t('API Model')}>
                 <ModelSelect></ModelSelect>
             </FormItem>
             <FormItem name='outputRenderingFormat' label={t('Output rendering format')}>
                 <RenderingFormatSelector />
             </FormItem>
+
             <div
                 style={{
                     display: 'flex',

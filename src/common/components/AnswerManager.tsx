@@ -159,7 +159,8 @@ const TranslationManager: React.FC<ITranslationManagerProps> = ({
                                     [currentConversationKey]: {
                                         ...answers[currentConversationKey],
                                         followUpAnswers: (() => {
-                                            const currentAnswers = answers[currentConversationKey]?.followUpAnswers || []
+                                            const currentAnswers =
+                                                answers[currentConversationKey]?.followUpAnswers || []
                                             const existingAnswerIndex = currentAnswers.findIndex((a) => a.idx === index)
 
                                             if (existingAnswerIndex !== -1) {
