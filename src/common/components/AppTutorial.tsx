@@ -123,7 +123,7 @@ const AppTutorial = () => {
             console.log('[Tutorial] Cleaning up check interval')
             clearInterval(checkInterval)
         }
-    }, [showSettings])
+    }, [checkTargets, showSettings, tutorialState])
 
     const handleJoyrideCallback = (data: CallBackProps) => {
         const { action, index, status, type } = data

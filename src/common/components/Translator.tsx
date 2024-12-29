@@ -772,6 +772,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
     }, [settings?.provider])
 
+    // 检测是否是首次使用
+    useEffect(() => {
+        if (useChatStore.getState().chatUser.isFirstTimeUse) {
+            setShowSettings(true)
+        }
+    }, [setShowSettings])
+
     const handleSubmit = useCallback(
         async (e?: React.FormEvent) => {
             if (e) {
@@ -1536,126 +1543,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 >
                                                     <WordListUploader />
                                                 </div>
-                                                {/* 空功能提示 */}
-                                                {actions.length === 0 && !settings.hideEmptyActionsTip && (
-                                                    <LabelSmall
-                                                        marginTop='8px'
-                                                        color='#825447'
-                                                        display='flex'
-                                                        alignItems='flex-start'
-                                                        $style={{
-                                                            gap: '8px',
-                                                            backgroundColor: 'rgb(241, 230, 230)',
-                                                            padding: '12px',
-                                                            borderRadius: '8px',
-                                                            fontSize: '13px',
-                                                            lineHeight: '1.5',
-                                                            position: 'relative',
-                                                        }}
-                                                    >
-                                                        <IoIosInformationCircle
-                                                            size={18}
-                                                            style={{
-                                                                flexShrink: 0,
-                                                                marginTop: '2px',
-                                                                color: '#825447',
-                                                            }}
-                                                        />
-                                                        <div
-                                                            style={{
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                                gap: '8px',
-                                                                flex: 1,
-                                                            }}
-                                                        >
-                                                            <span>{t('There are no available actions')}</span>
-                                                            <div
-                                                                style={{
-                                                                    display: 'flex',
-                                                                    gap: '8px',
-                                                                    flexWrap: 'wrap',
-                                                                }}
-                                                            >
-                                                                <a
-                                                                    href={`${
-                                                                        import.meta.env.DEV
-                                                                            ? 'http://localhost:3000'
-                                                                            : 'https://gpt-tutor-website-with-stripe.vercel.app'
-                                                                    }/actionStore?targetLang=${learningLang}&lang=${userLang}`}
-                                                                    target='_blank'
-                                                                    rel='noreferrer'
-                                                                    className={css({
-                                                                        'color': '#825447',
-                                                                        'textDecoration': 'none',
-                                                                        'fontSize': '12px',
-                                                                        'padding': '6px 12px',
-                                                                        'borderRadius': '4px',
-                                                                        'backgroundColor': 'rgba(130, 84, 71, 0.1)',
-                                                                        'display': 'flex',
-                                                                        'alignItems': 'center',
-                                                                        'gap': '4px',
-                                                                        'transition': 'all 0.2s ease',
-                                                                        ':hover': {
-                                                                            backgroundColor: 'rgba(130, 84, 71, 0.2)',
-                                                                            transform: 'translateY(-1px)',
-                                                                        },
-                                                                    })}
-                                                                >
-                                                                    {t('Go to the action store')}
-                                                                </a>
-                                                                <a
-                                                                    href='#'
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault()
-                                                                        useChatStore
-                                                                            .getState()
-                                                                            .setShowActionManager(true)
-                                                                    }}
-                                                                    className={css({
-                                                                        'color': '#825447',
-                                                                        'textDecoration': 'none',
-                                                                        'fontSize': '12px',
-                                                                        'padding': '6px 12px',
-                                                                        'borderRadius': '4px',
-                                                                        'backgroundColor': 'rgba(130, 84, 71, 0.1)',
-                                                                        'display': 'flex',
-                                                                        'alignItems': 'center',
-                                                                        'gap': '4px',
-                                                                        'transition': 'all 0.2s ease',
-                                                                        ':hover': {
-                                                                            backgroundColor: 'rgba(130, 84, 71, 0.2)',
-                                                                            transform: 'translateY(-1px)',
-                                                                        },
-                                                                    })}
-                                                                >
-                                                                    {t('Create a new action')}
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            onClick={handleHideEmptyActionsTip}
-                                                            className={css({
-                                                                'position': 'absolute',
-                                                                'right': '8px',
-                                                                'top': '8px',
-                                                                'cursor': 'pointer',
-                                                                'padding': '4px',
-                                                                'display': 'flex',
-                                                                'alignItems': 'center',
-                                                                'justifyContent': 'center',
-                                                                'color': '#825447',
-                                                                'transition': 'all 0.2s ease',
-                                                                'borderRadius': '50%',
-                                                                ':hover': {
-                                                                    backgroundColor: 'rgba(130, 84, 71, 0.1)',
-                                                                },
-                                                            })}
-                                                        >
-                                                            <IoClose size={14} />
-                                                        </div>
-                                                    </LabelSmall>
-                                                )}
                                                 {/* 主内容区 */}
                                                 <div
                                                     style={{
@@ -1669,6 +1556,130 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                         ref={translatedContentRef}
                                                         className={styles.popupCardTranslatedContentContainer}
                                                     >
+                                                        {/* 空功能提示 */}
+                                                        {actions.length === 0 && !settings.hideEmptyActionsTip && (
+                                                            <LabelSmall
+                                                                marginTop='8px'
+                                                                color='#825447'
+                                                                display='flex'
+                                                                alignItems='flex-start'
+                                                                $style={{
+                                                                    gap: '8px',
+                                                                    backgroundColor: 'rgb(241, 230, 230)',
+                                                                    padding: '12px',
+                                                                    borderRadius: '8px',
+                                                                    fontSize: '13px',
+                                                                    lineHeight: '1.5',
+                                                                    position: 'relative',
+                                                                }}
+                                                            >
+                                                                <IoIosInformationCircle
+                                                                    size={18}
+                                                                    style={{
+                                                                        flexShrink: 0,
+                                                                        marginTop: '2px',
+                                                                        color: '#825447',
+                                                                    }}
+                                                                />
+                                                                <div
+                                                                    style={{
+                                                                        display: 'flex',
+                                                                        flexDirection: 'column',
+                                                                        gap: '8px',
+                                                                        flex: 1,
+                                                                    }}
+                                                                >
+                                                                    <span>{t('There are no available actions')}</span>
+                                                                    <div
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            gap: '8px',
+                                                                            flexWrap: 'wrap',
+                                                                        }}
+                                                                    >
+                                                                        <a
+                                                                            href={`${
+                                                                                import.meta.env.DEV
+                                                                                    ? 'http://localhost:3000'
+                                                                                    : 'https://gpt-tutor-website-with-stripe.vercel.app'
+                                                                            }/actionStore?targetLang=${learningLang}&lang=${userLang}`}
+                                                                            target='_blank'
+                                                                            rel='noreferrer'
+                                                                            className={css({
+                                                                                'color': '#825447',
+                                                                                'textDecoration': 'none',
+                                                                                'fontSize': '12px',
+                                                                                'padding': '6px 12px',
+                                                                                'borderRadius': '4px',
+                                                                                'backgroundColor':
+                                                                                    'rgba(130, 84, 71, 0.1)',
+                                                                                'display': 'flex',
+                                                                                'alignItems': 'center',
+                                                                                'gap': '4px',
+                                                                                'transition': 'all 0.2s ease',
+                                                                                ':hover': {
+                                                                                    backgroundColor:
+                                                                                        'rgba(130, 84, 71, 0.2)',
+                                                                                    transform: 'translateY(-1px)',
+                                                                                },
+                                                                            })}
+                                                                        >
+                                                                            {t('Go to the action store')}
+                                                                        </a>
+                                                                        <a
+                                                                            href='#'
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault()
+                                                                                useChatStore
+                                                                                    .getState()
+                                                                                    .setShowActionManager(true)
+                                                                            }}
+                                                                            className={css({
+                                                                                'color': '#825447',
+                                                                                'textDecoration': 'none',
+                                                                                'fontSize': '12px',
+                                                                                'padding': '6px 12px',
+                                                                                'borderRadius': '4px',
+                                                                                'backgroundColor':
+                                                                                    'rgba(130, 84, 71, 0.1)',
+                                                                                'display': 'flex',
+                                                                                'alignItems': 'center',
+                                                                                'gap': '4px',
+                                                                                'transition': 'all 0.2s ease',
+                                                                                ':hover': {
+                                                                                    backgroundColor:
+                                                                                        'rgba(130, 84, 71, 0.2)',
+                                                                                    transform: 'translateY(-1px)',
+                                                                                },
+                                                                            })}
+                                                                        >
+                                                                            {t('Create a new action')}
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    onClick={handleHideEmptyActionsTip}
+                                                                    className={css({
+                                                                        'position': 'absolute',
+                                                                        'right': '8px',
+                                                                        'top': '8px',
+                                                                        'cursor': 'pointer',
+                                                                        'padding': '4px',
+                                                                        'display': 'flex',
+                                                                        'alignItems': 'center',
+                                                                        'justifyContent': 'center',
+                                                                        'color': '#825447',
+                                                                        'transition': 'all 0.2s ease',
+                                                                        'borderRadius': '50%',
+                                                                        ':hover': {
+                                                                            backgroundColor: 'rgba(130, 84, 71, 0.1)',
+                                                                        },
+                                                                    })}
+                                                                >
+                                                                    <IoClose size={14} />
+                                                                </div>
+                                                            </LabelSmall>
+                                                        )}
                                                         <AnswerManager
                                                             isLoading={isLoading}
                                                             styles={styles}
