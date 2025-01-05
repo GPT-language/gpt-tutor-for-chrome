@@ -14,6 +14,7 @@ export interface ICreateActionOption {
     outputRenderingFormat?: ActionOutputRenderingFormat
     useBackgroundInfo?: boolean
     useLanguageLevelInfo?: boolean
+    isFrequentlyUsed?: boolean
 }
 
 export interface IUpdateActionOption {
@@ -29,4 +30,5 @@ export interface IUpdateActionOption {
     outputRenderingFormat?: ActionOutputRenderingFormat
     useBackgroundInfo?: boolean
     useLanguageLevelInfo?: boolean
+    isFrequentlyUsed?: boolean
 }

@@ -168,7 +168,18 @@
   "The Language You are Using": "La langue que vous utilisez",
   "You can set multiple group names": "Vous pouvez sélectionner plusieurs noms de groupes",
   "Enter a group, then press Enter": "Saisissez un groupe, puis appuyez sur Entrée",
-  "Finish": "Terminer ce sujet et ajouter à la révision"
+  "Finish": "Terminer ce sujet et ajouter à la révision",
+  "Here you can switch between different function categories.": "Ici, vous pouvez basculer entre différentes catégories de fonctions.",
+  "Click here to see more options and manage your settings.": "Cliquez ici pour voir plus d'options et gérer vos paramètres.",
+  "This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.": "C'est ici que vous pouvez poser votre question. Tapez @ pour sélectionner une action, ~ pour sélectionner une conversation, / pour sélectionner un groupe d'actions, et appuyez sur Entrée pour soumettre.",
+  "This is the answer area where you can view AI responses and manage them.": "C'est la zone de réponse où vous pouvez voir les réponses de l'IA et les gérer.",
+  "Here you can find various actions to interact with the answer, such as speaking, copying, and adding to Anki for review.": "Ici, vous pouvez trouver diverses actions pour interagir avec la réponse, comme la lecture vocale, la copie et l'ajout à Anki pour révision.",
+  "Click this button to add the current answer to your Anki deck for later review and memorization.": "Cliquez sur ce bouton pour ajouter la réponse actuelle à votre paquet Anki pour une révision et une mémorisation ultérieures.",
+  "Back": "Retour",
+  "Close": "Fermer",
+  "Got it": "Compris",
+  "Next": "Suivant",
+  "Skip": "Passer"
 }
 
 

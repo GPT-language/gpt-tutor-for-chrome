@@ -119,7 +119,7 @@ try {
 }
 
 // 在background script中
-chrome.runtime.onMessage.addListener((message) => {
+/* chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'SYNC_ACTION_GROUP') {
         console.log('收到同步请求:', message.payload)
 
@@ -139,7 +139,7 @@ chrome.runtime.onMessage.addListener((message) => {
             console.error('导入 actions 时发生错误:', error)
         }
     }
-})
+}) */
 
 async function fetchWithStream(
     port: browser.Runtime.Port,

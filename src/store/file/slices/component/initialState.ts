@@ -12,6 +12,7 @@ export interface ComponentState {
     showActionManager: boolean
     showReviewManager: boolean
     showYouGlish: boolean
+    showAnkiNote: boolean
     showTextParser: boolean
     showBuyMeACoffee: boolean
     showSidebar: boolean
@@ -134,6 +135,7 @@ export const initialComponentState: ComponentState = {
     showActionManager: false,
     showReviewManager: false,
     showYouGlish: false,
+    showAnkiNote: false,
     showTextParser: false,
     showBuyMeACoffee: false,
     isShowMessageCard: false,

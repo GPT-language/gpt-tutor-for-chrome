@@ -1,4 +1,14 @@
 import { Action } from '@/common/internal-services/db'
+
+export interface ChatMessage {
+    role: string
+    content: string
+    createdAt: number
+    messageId: string
+    actionName?: string
+    format?: string
+}
+
 export interface ChatState {
     editableText: string
     independentText: string
@@ -7,7 +17,6 @@ export interface ChatState {
     ttsProvider: string
     conversationId: string
     messageId: string
-    activatedActionName: string
     activatedModel: string
     activatedProvider: string
     accessToken: string
@@ -20,6 +29,12 @@ export interface ChatState {
     translatedText: string
     errorMessage: string
     isNotLogin: boolean
+    currentConversationId: string
+    showConversationMenu: boolean
+    availableConversations: { key: string; messages: ChatMessage[] }[]
+    currentConversationKey: string
+    speakingMessageId: string | null
+    isSpeaking: boolean
 }
 
 export const initialChatState: ChatState = {
@@ -33,7 +48,6 @@ export const initialChatState: ChatState = {
     messageId: '',
     activateAction: undefined,
     assistantAction: undefined,
-    activatedActionName: '',
     activatedModel: '',
     activatedProvider: '',
     accessToken: '',
@@ -42,4 +56,10 @@ export const initialChatState: ChatState = {
     translatedText: '',
     errorMessage: '',
     isNotLogin: false,
+    currentConversationId: '',
+    showConversationMenu: false,
+    availableConversations: [],
+    currentConversationKey: '',
+    speakingMessageId: null,
+    isSpeaking: false,
 }

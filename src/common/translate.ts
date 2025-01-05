@@ -9,6 +9,7 @@ import { ResponseContent } from './types'
 import Browser from 'webextension-polyfill'
 import { sha3_512 } from 'js-sha3'
 import { IEngine } from './engines/interfaces'
+import { useChatStore } from '@/store/file/store'
 
 export type TranslateMode = 'built-in' | 'translate' | 'explain-code' | 'Sentence analysis' | 'Free to ask'
 
@@ -36,7 +37,7 @@ interface BaseTranslateQuery {
     languageLevelInfo?: boolean
     onMessage: (message: { content: string; role: string; isFullText?: boolean }) => void
     onError: (error: string) => void
-    onFinish: (reason: string) => void
+    onFinished: (reason: string) => void
     onStatusCode?: (statusCode: number) => void
     signal: AbortSignal
 }
@@ -195,24 +196,6 @@ interface ConversationContext {
     lastMessageId: string
 }
 
-function getConversationId() {
-    return new Promise(function (resolve) {
-        chrome.storage.local.get(['conversationId'], function (result) {
-            const conversationId = result.conversationId?.value
-            resolve(conversationId)
-        })
-    })
-}
-
-function getlastMessageId() {
-    return new Promise(function (resolve) {
-        chrome.storage.local.get(['lastMessageId'], function (result) {
-            const lastMessageId = result.lastMessageId?.value
-            resolve(lastMessageId)
-        })
-    })
-}
-
 export async function getArkoseToken() {
     const config = await Browser.storage.local.get(['chatgptArkoseReqUrl', 'chatgptArkoseReqForm'])
     const arkoseToken = await getUniversalFetch()(
@@ -304,16 +287,196 @@ async function registerWebsocket(token: string): Promise<{ wss_url: string; expi
 }
 
 export async function askAI(query: TranslateQuery, engine: IEngine | undefined, isOpenToAsk?: boolean) {
+    const chatStore = useChatStore.getState()
+    let messageAdded = false
+    let currentMessage = ''
+    const assistantPrompts: string[] = []
+    // 将所有 assistantPrompts 合并为一条系统消息
+
     if (!engine) {
         console.error('Translation engine is undefined')
         query.onError('Translation engine is undefined')
         return
     }
-    console.log('query', query)
+
     let rolePrompt = ''
     let commandPrompt = ''
-    const assistantPrompts: string[] = []
     let userBackgroundPrompt = ''
+
+    if (query.context) {
+        assistantPrompts.push('context: ' + query.context)
+    }
+    if (query.context && !query.text) {
+        query.text = query.context
+    }
+    if (query.userLang) {
+        assistantPrompts.push('Please always respond in ' + query.userLang)
+    }
+    if (query.useBackgroundInfo && query.userBackground) {
+        userBackgroundPrompt += query.userBackground
+    }
+    if (query.languageLevelInfo && query.inputLanguageLevel) {
+        let languageLevelText = ''
+
+        switch (query.inputLanguageLevel) {
+            case 'Level0':
+                languageLevelText =
+                    'I have no knowledge of this language. Please start with basic knowledge, such as letters and simple greetings. For example, "Hello" (你好) is a greeting.'
+                break
+            case 'Level1':
+                languageLevelText =
+                    'I know some basic vocabulary. Please explain it in simple sentences, like explaining to a five-year-old. For example, "Hello" (你好) is a greeting.'
+                break
+            case 'Level2':
+                languageLevelText =
+                    'I can understand some basic expressions. For example, "Good morning" (早上好) is a common greeting. It is used when you meet someone in the morning.'
+                break
+            case 'Level3':
+                languageLevelText =
+                    'I can understand most phrases and expressions. For instance, "How are you?" (你好吗?) is a common way to ask someone about their well-being.'
+                break
+            case 'Level4':
+                languageLevelText = 'I can understand advanced expressions, so no adjustments are needed.'
+                break
+            default:
+                languageLevelText = 'Invalid language level.'
+                break
+        }
+
+        userBackgroundPrompt += `Language level: ${languageLevelText}. `
+    }
+
+    userBackgroundPrompt = userBackgroundPrompt.trim()
+    if (userBackgroundPrompt) {
+        assistantPrompts.push(userBackgroundPrompt)
+    }
+
+    const learningLangCode = query.learningLang ?? 'en'
+    const userLangCode = query.userLang ?? 'zh-Hans'
+    const learningLangName = lang.getLangName(learningLangCode)
+    const userLangName = lang.getLangName(userLangCode)
+    const toChinese = chineseLangCodes.indexOf(userLangCode) >= 0
+    const userLangConfig = getLangConfig(userLangCode)
+    const learningLangConfig = getLangConfig(learningLangCode)
+    rolePrompt = userLangConfig.rolePrompt
+
+    // 设置替换${text}和其它值
+    rolePrompt = (query.activateAction?.rolePrompt ?? '')
+        .replace('${sourceLang}', learningLangName)
+        .replace('${targetLang}', userLangName)
+        .replace('${text}', query.text ?? '')
+    commandPrompt = (query.activateAction?.commandPrompt ?? '')
+        .replace('${sourceLang}', learningLangName)
+        .replace('${targetLang}', userLangName)
+        .replace('${text}', query.text ?? query.context ?? '')
+    if (query.activateAction?.outputRenderingFormat) {
+        commandPrompt += `. Format: ${query.activateAction.outputRenderingFormat}`
+    }
+    if (!commandPrompt.trim() && query.text) {
+        if (query.context) {
+            commandPrompt = query.text
+        } else {
+            commandPrompt = query.text
+        }
+    }
+
+    console.log('assistantPrompts', assistantPrompts)
+
+    // 获取历史消息
+    const conversationMessages = chatStore.getConversationMessages().map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+    }))
+
+    console.log('conversationMessages', conversationMessages)
+
+    // 1. 添加系统消息
+    if (assistantPrompts.length > 0 && conversationMessages.length === 0) {
+        const systemPrompt = assistantPrompts.join('\n')
+        chatStore.addMessageToHistory({
+            role: 'system',
+            content: systemPrompt,
+            createdAt: Date.now(),
+            messageId: crypto.randomUUID(),
+        })
+    }
+
+    // 2. 添加用户消息
+
+    const content =
+        query.context && query.activateAction?.name
+            ? `${query.activateAction?.name}: ${query.context}`
+            : query.text || 'default'
+
+    chatStore.addMessageToHistory({
+        role: 'user',
+        content,
+        createdAt: Date.now(),
+        messageId: crypto.randomUUID(),
+        actionName: query.activateAction?.name,
+    })
+
+    const date = Date.now()
+    const messageId = crypto.randomUUID()
+
+    await engine?.sendMessage({
+        signal: query.signal,
+        rolePrompt,
+        commandPrompt,
+        assistantPrompts,
+        activateAction: query.activateAction,
+        parentAction: query.parentAction,
+        conversationMessages,
+        onMessage: async (message) => {
+            if (message.isFullText && !messageAdded) {
+                // 只在收到完整消息时保存到历史记录
+
+                console.log('addMessageToHistory', message)
+                chatStore.addMessageToHistory({
+                    role: 'assistant',
+                    content: message.content,
+                    createdAt: date,
+                    messageId: messageId,
+                })
+                messageAdded = true
+
+                currentMessage = ''
+            } else {
+                // 流式响应，累积消息内容
+                currentMessage += message.content
+            }
+
+            query.onMessage(message)
+        },
+        onFinished: (reason) => {
+            query.onFinished(reason)
+        },
+        onError: (error) => {
+            query.onError(error)
+        },
+        onStatusCode: (statusCode) => {
+            query.onStatusCode?.(statusCode)
+        },
+    })
+}
+
+export async function askAIWithoutHistory(query: TranslateQuery, engine: IEngine | undefined, isOpenToAsk?: boolean) {
+    const chatStore = useChatStore.getState()
+    let messageAdded = false
+    let currentMessage = ''
+    const assistantPrompts: string[] = []
+    // 将所有 assistantPrompts 合并为一条系统消息
+
+    if (!engine) {
+        console.error('Translation engine is undefined')
+        query.onError('Translation engine is undefined')
+        return
+    }
+
+    let rolePrompt = ''
+    let commandPrompt = ''
+    let userBackgroundPrompt = ''
+
     if (query.context) {
         assistantPrompts.push('context: ' + query.context)
     }
@@ -391,18 +554,28 @@ export async function askAI(query: TranslateQuery, engine: IEngine | undefined, 
         }
     }
 
-    console.log('assistantPrompts', assistantPrompts)
-
     await engine?.sendMessage({
         signal: query.signal,
         rolePrompt,
         commandPrompt,
         assistantPrompts,
+        activateAction: query.activateAction,
+        parentAction: query.parentAction,
         onMessage: async (message) => {
-            await query.onMessage({ ...message })
+            if (message.isFullText && !messageAdded) {
+                // 只在收到完整消息时保存到历史记录
+                messageAdded = true
+
+                currentMessage = ''
+            } else {
+                // 流式响应，累积消息内容
+                currentMessage += message.content
+            }
+
+            query.onMessage(message)
         },
         onFinished: (reason) => {
-            query.onFinish(reason)
+            query.onFinished(reason)
         },
         onError: (error) => {
             query.onError(error)
@@ -426,7 +599,7 @@ export async function simpleTranslate(query: TranslateQuery, engine: IEngine): P
             }
         },
         onFinished: (reason) => {
-            query.onFinish(reason)
+            query.onFinished(reason)
         },
         onError: (error) => {
             query.onError(error)

@@ -12,20 +12,31 @@ export interface IMessage {
 }
 
 export interface IMessageRequest {
-    activateAction?: Action
+    signal: AbortSignal
     rolePrompt: string
     commandPrompt: string
-    parentAction?: Action
     assistantPrompts?: string[]
-    onMessage: (message: { content: string; role: string; isFullText?: boolean }) => Promise<void>
-    onError: (error: string) => void
-    onFinished: (reason: string) => void
+    activateAction?: Action
+    messageId?: string
+    parentAction?: Action
+    conversationMessages?: Array<{
+        role: string
+        content: string
+    }>
+    onMessage: (message: {
+        content: string
+        role: string
+        isFullText: boolean
+        actionName?: string
+        messageId?: string
+    }) => Promise<void>
+    onError?: (error: string) => void
+    onFinished?: (reason: string) => void
     onStatusCode?: (statusCode: number) => void
-    signal: AbortSignal
 }
 
 export interface IEngine {
-    checkLogin: () => Promise<boolean>
+    checkLogin(): Promise<boolean>
     isLocal(): boolean
     supportCustomModel(): boolean
     getModel(): Promise<string>

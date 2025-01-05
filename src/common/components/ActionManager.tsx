@@ -444,7 +444,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                 >
                                     {t('Create')}
                                 </Button>
-{/*                                 <Button
+                                {/*                                 <Button
                                     size='mini'
                                     kind='secondary'
                                     onClick={(e) => {
@@ -482,7 +482,7 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                         >
                                             {group}
                                         </h3>
-{/*                                         <Button
+                                        {/*                                         <Button
                                             size='mini'
                                             kind='secondary'
                                             onClick={() => {
@@ -648,7 +648,11 @@ export function ActionManager({ draggable = true }: IActionManagerProps) {
                                     Dialog: {
                                         style: {
                                             padding: '10px',
-                                            marginTop: '80px', // 增加与顶部的距离,确保不会被顶部组件遮挡
+                                            marginTop: '10px',
+                                            marginBottom: '60px',
+                                            maxHeight: 'calc(100vh - 120px)',
+                                            overflowY: 'auto',
+                                            zIndex: 1000,
                                         },
                                     },
                                 }}

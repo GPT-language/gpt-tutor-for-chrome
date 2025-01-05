@@ -11,6 +11,7 @@
   "Clear input": "クリア入力",
   "Copy to clipboard": "クリップボードにコピー",
   "Speak": "音声を聞く",
+  "Settings": "設定",
   "Upload an image for OCR translation": "OCR翻訳のための画像をアップロード",
   "Default Service Provider": "デフォルトのサービスプロバイダ",
   "Default Translate Mode": "デフォルトの翻訳モード",
@@ -169,5 +170,16 @@
   "Determine which groups this action belongs to": "このアクションに割り当てられるグループを決定する",
   "You can set multiple group names": "複数のグループ名を設定することができます",
   "Enter a group, then press Enter": "グループを入力して[Enter]を押してください",
-"Finish this subject and add to review": "この項目を終了し、復習に追加する"
+"Finish this subject and add to review": "この項目を終了し、復習に追加する",
+"Here you can switch between different function categories.": "ここで異なる機能カテゴリを切り替えることができます。",
+"Click here to see more options and manage your settings.": "ここをクリックして、より多くのオプションと設定を管理します。",
+"This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.": "ここで質問ができます。@ でアクションを選択、~ で会話を選択、/ でアクショングループを選択し、Enter で送信します。",
+"This is the answer area where you can view AI responses and manage them.": "これはAIの応答を表示・管理できる回答エリアです。",
+"Here you can find various actions to interact with the answer, such as speaking, copying, and adding to Anki for review.": "ここでは、音声読み上げ、コピー、Ankiへの追加など、回答に対する様々なアクションを見つけることができます。",
+"Click this button to add the current answer to your Anki deck for later review and memorization.": "このボタンをクリックして、現在の回答を後で復習・暗記するためにAnkiデッキに追加します。",
+"Back": "戻る",
+"Close": "閉じる", 
+"Got it": "了解",
+"Next": "次へ",
+"Skip": "スキップ"
 }

@@ -34,7 +34,9 @@ export const createActionSlice: StateCreator<ChatStore, [['zustand/devtools', ne
             commandPrompt: opt.commandPrompt,
             outputRenderingFormat: opt.outputRenderingFormat,
             groups: opt.groups,
+            useLanguageLevelInfo: opt.useLanguageLevelInfo,
             useBackgroundInfo: opt.useBackgroundInfo,
+            isFrequentlyUsed: opt.isFrequentlyUsed,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         }

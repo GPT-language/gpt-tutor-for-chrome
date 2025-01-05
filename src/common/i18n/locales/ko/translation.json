@@ -169,6 +169,17 @@
   "Download lexicon file": "어르어 파일 다운로드",
   "You can set multiple group names": "여기한 그룹 이름을 지정할 수 있습니다",
   "Enter a group, then press Enter": "그룹 이름 입력, Enter를 입력해 보세요",
-  "Determine which groups this action belongs to": "이 새 필요한 그룹을 선택하기"
+  "Determine which groups this action belongs to": "이 새 필요한 그룹을 선택하기",
+  "Here you can switch between different function categories.": "여기서 다른 기능 카테고리로 전환할 수 있습니다.",
+  "Click here to see more options and manage your settings.": "여기를 클릭하여 더 많은 옵션을 보고 설정을 관리하세요.",
+  "This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.": "여기서 질문을 할 수 있습니다. @를 입력하여 액션을 선택하고, ~를 입력하여 대화를 선택하고, /를 입력하여 액션 그룹을 선택한 후 Enter를 눌러 제출하세요.",
+  "This is the answer area where you can view AI responses and manage them.": "여기는 AI 응답을 보고 관리할 수 있는 답변 영역입니다.",
+  "Here you can find various actions to interact with the answer, such as speaking, copying, and adding to Anki for review.": "여기서 음성 재생, 복사, Anki에 추가하여 복습하기 등 답변과 상호작용할 수 있는 다양한 작업을 찾을 수 있습니다.",
+  "Click this button to add the current answer to your Anki deck for later review and memorization.": "이 버튼을 클릭하여 현재 답변을 나중에 복습하고 암기할 수 있도록 Anki 덱에 추가하세요.",
+  "Back": "뒤로",
+  "Close": "닫기",
+  "Got it": "알겠습니다",
+  "Next": "다음",
+  "Skip": "건너뛰기"
 }
 

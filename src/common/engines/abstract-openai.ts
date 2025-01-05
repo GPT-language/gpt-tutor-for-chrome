@@ -63,34 +63,40 @@ export abstract class AbstractOpenAI extends AbstractEngine {
         const headers = await this.getHeaders()
         const isChatAPI = await this.isChatAPI()
         const body = await this.getBaseRequestBody(req.activateAction)
-        if (!isChatAPI) {
-            // Azure OpenAI Service supports multiple API.
-            // We should check if the settings.apiURLPath is match `/deployments/{deployment-id}/chat/completions`.
-            // If not, we should use the legacy parameters.
-            body[
-                'prompt'
-            ] = `<|im_start|>system\n${req.rolePrompt}\n<|im_end|>\n<|im_start|>user\n${req.commandPrompt}\n<|im_end|>\n<|im_start|>assistant\n`
-            body['stop'] = ['<|im_end|>']
-        } else {
-            const messages = [
-                {
+
+        if (isChatAPI) {
+            const messages = []
+
+            // 添加系统角色提示和助手提示
+            if (req.rolePrompt || (req.assistantPrompts && req.assistantPrompts.length > 0)) {
+                const systemContent = [req.rolePrompt, ...(req.assistantPrompts || [])].filter(Boolean).join('\n')
+                messages.push({
                     role: 'system',
-                    content: req.rolePrompt,
-                },
-                ...(req.assistantPrompts?.map((prompt) => {
-                    return {
-                        role: 'user',
-                        content: prompt,
-                    }
-                }) ?? []),
-                {
+                    content: systemContent,
+                })
+            }
+
+            // 添加历史消息，确保使用正确的conversationMessages
+            if (req.conversationMessages && req.conversationMessages.length > 0) {
+                // 过滤掉system消息，因为我们已经在上面添加了
+                const nonSystemMessages = req.conversationMessages.filter((msg) => msg.role !== 'system')
+                messages.push(...nonSystemMessages)
+            }
+
+            // 添加当前的command prompt作为用户消息
+            if (req.commandPrompt) {
+                messages.push({
                     role: 'user',
                     content: req.commandPrompt,
-                },
-            ]
-            body['messages'] = messages
+                })
+            }
+
+            body.messages = messages
         }
-        let finished = false // finished can be called twice because event.data is 1. "finish_reason":"stop"; 2. [DONE]
+
+        let currentMessage = ''
+        let finished = false
+
         await fetchSSE(url, {
             method: 'POST',
             headers,
@@ -98,85 +104,95 @@ export abstract class AbstractOpenAI extends AbstractEngine {
             signal: req.signal,
             onMessage: async (msg) => {
                 if (finished) return
-                let resp
-                try {
-                    resp = JSON.parse(msg)
-                    // eslint-disable-next-line no-empty, @typescript-eslint/no-explicit-any
-                } catch (e: any) {
-                    // avoid `Unexpected token 'D', "[DONE]" is not valid JSON`
-                    if (msg.trim() !== '[DONE]') {
-                        req.onError?.(e?.message ?? 'Cannot parse response JSON')
+                if (msg === '[DONE]') {
+                    // 最后发送完整消息
+                    if (currentMessage) {
+                        await req.onMessage({
+                            content: currentMessage,
+                            role: 'assistant',
+                            isFullText: true,
+                            actionName: req.activateAction?.name,
+                        })
                     }
-
-                    req.onFinished('stop')
+                    req.onFinished?.('stop')
                     finished = true
                     return
                 }
 
-                const { x_groq } = resp
-
-                if (x_groq && x_groq.error) {
-                    req.onError?.(x_groq.error)
+                let resp
+                try {
+                    resp = JSON.parse(msg)
+                } catch (e: any) {
+                    req.onError?.(e?.message ?? 'Cannot parse response JSON')
+                    return
                 }
 
                 const { choices } = resp
                 if (!choices || choices.length === 0) {
                     return
                 }
-                const { finish_reason: finishReason } = choices[0]
-                if (finishReason) {
-                    req.onFinished(finishReason)
+
+                const { delta, finish_reason: finishReason } = choices[0]
+
+                // 当收到空的 delta 对象且为 finish_reason 时，表示消息结束
+                if ((!delta || Object.keys(delta).length === 0) && finishReason === 'stop') {
+                    if (currentMessage) {
+                        await req.onMessage({
+                            content: currentMessage,
+                            role: 'assistant',
+                            isFullText: true,
+                            actionName: req.activateAction?.name,
+                        })
+                    }
+                    req.onFinished?.(finishReason)
                     finished = true
                     return
                 }
 
-                let targetTxt = ''
-                if (!isChatAPI) {
-                    // It's used for Azure OpenAI Service's legacy parameters.
-                    targetTxt = choices[0].text
-
-                    await req.onMessage({ content: targetTxt, role: '' })
-                } else {
-                    const { content = '', role } = choices[0].delta
-
-                    targetTxt = content
-
-                    await req.onMessage({ content: targetTxt, role })
+                // 处理正常的消息片段
+                if (delta?.content) {
+                    currentMessage += delta.content
+                    await req.onMessage({
+                        content: delta.content,
+                        role: 'assistant',
+                        isFullText: false,
+                        actionName: req.activateAction?.name,
+                    })
                 }
             },
             onError: (err) => {
                 if (err instanceof Error) {
-                    req.onError(err.message)
+                    req.onError?.(err.message)
                     return
                 }
                 if (typeof err === 'string') {
-                    req.onError(err)
+                    req.onError?.(err)
                     return
                 }
                 if (typeof err === 'object') {
                     const { detail } = err
                     if (detail) {
-                        req.onError(detail)
+                        req.onError?.(detail)
                         return
                     }
                 }
                 const { error } = err
                 if (error instanceof Error) {
-                    req.onError(error.message)
+                    req.onError?.(error.message)
                     return
                 }
                 if (typeof error === 'object') {
                     const { message } = error
                     if (message) {
                         if (typeof message === 'string') {
-                            req.onError(message)
+                            req.onError?.(message)
                         } else {
-                            req.onError(JSON.stringify(message))
+                            req.onError?.(JSON.stringify(message))
                         }
                         return
                     }
                 }
-                req.onError('Unknown error')
+                req.onError?.('Unknown error')
             },
         })
     }

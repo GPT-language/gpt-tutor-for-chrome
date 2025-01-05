@@ -22,6 +22,7 @@
   "Sign out": "登出",
   "i18n": "語言",
   "Hotkey": "快捷鍵",
+  "Settings": "設定",
   "OCR Hotkey": "OCR 快捷鍵",
   "Please press the hotkey you want to set.": "請按下您想要設定的快捷鍵。",
   "Click above to set hotkeys.": "點選上方設定快捷鍵。",
@@ -170,5 +171,16 @@
   "Determine which groups this action belongs to": "決定這個功能屬於哪些群組",
   "You can set multiple group names": "您可以設置多個群組名稱",
   "Enter a group, then press Enter": "輸入群組，然後按 Enter",
-  "Finish": "完成這個主題並添加到複習"
+  "Finish": "完成這個主題並添加到複習",
+  "Here you can switch between different function categories.": "在這裡您可以切換不同的功能類別。",
+  "Click here to see more options and manage your settings.": "點擊此處查看更多選項並管理您的設定。",
+  "This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.": "這裡是您可以提問的地方。輸入 @ 選擇功能、~ 選擇對話、/ 選擇功能群組，按 Enter 提交。",
+  "This is the answer area where you can view AI responses and manage them.": "這是答案區域，您可以在這裡查看 AI 回應並管理它們。",
+  "Here you can find various actions to interact with the answer, such as speaking, copying, and adding to Anki for review.": "在這裡您可以找到與答案互動的各種操作，如朗讀、複製和添加到 Anki 複習。",
+  "Click this button to add the current answer to your Anki deck for later review and memorization.": "點擊此按鈕將當前答案添加到您的 Anki 牌組中以供日後複習和記憶。",
+  "Back": "返回",
+  "Close": "關閉",
+  "Got it": "明白了",
+  "Next": "下一步",
+  "Skip": "跳過"
 }

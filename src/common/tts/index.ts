@@ -32,9 +32,10 @@ export const langCode2TTSLang: Record<string, string> = {
     'vi': 'vi-VN',
 }
 
+const globalScope = typeof self !== 'undefined' ? self : typeof global !== 'undefined' ? global : null
 let supportVoices: SpeechSynthesisVoice[] = []
-if (window.speechSynthesis) {
-    window.speechSynthesis.onvoiceschanged = () => {
+if (globalScope?.speechSynthesis) {
+    globalScope.speechSynthesis.onvoiceschanged = () => {
         supportVoices = speechSynthesis.getVoices()
     }
 }

@@ -1,4 +1,4 @@
-import React, { Key, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import toast, { Toaster } from 'react-hot-toast'
 import { Client as Styletron } from 'styletron-engine-atomic'
@@ -6,11 +6,9 @@ import { Provider as StyletronProvider, useStyletron } from 'styletron-react'
 import { BaseProvider } from 'baseui-sd'
 import { createUseStyles } from 'react-jss'
 import { AiOutlineTranslation } from 'react-icons/ai'
-import { IoSettingsOutline } from 'react-icons/io5'
 import { detectLang, getLangConfig, LangCode } from './lang/lang'
 import { askAI } from '../translate'
-import { RxEraser, RxReload, RxSpeakerLoud } from 'react-icons/rx'
-import { RiSpeakerFill } from 'react-icons/ri'
+import { RxReload } from 'react-icons/rx'
 import { calculateMaxXY, queryPopupCardElement } from '../../browser-extension/content_script/utils'
 import { clsx } from 'clsx'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -18,17 +16,12 @@ import { ErrorFallback } from '../components/ErrorFallback'
 import { defaultAPIURL, isDesktopApp, isTauri } from '../utils'
 import { InnerSettings } from './Settings'
 import { documentPadding } from '../../browser-extension/content_script/consts'
-import Dropzone from 'react-dropzone'
-import { addNewNote, isConnected } from '../anki/anki-connect'
-import SpeakerMotion from '../components/SpeakerMotion'
 import IpLocationNotification from '../components/IpLocationNotification'
 import { HighlightInTextarea } from '../highlight-in-textarea'
-import LRUCache from 'lru-cache'
 import { ISettings, IThemedStyleProps } from '../types'
 import { useTheme } from '../hooks/useTheme'
 import { speak } from '../tts'
 import { Tooltip } from './Tooltip'
-import { useSettings } from '../hooks/useSettings'
 import { Modal, ModalBody, ModalHeader } from 'baseui-sd/modal'
 import { setupAnalysis } from '../analysis'
 import { Action, Content } from '../internal-services/db'
@@ -56,6 +49,11 @@ import AnswerManager from './AnswerManager'
 import QuotePreview from './QuotePreview'
 import { Notification, KIND } from 'baseui-sd/notification'
 import { StyledLink } from 'baseui-sd/link'
+import { ChatMessage } from '@/store/file/slices/chat/initialState'
+import css from 'react-syntax-highlighter/dist/esm/languages/hljs/css'
+import { IoClose } from 'react-icons/io5'
+import { LabelSmall } from 'baseui-sd/typography'
+import { IoIosInformationCircle } from 'react-icons/io'
 /* import { useClerkUser } from '@/hooks/useClerkUser'
 import { AuthModal } from './AuthModal' */
 
@@ -87,6 +85,7 @@ export const useStyles = createUseStyles({
                   bottom: '16px',
                   left: '16px',
                   lineHeight: '1',
+                  zIndex: 1000,
               },
     'popupCardHeaderContainer': (props: IThemedStyleProps) =>
         props.isDesktopApp
@@ -224,7 +223,6 @@ export const useStyles = createUseStyles({
     },
     'popupCardTranslatedContainer': (props: IThemedStyleProps) => ({
         'position': 'relative',
-        'padding': '26px 16px 16px 16px',
         'border-top': `1px solid ${props.theme.colors.borderTransparent}`,
         '-ms-user-select': 'none',
         '-webkit-user-select': 'none',
@@ -260,7 +258,6 @@ export const useStyles = createUseStyles({
     },
     'popupCardTranslatedContentContainer': (props: IThemedStyleProps) => ({
         fontSize: '15px',
-        marginTop: '-14px',
         display: 'flex',
         overflowY: 'auto',
         color: props.themeType === 'dark' ? props.theme.colors.contentSecondary : props.theme.colors.contentPrimary,
@@ -324,7 +321,6 @@ export const useStyles = createUseStyles({
         'color': props.theme.colors.contentSecondary,
     }),
     'fileDragArea': (props: IThemedStyleProps) => ({
-        padding: '10px',
         display: 'flex',
         justifyContent: 'center',
         marginBottom: '10px',
@@ -390,7 +386,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         currentFileId,
         selectedWord,
         deleteSelectedWord,
-        setActions,
         setAction,
         isShowMessageCard,
         toggleMessageCard,
@@ -406,37 +401,34 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setShowReviewManager,
         answers,
         setAnswers,
-        selectedGroup,
         messageId,
         conversationId,
         updateWordAnswer,
         addWordToFile,
-        actions,
         quoteText,
         setQuoteText,
         settings,
+        showSidebar,
+        showAnkiNote,
+        setShowAnkiNote,
+        currentConversationKey,
+        setCurrentConversationKey,
+        updateSettings,
     } = useChatStore()
     const [refreshActionsFlag, refreshActions] = useReducer((x: number) => x + 1, 0)
 
     const [answerFlag, forceTranslate] = useReducer((x: number) => x + 1, 0)
 
-    const editorRef = useRef<HTMLTextAreaElement>(null)
-    const highlightRef = useRef<HighlightInTextarea | null>(null)
+    const editorRef = useRef<HTMLDivElement>(null)
     const { t, i18n } = useTranslation()
     const [finalText, setFinalText] = useState('')
     const quoteTextRef = useRef('')
     const [showFullQuoteText, setShowFullQuoteText] = useState(false)
-
+    const [youglishQuery, setYouglishQuery] = useState('')
     // 更新 quoteText 时同时更新 ref
     useEffect(() => {
         quoteTextRef.current = quoteText
     }, [quoteText])
-
-    /*     useEffect(() => {
-        if (selectedWord) {
-            setQuoteText(selectedWord.text)
-        }
-    }, [selectedWord, setQuoteText]) */
 
     useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -446,27 +438,19 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         }
     }, [i18n, settings?.i18n])
 
-    const [autoFocus, setAutoFocus] = useState(false)
-
-    useEffect(() => {
-        if (highlightRef.current) {
-            if (props.autoFocus) {
-                setAutoFocus(false)
-                setTimeout(() => {
-                    setAutoFocus(true)
-                }, 500)
+    const handleShowFullText = () => {
+        if (showFullQuoteText) {
+            setShowFullQuoteText(false)
+            if (currentConversationKey === 'FullText') {
+                setCurrentConversationKey('')
             }
-            return
+        } else {
+            setShowFullQuoteText(true)
+            if (currentConversationKey !== 'FullText') {
+                setCurrentConversationKey('FullText')
+            }
         }
-        const editor = editorRef.current
-        if (!editor) {
-            return undefined
-        }
-        highlightRef.current = new HighlightInTextarea(editor, { highlight: '' })
-        if (props.autoFocus) {
-            editor.focus()
-        }
-    }, [props.autoFocus])
+    }
 
     useEffect(() => {
         const editor = editorRef.current
@@ -541,6 +525,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const [displayedActions, setDisplayedActions] = useState<Action[]>([])
     const [hiddenActions, setHiddenActions] = useState<Action[]>([])
     const [displayedActionsMaxCount, setDisplayedActionsMaxCount] = useState(6)
+
+    const handleHideEmptyActionsTip = () => {
+        updateSettings({
+            ...settings,
+            hideEmptyActionsTip: true,
+        })
+    }
 
     useEffect(() => {
         refreshActions()
@@ -697,7 +688,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     actions.splice(actions.indexOf(action), 1)
                 }
             })
-            // 使用 bulkPut 更新���有数据
+            // 使用 bulkPut 更新所有数据
             actions.push(...remoteData)
 
             if (latestCommitSha) {
@@ -762,7 +753,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     const styles = useStyles({ theme, themeType, isDesktopApp: isDesktopApp() })
     const [isLoading, setIsLoading] = useState(false)
     const [showYouGlish, setShowYouGlish] = useState(false)
-    const [showAnkiNote, setShowAnkiNote] = useState(false)
     const [isSpeakingEditableText, setIsSpeakingEditableText] = useState(false)
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
@@ -781,6 +771,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             setEngine(getEngine('OpenAI'))
         }
     }, [settings?.provider])
+
+    // 检测是否是首次使用
+    useEffect(() => {
+        if (useChatStore.getState().chatUser.isFirstTimeUse) {
+            setShowSettings(true)
+        }
+    }, [setShowSettings])
 
     const handleSubmit = useCallback(
         async (e?: React.FormEvent) => {
@@ -825,9 +822,10 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     /*     const { isSignedIn } = useClerkUser()
 
     const showAuthModal = useChatStore((state) => state.showAuthModal) */
-    const { editableText, setEditableText } = useChatStore(
+    const { editableText, actions, setEditableText } = useChatStore(
         (state) => ({
             editableText: state.editableText,
+            actions: state.actions,
             setEditableText: state.setEditableText,
         }),
         shallow
@@ -878,24 +876,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
     }, [learningLang, actionStr])
 
     const translatedLanguageDirection = useMemo(() => getLangConfig(learningLang[0]).direction, [learningLang])
-
-    const addToAnki = async (deckname: string, front: string, back: string) => {
-        const connected = await isConnected()
-
-        if (connected) {
-            try {
-                await addNewNote(deckname, front, back)
-                toast.success(t('Added to review'))
-            } catch (error) {
-                console.error('Error adding note:', error)
-                toast.error(`Error: ${error}`)
-            }
-        } else {
-            console.debug('Anki Not connected')
-            setShowAnkiNote(true)
-            toast.error('Anki Not connected', { duration: 5000 })
-        }
-    }
 
     // Reposition the popup card to prevent it from extending beyond the screen.
     useEffect(() => {
@@ -1047,10 +1027,12 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         return () => unsubscribe()
     }, [])
 
+    // 初始化 answers
     useEffect(() => {
         if (selectedWord && selectedWord.answers) {
             setAnswers(selectedWord.answers)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
@@ -1136,6 +1118,8 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             }
             beforeTranslate()
             let isStopped = false
+            const messageId = crypto.randomUUID()
+            const date = Date.now()
             try {
                 await askAI(
                     {
@@ -1169,50 +1153,50 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                     ? message.content
                                     : translatedText + message.content
 
-                                const actionName = isOpenToAsk ? question : activateAction?.name
+                                const saveKey = useChatStore.getState().currentConversationKey
+
                                 // 更新 answers
-                                const newAnswers = {
-                                    ...answers,
-                                    [actionName || question]: {
-                                        text: newTranslatedText,
+                                let newAnswers = {}
+
+                                const conversationMessages: ChatMessage[] = [
+                                    ...(answers[saveKey || question]?.conversationMessages || []),
+                                    {
+                                        role: 'user',
+                                        content: activateAction?.name || question || '',
+                                        createdAt: date,
+                                        messageId: messageId,
                                         format: activateAction?.outputRenderingFormat || 'markdown',
                                     },
+                                    {
+                                        role: 'assistant',
+                                        content: newTranslatedText,
+                                        createdAt: date,
+                                        messageId: messageId,
+                                        format: activateAction?.outputRenderingFormat || 'markdown',
+                                    },
+                                ]
+                                newAnswers = {
+                                    ...answers,
+                                    [saveKey || question]: {
+                                        conversationMessages,
+                                    },
                                 }
+
                                 setAnswers(newAnswers)
 
                                 return newTranslatedText
                             })
                         },
-                        onFinish: (reason) => {
+                        onFinished: (reason) => {
                             afterTranslate(reason)
                             setTranslatedText((translatedText) => {
                                 const result = translatedText
-                                const actionName = isOpenToAsk ? question : activateAction?.name
-
-                                updateWordAnswer(
-                                    actionName || question,
-                                    result,
-                                    activateAction?.outputRenderingFormat || 'markdown',
-                                    messageId,
-                                    conversationId,
-                                    fileId,
-                                    wordIdx
-                                )
-
                                 return result
                             })
                         },
                         onError: (error) => {
                             setActionStr('Error')
-                            if (settings?.provider === 'OneAPI' && error && typeof error === 'object') {
-                                setIsNotLogin(true)
-                                setErrorMessage(
-                                    t('余额不足或者时间到期，请在one-api中进行充值和设置') ||
-                                        '余额不足或者时间到期，请在one-api中进行充值和设置'
-                                )
-                            } else {
-                                setErrorMessage(error.toString())
-                            }
+                            setErrorMessage(error.toString())
                         },
                     },
                     engine,
@@ -1231,6 +1215,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                     stopLoading()
                     isStopped = true
                 }
+                setAction(undefined)
             }
         },
 
@@ -1254,11 +1239,9 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             engine,
             isOpenToAsk,
             showTextParser,
-            answers,
             setAnswers,
-            updateWordAnswer,
-            messageId,
-            conversationId,
+            answers,
+            setAction,
         ]
     )
 
@@ -1294,7 +1277,6 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [answerFlag])
 
-
     const [isOCRProcessing, setIsOCRProcessing] = useState(false)
     const [showOCRProcessing, setShowOCRProcessing] = useState(false)
 
@@ -1319,7 +1301,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             translatedStopSpeakRef.current()
         }
     }, [])
-    const handleEditSpeakAction = async () => {
+    const handleEditSpeakAction = async (text?: string) => {
         if (isSpeakingEditableText) {
             editableStopSpeakRef.current()
             setIsSpeakingEditableText(false)
@@ -1328,19 +1310,20 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         setIsSpeakingEditableText(true)
         const lang = await detectLang(quoteText || editableText || finalText)
         const { stopSpeak } = await speak({
-            text: quoteText || editableText || finalText,
+            text: text || quoteText || editableText || finalText,
             lang: lang,
             onFinish: () => setIsSpeakingEditableText(false),
         })
         editableStopSpeakRef.current = stopSpeak
     }
 
-    const handleYouglishSpeakAction = async () => {
+    const handleYouglishSpeakAction = async (text?: string) => {
         if (!showYouGlish) {
             setShowYouGlish(true)
         } else {
             setShowYouGlish(false)
         }
+        setYouglishQuery(text || quoteText || editableText || finalText)
     }
 
     const handleTranslatedSpeakAction = async (messageId?: string, conversationId?: string, text?: string) => {
@@ -1401,6 +1384,23 @@ function InnerTranslator(props: IInnerTranslatorProps) {
         )
     }
 
+    const [showCategory, setShowCategory] = useState(false)
+
+    const handleMouseEnter = () => {
+        setShowCategory(true)
+    }
+
+    const handleMouseLeave = () => {
+        setShowCategory(false)
+    }
+
+    // 如果教程未完成，则显示分类选择器
+    useEffect(() => {
+        if (!useChatStore.getState().settings.tutorialCompleted) {
+            setShowCategory(true)
+        }
+    }, [])
+
     return (
         <div
             className={clsx(styles.popupCard, {
@@ -1436,9 +1436,24 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                             top: 0,
                             zIndex: 100,
                             backgroundColor: theme.colors.backgroundPrimary,
+                            height: showCategory ? 'auto' : '8px',
+                            overflow: 'hidden',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            opacity: showCategory ? 1 : 0.6,
+                            transitionDelay: showCategory ? '0.1s' : '0s',
                         }}
+                        onMouseEnter={handleMouseEnter}
+                        onMouseLeave={handleMouseLeave}
                     >
-                        <CategorySelector />
+                        <div
+                            style={{
+                                transform: `translateY(${showCategory ? '0' : '-100%'})`,
+                                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                opacity: showCategory ? 1 : 0,
+                            }}
+                        >
+                            <CategorySelector />
+                        </div>
                     </div>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div className={styles.popupCardContentContainer}>
@@ -1455,27 +1470,17 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                 {selectedWord?.text && !showFullQuoteText && (
                                     <QuotePreview
                                         showFullText={showFullQuoteText}
-                                        toggleFullText={() => setShowFullQuoteText(!showFullQuoteText)}
+                                        toggleFullText={handleShowFullText}
                                         onClose={() => {
                                             deleteSelectedWord()
                                         }}
                                         previewLength={200}
-                                        onSpeak={handleEditSpeakAction}
-                                        onYouglish={handleYouglishSpeakAction}
+                                        onSpeak={() => handleEditSpeakAction(selectedWord?.text)}
+                                        onYouglish={() => handleYouglishSpeakAction(selectedWord?.text)}
                                         isSpeaking={isSpeakingEditableText}
                                         text={editableText}
                                     />
                                 )}
-                                <div style={{ display: 'flex', flexDirection: 'row', height: '100%' }}>
-                                    <WordListUploader />
-                                    {showFullQuoteText ? null : (
-                                        <TextareaWithActions
-                                            editableText={editableText}
-                                            onChange={setEditableText}
-                                            onSubmit={handleSubmit}
-                                        />
-                                    )}
-                                </div>
                                 {selectedWord?.text !== '' && (
                                     <div
                                         className={styles.popupCardTranslatedContainer}
@@ -1515,59 +1520,205 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                                                 style={{
                                                     marginTop: '20px',
                                                     width: '100%',
+                                                    display: 'flex',
+                                                    flexDirection: 'row',
+                                                    alignItems: 'flex-start',
+                                                    position: 'relative',
+                                                    paddingBottom: '120px',
+                                                    height: '100%',
                                                 }}
                                             >
+                                                {/* WordList侧边栏 */}
                                                 <div
-                                                    ref={translatedContentRef}
-                                                    className={styles.popupCardTranslatedContentContainer}
+                                                    style={{
+                                                        position: 'fixed',
+                                                        height: '50vh',
+                                                        width: 'auto',
+                                                        left: showSidebar ? '16px' : '-270px', // 根据状态控制位置
+                                                        overflowY: 'auto',
+                                                        paddingRight: '16px',
+                                                        boxSizing: 'border-box',
+                                                        transition: 'left 0.3s ease', // 添加过渡动画
+                                                    }}
                                                 >
-                                                    <div style={{ width: '100%' }}>
+                                                    <WordListUploader />
+                                                </div>
+                                                {/* 主内容区 */}
+                                                <div
+                                                    style={{
+                                                        marginLeft: showSidebar ? '266px' : '0',
+                                                        flex: 1,
+                                                        width: showSidebar ? 'calc(100% - 266px)' : '100%',
+                                                        transition: 'all 0.3s ease',
+                                                    }}
+                                                >
+                                                    <div
+                                                        ref={translatedContentRef}
+                                                        className={styles.popupCardTranslatedContentContainer}
+                                                    >
+                                                        {/* 空功能提示 */}
+                                                        {actions.length === 0 && !settings.hideEmptyActionsTip && (
+                                                            <LabelSmall
+                                                                marginTop='8px'
+                                                                color='#825447'
+                                                                display='flex'
+                                                                alignItems='flex-start'
+                                                                $style={{
+                                                                    gap: '8px',
+                                                                    backgroundColor: 'rgb(241, 230, 230)',
+                                                                    padding: '12px',
+                                                                    borderRadius: '8px',
+                                                                    fontSize: '13px',
+                                                                    lineHeight: '1.5',
+                                                                    position: 'relative',
+                                                                }}
+                                                            >
+                                                                <IoIosInformationCircle
+                                                                    size={18}
+                                                                    style={{
+                                                                        flexShrink: 0,
+                                                                        marginTop: '2px',
+                                                                        color: '#825447',
+                                                                    }}
+                                                                />
+                                                                <div
+                                                                    style={{
+                                                                        display: 'flex',
+                                                                        flexDirection: 'column',
+                                                                        gap: '8px',
+                                                                        flex: 1,
+                                                                    }}
+                                                                >
+                                                                    <span>{t('There are no available actions')}</span>
+                                                                    <div
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            gap: '8px',
+                                                                            flexWrap: 'wrap',
+                                                                        }}
+                                                                    >
+                                                                        <a
+                                                                            href={`${
+                                                                                import.meta.env.DEV
+                                                                                    ? 'http://localhost:3000'
+                                                                                    : 'https://gpt-tutor-website-with-stripe.vercel.app'
+                                                                            }/actionStore?targetLang=${learningLang}&lang=${userLang}`}
+                                                                            target='_blank'
+                                                                            rel='noreferrer'
+                                                                            className={css({
+                                                                                'color': '#825447',
+                                                                                'textDecoration': 'none',
+                                                                                'fontSize': '12px',
+                                                                                'padding': '6px 12px',
+                                                                                'borderRadius': '4px',
+                                                                                'backgroundColor':
+                                                                                    'rgba(130, 84, 71, 0.1)',
+                                                                                'display': 'flex',
+                                                                                'alignItems': 'center',
+                                                                                'gap': '4px',
+                                                                                'transition': 'all 0.2s ease',
+                                                                                ':hover': {
+                                                                                    backgroundColor:
+                                                                                        'rgba(130, 84, 71, 0.2)',
+                                                                                    transform: 'translateY(-1px)',
+                                                                                },
+                                                                            })}
+                                                                        >
+                                                                            {t('Go to the action store')}
+                                                                        </a>
+                                                                        <a
+                                                                            href='#'
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault()
+                                                                                useChatStore
+                                                                                    .getState()
+                                                                                    .setShowActionManager(true)
+                                                                            }}
+                                                                            className={css({
+                                                                                'color': '#825447',
+                                                                                'textDecoration': 'none',
+                                                                                'fontSize': '12px',
+                                                                                'padding': '6px 12px',
+                                                                                'borderRadius': '4px',
+                                                                                'backgroundColor':
+                                                                                    'rgba(130, 84, 71, 0.1)',
+                                                                                'display': 'flex',
+                                                                                'alignItems': 'center',
+                                                                                'gap': '4px',
+                                                                                'transition': 'all 0.2s ease',
+                                                                                ':hover': {
+                                                                                    backgroundColor:
+                                                                                        'rgba(130, 84, 71, 0.2)',
+                                                                                    transform: 'translateY(-1px)',
+                                                                                },
+                                                                            })}
+                                                                        >
+                                                                            {t('Create a new action')}
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    onClick={handleHideEmptyActionsTip}
+                                                                    className={css({
+                                                                        'position': 'absolute',
+                                                                        'right': '8px',
+                                                                        'top': '8px',
+                                                                        'cursor': 'pointer',
+                                                                        'padding': '4px',
+                                                                        'display': 'flex',
+                                                                        'alignItems': 'center',
+                                                                        'justifyContent': 'center',
+                                                                        'color': '#825447',
+                                                                        'transition': 'all 0.2s ease',
+                                                                        'borderRadius': '50%',
+                                                                        ':hover': {
+                                                                            backgroundColor: 'rgba(130, 84, 71, 0.1)',
+                                                                        },
+                                                                    })}
+                                                                >
+                                                                    <IoClose size={14} />
+                                                                </div>
+                                                            </LabelSmall>
+                                                        )}
                                                         <AnswerManager
                                                             isLoading={isLoading}
-                                                            isSpeakingTranslatedText={isSpeakingTranslatedText}
                                                             styles={styles}
                                                             showFullQuoteText={showFullQuoteText}
                                                             setShowFullQuoteText={setShowFullQuoteText}
                                                             forceTranslate={forceTranslate}
-                                                            handleTranslatedSpeakAction={handleTranslatedSpeakAction}
                                                             messageId={messageId}
                                                             conversationId={conversationId}
                                                             finalText={finalText}
                                                             quoteText={quoteText}
                                                             engine={engine}
-                                                            addToAnki={addToAnki}
                                                         />
                                                     </div>
                                                 </div>
-                                                <Dropzone noClick={true}>
-                                                    {({ getRootProps }) => (
-                                                        <div
-                                                            {...getRootProps()}
-                                                            style={{
-                                                                flex: 1,
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                            }}
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    display: 'flex',
-                                                                    flexDirection: 'row',
-                                                                    alignItems: 'center',
-                                                                    paddingTop: 8,
-                                                                    transition: 'all 0.3s linear',
-                                                                    overflow: 'visible',
-                                                                }}
-                                                            >
-                                                                <div
-                                                                    style={{
-                                                                        marginRight: 'auto',
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </Dropzone>
+                                                {/* 底部输入框 */}
+                                                {showFullQuoteText ? null : (
+                                                    <div
+                                                        style={{
+                                                            position: 'fixed',
+                                                            bottom: 0,
+                                                            left: 0,
+                                                            right: 0,
+                                                            /*                                                             zIndex: 999, */
+                                                            background: theme.colors.backgroundPrimary,
+                                                            borderTop: `1px solid ${theme.colors.borderOpaque}`,
+                                                            boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
+                                                        }}
+                                                    >
+                                                        <TextareaWithActions
+                                                            editableText={editableText}
+                                                            onChange={setEditableText}
+                                                            editorRef={editorRef}
+                                                            onSubmit={handleSubmit}
+                                                            onSpeak={() => handleEditSpeakAction(editableText)}
+                                                            onYouglish={() => handleYouglishSpeakAction(editableText)}
+                                                            isSpeaking={isSpeakingEditableText}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                         {isNotLogin && settings?.provider === 'ChatGPT' && (
@@ -1664,11 +1815,13 @@ function InnerTranslator(props: IInnerTranslatorProps) {
                 </div>
             </div>
             <div className={styles.footer}>
-                <Tooltip content={showSettings ? t('Go to Translator') : t('Go to Settings')} placement='right'>
-                    <div data-testid='translator-settings-toggle' onClick={() => setShowSettings(!showSettings)}>
-                        {showSettings ? <AiOutlineTranslation size={15} /> : <IoSettingsOutline size={15} />}
-                    </div>
-                </Tooltip>
+                {showSettings ? (
+                    <Tooltip content={t('Go to Main')} placement='right'>
+                        <div data-testid='translator-settings-toggle' onClick={() => setShowSettings(!showSettings)}>
+                            <AiOutlineTranslation size={15} />
+                        </div>
+                    </Tooltip>
+                ) : null}
             </div>
 
             <Modal
@@ -1792,7 +1945,7 @@ function InnerTranslator(props: IInnerTranslatorProps) {
             {showYouGlish && (
                 <div>
                     <YouGlishComponent
-                        query={finalText}
+                        query={youglishQuery}
                         triggerYouGlish={showYouGlish}
                         language={LANG_CONFIGS[youglishLang]?.nameEn || 'English'}
                         accent={LANG_CONFIGS[youglishLang]?.accent || 'us'}

@@ -169,6 +169,17 @@
   "Determine which groups this action belongs to": "حدد المجموعات التي ينتمي إليها هذا الإجراء",
   "You can set multiple group names": "يمكنك أضافة عناصر مجموعة متعددة",
   "Enter a group, then press Enter": "اكتب مجموعة واضحة ثم اضغط Enter",
-  "Finish": "أنهِ هذا الموضوع وأضف للمراجعة"
+  "Finish": "أنهِ هذا الموضوع وأضف للمراجعة",
+  "Here you can switch between different function categories.": "هنا يمكنك التبديل بين فئات الوظائف المختلفة.",
+  "Click here to see more options and manage your settings.": "انقر هنا لرؤية المزيد من الخيارات وإدارة إعداداتك.",
+  "This is where you can ask your question. Type @ to select a action, ~ to select a conversation, / to select a action group, and press Enter to submit.": "هنا يمكنك طرح سؤالك. اكتب @ لاختيار إجراء، ~ لاختيار محادثة، / لاختيار مجموعة إجراءات، واضغط Enter للإرسال.",
+  "This is the answer area where you can view AI responses and manage them.": "هذه منطقة الإجابة حيث يمكنك عرض ردود الذكاء الاصطناعي وإدارتها.",
+  "Here you can find various actions to interact with the answer, such as speaking, copying, and adding to Anki for review.": "هنا يمكنك العثور على إجراءات مختلفة للتفاعل مع الإجابة، مثل التحدث والنسخ والإضافة إلى Anki للمراجعة.",
+  "Click this button to add the current answer to your Anki deck for later review and memorization.": "انقر على هذا الزر لإضافة الإجابة الحالية إلى مجموعة Anki الخاصة بك للمراجعة والحفظ لاحقًا.",
+  "Back": "رجوع",
+  "Close": "إغلاق",
+  "Got it": "فهمت",
+  "Next": "التالي",
+  "Skip": "تخطي"
 }
 

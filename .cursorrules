@@ -1,0 +1,30 @@
+## 项目概述
+
+这是一个基于 React + TypeScript 构建的浏览器扩展。
+
+## 技术栈
+
+- 前端框架: React + TypeScript
+- 状态管理: Zustand
+- UI 组件: Base Web UI
+- 国际化: i18next
+- 存储: 本地存储 + IndexedDB、
+- 代码规范： ESLint + Prettier
+- 测试： Jest
+
+src/
+├── browser-extension/ # 浏览器扩展相关代码
+├── common/
+│ ├── components/ # 公共组件
+│ ├── engines/ # AI 引擎适配层
+│ ├── hooks/ # 自定义 Hooks
+│ ├── i18n/ # 国际化配置
+│ ├── internal-services/ # 内部服务
+│ └── store/ # 状态管理
+│
+├── public/ # 公共资源
+├── types/ # 类型
+├── utils/ # 工具函数
+└── vite.config.ts # Vite 配置
+└── jest.config.ts # Jest 配置
+

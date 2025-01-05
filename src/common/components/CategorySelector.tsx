@@ -16,7 +16,7 @@ const MORE_TAB_WIDTH = 80
 const MENU_BUTTON_WIDTH = 40
 
 const CategorySelector = () => {
-    const [css] = useStyletron()
+    const [css, theme] = useStyletron()
     const {
         selectedGroup,
         loadFiles,
@@ -24,6 +24,7 @@ const CategorySelector = () => {
         setShowActionManager,
         setShowReviewManager,
         setShowWordBookManager,
+        setShowSettings,
         setShowSidebar,
         showSidebar,
     } = useChatStore()
@@ -45,7 +46,7 @@ const CategorySelector = () => {
     }
 
     const renderToggleButton = () => (
-        <div data-testid="sidebar-toggle">
+        <div data-testid='sidebar-toggle'>
             <Tooltip content={showSidebar ? t('Hide List') : t('Show List')}>
                 <Button
                     onClick={toggleSidebar}
@@ -86,6 +87,78 @@ const CategorySelector = () => {
         setHiddenTabs(newHiddenTabs)
     }, [actionGroups, selectedGroup, tabs])
 
+    const containerStyles = useMemo(
+        () => ({
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            opacity: 1,
+            transform: 'translateY(0)',
+            transition: 'opacity 0.3s ease, transform 0.3s ease',
+        }),
+        []
+    )
+
+    const innerContainerStyles = useMemo(
+        () =>
+            css({
+                width: '100%',
+                borderBottom: '1px solid #e0e0e0',
+                backgroundColor: 'white',
+                boxSizing: 'border-box',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: 0,
+                opacity: 'inherit',
+                transform: 'inherit',
+                transition: 'inherit',
+            }),
+        [css]
+    )
+
+    const tabsOverrides = useMemo(
+        () => ({
+            Root: {
+                style: {
+                    flexGrow: 1,
+                    padding: 0,
+                    margin: 0,
+                    opacity: 'inherit',
+                    transform: 'inherit',
+                    transition: 'inherit',
+                },
+                props: {
+                    'activateOnFocus': true,
+                    'data-testid': 'category-tabs',
+                },
+            },
+            TabList: {
+                style: {
+                    flexWrap: 'nowrap',
+                    padding: 0,
+                    margin: 0,
+                    opacity: 'inherit',
+                    transform: 'inherit',
+                    transition: 'inherit',
+                },
+            },
+            TabBorder: {
+                style: { display: 'none' },
+            },
+            Tab: {
+                style: {
+                    'transition': 'background-color 0.2s ease',
+                    ':hover': {
+                        backgroundColor: theme.colors.backgroundSecondary,
+                    },
+                },
+            },
+        }),
+        [theme.colors.backgroundSecondary]
+    )
+
     useEffect(() => {
         const debouncedUpdate = debounce(updateVisibleTabs, 100)
         const resizeObserver = new ResizeObserver(debouncedUpdate)
@@ -117,51 +190,26 @@ const CategorySelector = () => {
         if (id === '__manager__') setShowActionManager(true)
         else if (id === '__review__') setShowReviewManager(true)
         else if (id === '__wordbook__') setShowWordBookManager(true)
+        else if (id === '__settings__') setShowSettings(true)
     }
 
     useEffect(() => {
         console.log('[CategorySelector] Mounted with refs:', {
             containerRef: containerRef.current,
-            hasDataTestId: containerRef.current?.querySelector('[data-testid="category-tabs"]') !== null
+            hasDataTestId: containerRef.current?.querySelector('[data-testid="category-tabs"]') !== null,
         })
     }, [])
 
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <div
-                ref={containerRef}
-                className={css({
-                    width: '100%',
-                    borderBottom: '1px solid #e0e0e0',
-                    backgroundColor: 'white',
-                    boxSizing: 'border-box',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: 0,
-                })}
-            >
+        <div style={containerStyles}>
+            <div ref={containerRef} className={innerContainerStyles}>
                 {renderToggleButton()}
                 <Tabs
                     activeKey={selectedGroup}
                     onChange={handleTabChange}
                     fill={FILL.fixed}
                     renderAll={false}
-                    overrides={{
-                        Root: {
-                            style: { flexGrow: 1, padding: 0, margin: 0 },
-                            props: {
-                                'activateOnFocus': true,
-                                'data-testid': 'category-tabs',
-                            },
-                        },
-                        TabList: {
-                            style: { flexWrap: 'nowrap', padding: 0, margin: 0 },
-                        },
-                        TabBorder: {
-                            style: { display: 'none' },
-                        },
-                    }}
+                    overrides={tabsOverrides}
                 >
                     {visibleTabs.map((tab) => (
                         <Tab
@@ -197,6 +245,7 @@ const CategorySelector = () => {
                                                 { id: '__manager__', label: t('Action Manager') },
                                                 /*                                                 { id: '__review__', label: t('Review Manager') }, */
                                                 { id: '__wordbook__', label: t('Word Book Manager') },
+                                                { id: '__settings__', label: t('Settings') },
                                             ]}
                                             onItemSelect={({ item }) => {
                                                 if (item.id) {
